@@ -4,13 +4,14 @@ from Crypto.Hash import SHA256
 class Block():
 
     def get_hash(self):
-        if not hasattr(block, 'hash'):
+        if not hasattr(self, 'hash'):
             self.hash = SHA256.new(self.raw_data)
         return self.hash
 
     def set_raw_data(self, raw_data):
         self.raw_data = raw_data
-        del self.hash
+        if hasattr(self, 'hash')
+            del self.hash
 
     def parse(self):
         self.timestamp = struct.unpack('<L', self.raw_data)[0]
