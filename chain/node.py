@@ -1,8 +1,8 @@
 import time
-from node_api import NodeApi
-from dag import Dag
-from block_signers import BlockSigners
-from permissions import Permissions
+from chain.node_api import NodeApi
+from chain.dag import Dag
+from chain.block_signers import BlockSigners
+from chain.permissions import Permissions
 
 class Node():
     

@@ -1,4 +1,4 @@
-from validator import Validator
+from chain.validator import Validator
 from base64 import b64decode,b64encode
 from Crypto.PublicKey import RSA
 

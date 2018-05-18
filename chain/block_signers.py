@@ -1,4 +1,4 @@
-from block_signer import BlockSigner
+from chain.block_signer import BlockSigner
 from base64 import b64decode,b64encode
 from Crypto.PublicKey import RSA
 

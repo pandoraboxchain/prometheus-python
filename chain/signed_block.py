@@ -1,6 +1,6 @@
 from Crypto.Hash import SHA256
 import struct
-from block import Block
+from chain.block import Block
 
 class SignedBlock():
 

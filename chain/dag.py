@@ -1,5 +1,5 @@
-from block import Block
-from signed_block import SignedBlock
+from chain.block import Block
+from chain.signed_block import SignedBlock
 from Crypto.Hash import SHA256
 import binascii
 import datetime

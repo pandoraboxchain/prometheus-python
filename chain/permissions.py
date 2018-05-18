@@ -1,4 +1,4 @@
-from validators import Validators
+from chain.validators import Validators
 
 class Permissions():
 
