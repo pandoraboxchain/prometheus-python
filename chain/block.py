@@ -14,20 +14,24 @@ class Block():
             del self.hash
 
     def parse(self):
-        self.timestamp = struct.unpack_from("I", self.raw_data)
-        self.prev_hash = struct.unpack_from("32s", self.raw_data, 4)
-        randoms_count = struct.unpack_from("h", self.raw_data, 36)[0]
+        self.timestamp = struct.unpack_from("I", self.raw_data)[0]
+        hash_count = struct.unpack_from("h", self.raw_data, 4)[0]
+        self.prev_hashes = []
+        for i in range(0, hash_count):
+            prev_hash = struct.unpack_from("32s", self.raw_data, 6 + 32 * i)[0]
+            self.prev_hashes.append(prev_hash)
+        offset = 6 + 32 * hash_count
+        randoms_count = struct.unpack_from("h", self.raw_data, offset)[0]
         if randoms_count > 0:
-            self.randoms = struct.unpack_from("%sh" % randoms_count, self.raw_data, 38)
+            self.randoms = struct.unpack_from("%sh" % randoms_count, self.raw_data, offset + 2)
 
     def pack(self):
-        block_format = "I32sh%sh" % len(self.randoms)
-        block_struct = struct.Struct(block_format)
-        return block_struct.pack(self.timestamp,
-            self.prev_hash.digest(),
-            len(self.randoms),
-            *self.randoms)
-
+        raw_block = struct.pack("I", self.timestamp)
+        raw_block += struct.pack("h", len(self.prev_hashes))
+        for prev_hash in self.prev_hashes:
+            raw_block += struct.pack("32s", prev_hash)
+        raw_block += struct.pack("h%sh" % len(self.randoms), len(self.randoms), *self.randoms)
+        return raw_block
 
     def set_signature(self, signature):
         self.signature = signature
