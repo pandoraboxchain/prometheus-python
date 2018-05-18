@@ -2,10 +2,12 @@ from block import Block
 from signed_block import SignedBlock
 from Crypto.Hash import SHA256
 import binascii
+import time
 
 class Dag():
     
-    def __init__(self):
+    def __init__(self, genesis_creation_time):
+        self.genesis_creation_time = genesis_creation_time
         self.blocks = {}
         genesis_hash = self.genesis_block().get_hash();
         signed_genesis_block = SignedBlock()
@@ -14,7 +16,7 @@ class Dag():
 
     def genesis_block(self):
         block = Block()
-        block.timestamp = 0
+        block.timestamp = self.genesis_creation_time
         block.prev_hashes = [SHA256.new(b"0").digest()]
         block.randoms = []
         return block
@@ -69,5 +71,13 @@ class Dag():
         for keyhash in top_hashes:
             print(binascii.hexlify(keyhash))
 
-            
+    def sign_block(self):
+        block = Block()
+        block.prev_hashes = [self.get_top_blocks()]
+        block.timestamp = time.time();
+        block.randoms = []
+
+        signed_block = SignedBlock()
+        signed_block.set_block(block);
+        self.blocks[block.get_hash().digest()] = signed_block;
 
