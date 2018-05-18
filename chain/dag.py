@@ -1,11 +1,15 @@
-from block import Block
-from signed_block import SignedBlock
+from chain.block import Block
+from chain.signed_block import SignedBlock
 from Crypto.Hash import SHA256
 import binascii
+import datetime
+
+BLOCK_TIME = 15
 
 class Dag():
     
-    def __init__(self):
+    def __init__(self, genesis_creation_time):
+        self.genesis_creation_time = genesis_creation_time
         self.blocks = {}
         genesis_hash = self.genesis_block().get_hash();
         signed_genesis_block = SignedBlock()
@@ -14,7 +18,7 @@ class Dag():
 
     def genesis_block(self):
         block = Block()
-        block.timestamp = 0
+        block.timestamp = self.genesis_creation_time
         block.prev_hashes = [SHA256.new(b"0").digest()]
         block.randoms = []
         return block
@@ -69,5 +73,24 @@ class Dag():
         for keyhash in top_hashes:
             print(binascii.hexlify(keyhash))
 
-            
+    def sign_block(self, private): #TODO move somewhere more approptiate
+        block = Block()
+        block.prev_hashes = [*self.get_top_blocks()]
+        block.timestamp = int(datetime.datetime.now().timestamp())
+        block.randoms = []
+
+        block_hash = block.get_hash().digest()
+        signature = private.sign(block_hash, 0)[0]  #for some reason it's tuple with second item being None
+        signed_block = SignedBlock()
+        signed_block.set_block(block)
+        signed_block.set_signature(signature)
+        self.blocks[block_hash] = signed_block
+        print("block signed. Current blockchain state is")
+        print(self.blocks)
+        return signed_block
+    
+    def get_current_timeframe_block_number(self):
+        time_diff = int(datetime.datetime.now().timestamp()) - self.genesis_block().timestamp
+        return int(time_diff / BLOCK_TIME)
+
 
