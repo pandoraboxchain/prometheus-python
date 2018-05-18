@@ -1,8 +1,8 @@
-from chain.validators import Validators
+from validators import Validators
 
 class Permissions():
 
-    def get_pemission(self, dag, i):
+    def get_permission(self, dag, i):
         if not hasattr(self, 'validators'):
             self.validators = Validators()
         item = i % self.validators.get_size()

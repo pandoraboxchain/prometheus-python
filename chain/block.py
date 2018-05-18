@@ -22,6 +22,6 @@ class Block():
         raw_block = struct.pack("I", self.timestamp)
         raw_block += struct.pack("h", len(self.prev_hashes))
         for prev_hash in self.prev_hashes:
-            raw_block += struct.pack("32s", prev_hash)
+            raw_block += prev_hash
         raw_block += struct.pack("h%sh" % len(self.randoms), len(self.randoms), *self.randoms)
         return raw_block

@@ -2,7 +2,9 @@ from block import Block
 from signed_block import SignedBlock
 from Crypto.Hash import SHA256
 import binascii
-import time
+import datetime
+
+BLOCK_TIME = 15
 
 class Dag():
     
@@ -71,13 +73,23 @@ class Dag():
         for keyhash in top_hashes:
             print(binascii.hexlify(keyhash))
 
-    def sign_block(self):
+    def sign_block(self, private): #TODO move somewhere more approptiate
         block = Block()
-        block.prev_hashes = [self.get_top_blocks()]
-        block.timestamp = time.time();
+        block.prev_hashes = [*self.get_top_blocks()]
+        block.timestamp = int(datetime.datetime.now().timestamp())
         block.randoms = []
 
+        block_hash = block.get_hash().digest()
+        signature = private.sign(block_hash, 0)[0]  #for some reason it's tuple with second item being None
         signed_block = SignedBlock()
-        signed_block.set_block(block);
-        self.blocks[block.get_hash().digest()] = signed_block;
+        signed_block.set_block(block)
+        signed_block.set_signature(signature)
+        self.blocks[block_hash] = signed_block
+        print("block signed. Current blockchain state is")
+        print(self.blocks)
+        return signed_block
+    
+    def get_current_timeframe_block_number(self):
+        return 1
+
 

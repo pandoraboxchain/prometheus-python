@@ -15,12 +15,15 @@ class Node():
     def start(self):
         pass
 
-    def loop(self):
+    def run(self):
         while True:
-            time.sleep(10)
             for block_singer in self.block_signers.block_signers:
-                if self.permissions(self.dag, )
-            signed_block = self.dag.sign_block()
-            self.node_api.push_block(signed_block.pack())
+                current_block_validator = self.permissions.get_permission(self.dag, self.dag.get_current_timeframe_block_number())
+                if current_block_validator.public_key == block_singer.private_key.publickey():
+                    signed_block = self.dag.sign_block(block_singer.private_key)
+                    raw_signed_block = signed_block.pack();
+                    NodeApi.broadcast_block(raw_signed_block)
+            time.sleep(5)
+            
 
 

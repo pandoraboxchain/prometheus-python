@@ -13,13 +13,14 @@ class SignedBlock():
         self.block.parse(raw_block)
 
     def pack(self):
-        signature_len = len(self.signature)
-        raw_signed_block = struct.pack("h", signature_len)
-        raw_signed_block += struct.pack("%sh" % signature_len, self.signature)
+        #signature_len = hex(self.signature)
+        #raw_signed_block = struct.pack("h", signature_len)
+        #raw_signed_block += struct.pack("%sh" % signature_len, self.signature)
         raw_block = self.block.pack()
+        raw_signed_block = self.signature.to_bytes(128, byteorder='big')
         raw_signed_block += struct.pack("h", len(raw_block))
-        raw_signed_block += struct.pack("%sh", raw_block)
-        return raw_block
+        raw_signed_block += raw_block
+        return raw_signed_block
 
     def set_block(self, block):
         self.block = block

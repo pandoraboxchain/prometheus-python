@@ -8,3 +8,6 @@ class NodeApi():
 
     def push_block(hash):
         return True
+
+    def broadcast_block(raw_signed_block):
+        return True
