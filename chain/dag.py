@@ -80,7 +80,7 @@ class Dag():
         block.randoms = []
 
         block_hash = block.get_hash().digest()
-        signature = private.sign(block_hash, 0)[0]  #for some reason it's tuple with second item being None
+        signature = private.sign(block_hash, 0)[0]  #for some reason it returns tuple with second item being None
         signed_block = SignedBlock()
         signed_block.set_block(block)
         signed_block.set_signature(signature)
@@ -93,4 +93,8 @@ class Dag():
         time_diff = int(datetime.datetime.now().timestamp()) - self.genesis_block().timestamp
         return int(time_diff / BLOCK_TIME)
 
+    def is_current_timeframe_block_present(self):
+        for _, block in self.blocks.items():
+            if int(datetime.datetime.now().timestamp()) - block.block.timestamp < BLOCK_TIME:
+                return True;
 
