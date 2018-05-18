@@ -90,6 +90,7 @@ class Dag():
         return signed_block
     
     def get_current_timeframe_block_number(self):
-        return 1
+        time_diff = int(datetime.datetime.now().timestamp()) - self.genesis_block().timestamp
+        return int(time_diff / BLOCK_TIME)
 
 
