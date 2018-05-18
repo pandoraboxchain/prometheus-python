@@ -1,4 +1,4 @@
-from node import Node
+from chain.node import Node
 import datetime
 import time
 
@@ -10,5 +10,7 @@ class Initializer():
 
         node = Node(genesis_creation_time)
         node.run()
+
+
         
 Initializer()
