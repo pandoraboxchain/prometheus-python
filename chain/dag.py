@@ -6,6 +6,15 @@ import datetime
 
 BLOCK_TIME = 5
 
+class Epoch():
+    ENCRYPTED = 0
+    REVEALED = 1
+    PARTIAL = 2
+
+    ENCRYPTED_DURATION = 100
+    REVEALED_DURATION = 200
+    PARTIAL_DURATION = 3
+
 class Dag():
     
     def __init__(self, genesis_creation_time):
@@ -102,3 +111,22 @@ class Dag():
                 return True
         return False
 
+    def get_current_epoch(self):
+        current_block_number = self.get_current_timeframe_block_number();
+        return self.get_epoch_by_block_number(current_block_number)
+
+    def get_epoch_by_block_number(self, current_block_number):
+        era_duration = Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION + Epoch.PARTIAL_DURATION
+        era_number = self.get_era_number(current_block_number)
+        era_start_block = era_number * era_duration
+        print(current_block_number, "is in era", era_number)
+        if current_block_number <=  era_start_block + Epoch.ENCRYPTED_DURATION:
+            return Epoch.ENCRYPTED
+        elif current_block_number <=  era_start_block + Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION:
+            return Epoch.REVEALED
+        else:
+            return Epoch.PARTIAL
+
+    def get_era_number(self, current_block_number):
+        era_duration = Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION + Epoch.PARTIAL_DURATION
+        return current_block_number // era_duration
