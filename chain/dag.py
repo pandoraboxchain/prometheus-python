@@ -93,7 +93,12 @@ class Dag():
         return int(time_diff / BLOCK_TIME)
 
     def is_current_timeframe_block_present(self):
+        genesis_timestamp = self.genesis_block().timestamp
+        current_block_number = self.get_current_timeframe_block_number();
+        time_from = genesis_timestamp + current_block_number * BLOCK_TIME
+        time_to = genesis_timestamp + (current_block_number + 1) * BLOCK_TIME
         for _, block in self.blocks.items():
-            if int(datetime.datetime.now().timestamp()) - block.block.timestamp < BLOCK_TIME:
-                return True;
+            if time_from <= block.block.timestamp < time_to:
+                return True
+        return False
 
