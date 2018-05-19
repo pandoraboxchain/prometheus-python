@@ -4,7 +4,7 @@ from Crypto.Hash import SHA256
 import binascii
 import datetime
 
-BLOCK_TIME = 15
+BLOCK_TIME = 5
 
 class Dag():
     
@@ -85,8 +85,7 @@ class Dag():
         signed_block.set_block(block)
         signed_block.set_signature(signature)
         self.blocks[block_hash] = signed_block
-        print("block signed. Current blockchain state is")
-        print(self.blocks)
+        print(block_hash.hex(), " was added to blockchain")
         return signed_block
     
     def get_current_timeframe_block_number(self):

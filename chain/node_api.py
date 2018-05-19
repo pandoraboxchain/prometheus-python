@@ -1,7 +1,7 @@
 class NodeApi():
 
     nodes = []
-    def __init__(self, node):
+    def register_node(self, node):
         self.nodes.append(node)
 
     def get_list_of_actual_chains(self):
@@ -16,5 +16,7 @@ class NodeApi():
     def gossip_malicious(self, node_id):
         return True
 
-    def broadcast_block(self, raw_signed_block):
-        return True
+    def broadcast_block(self, sender_node_id, raw_signed_block):
+        for node in self.nodes:
+            if node.node_id != sender_node_id:
+                node.handle_block_message(raw_signed_block)
