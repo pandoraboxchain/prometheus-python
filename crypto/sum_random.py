@@ -1,3 +1,5 @@
+from Crypto.Hash import SHA256
+
 def sum_random(random_list):
     res = random_list[0]
     for item in random_list[1:]:
