@@ -1,5 +1,6 @@
 from chain.node import Node
 from chain.node_api import NodeApi
+from chain.block_signers import BlockSigners
 
 import datetime
 import time
@@ -11,17 +12,19 @@ class Initializer():
         genesis_creation_time = int(datetime.datetime.now().timestamp())
         print("genesis_creation_time", genesis_creation_time)
 
+        private_keys = BlockSigners()
+
         network = NodeApi()
 
-        node1 = Node(genesis_creation_time, 1, network)
-        node2 = Node(genesis_creation_time, 2, network)   
-
-        network.register_node(node1)
-        network.register_node(node2)
+        tasks = []
+         
+        for i in range(0, 10):
+            node =  Node(genesis_creation_time, i, network, private_keys.block_signers[i])
+            network.register_node(node)
+            tasks.append(node.run())  
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(node1.run())
-        loop.run_until_complete(node2.run())        
+        loop.run_until_complete(asyncio.gather(*tasks))       
         loop.close()
         
 Initializer()
