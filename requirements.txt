@@ -1,2 +1,2 @@
 pycrypto==2.6.1
-secretsharing==0.2.6
+git+https://github.com/blockstack/secret-sharing.git
