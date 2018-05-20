@@ -1,3 +1,6 @@
+import random
+import string
+
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
