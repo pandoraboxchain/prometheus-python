@@ -22,6 +22,13 @@ class PenaltyNotIncludingGossip():
                 counter += 1
         return counter*4
 
+class PenaltyGossipPosition():
+
+    def get_penalty(self, dag, block_obj, block_sub):
+        gossips = block_obj.gossips_about_block().get_by_index(block_sub.number - block_obj.number)
+        res = (gossips.block_number - block_obj.number) - 1
+        return res*3
+
 class PanaltyByBlock():
     pass
 
