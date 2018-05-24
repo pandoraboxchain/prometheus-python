@@ -48,6 +48,15 @@ class PenaltyGossipPosition():
         else:
             return 0
 
+if PENALTY_PREV_BLOCK_CONST>=PENALTY_GOSSIP_POSITION:
+    print("FUCK!")
+
+if PENALTY_NOT_INCLUDING_GOSSIP<=PENALTY_GOSSIP_POSITION:
+    print("FUCK!")
+
+if PENALTY_GOSSIP_ABOUT_ME_CONTST>=PENALTY_PREV_BLOCK_CONST:
+    print("FUCK")
+
 class PanaltyByBlock():
     pass
 
