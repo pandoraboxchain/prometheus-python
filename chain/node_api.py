@@ -16,9 +16,10 @@ class NodeApi():
     def gossip_malicious(self, node_id):
         return True
 
-    def broadcast_random(self):
+    def broadcast_transaction(self, sender_node_id, raw_tx):
         for node in self.nodes:
-            
+            if node.node_id != sender_node_id:
+                node.handle_transaction_message(sender_node_id, raw_tx)
 
     def broadcast_block(self, sender_node_id, raw_signed_block):
         for node in self.nodes:

@@ -19,11 +19,11 @@ class Dag():
     
     def __init__(self, genesis_creation_time):
         self.genesis_creation_time = genesis_creation_time
-        self.blocks = {}
-        genesis_hash = self.genesis_block().get_hash();
+        self.blocks_by_hash = {}
+        self.blocks_by_number = {}
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
-        self.blocks[genesis_hash.digest()] = signed_genesis_block
+        self.add_signed_block(0, signed_genesis_block)
 
     def genesis_block(self):
         block = Block()
@@ -32,16 +32,20 @@ class Dag():
         block.randoms = []
         return block
 
-    def add_signed_block(self, signed_block):
-        block_hash = signed_block.block.get_hash();
-        self.blocks[block_hash.digest()] = signed_block
+    def add_signed_block(self, index, block):
+        block_hash = block.block.get_hash().digest()
+        self.blocks_by_hash[block_hash] = block
+        if index in self.blocks_by_number:
+            self.blocks_by_number[index].append(block)
+        else:
+            self.blocks_by_number[index] = [block]
     
     def get_top_blocks(self):
         links = []
-        for block_hash, signed_block in self.blocks.items():
+        for block_hash, signed_block in self.blocks_by_hash.items():
             links += signed_block.block.prev_hashes
         
-        top_blocks = self.blocks.copy();
+        top_blocks = self.blocks_by_hash.copy();
         for link in links:
             if link in top_blocks:
                 del top_blocks[link]
@@ -55,7 +59,7 @@ class Dag():
         block1.randoms = []
         signed_block1 = SignedBlock()
         signed_block1.set_block(block1);
-        self.blocks[block1.get_hash().digest()] = signed_block1;
+        self.add_signed_block(1,signed_block1);
 
         block2 = Block()
         block2.prev_hashes = [block1.get_hash().digest()];
@@ -63,7 +67,7 @@ class Dag():
         block2.randoms = []
         signed_block2 = SignedBlock()
         signed_block2.set_block(block2);
-        self.blocks[block2.get_hash().digest()] = signed_block2;
+        self.add_signed_block(2,signed_block2);
 
         block3 = Block()
         block3.prev_hashes = [block1.get_hash().digest()];
@@ -71,9 +75,9 @@ class Dag():
         block3.randoms = []
         signed_block3 = SignedBlock()
         signed_block3.set_block(block3);
-        self.blocks[block3.get_hash().digest()] = signed_block3;
+        self.add_signed_block(3,signed_block3);
 
-        for keyhash in self.blocks:
+        for keyhash in self.blocks_by_hash:
             print(binascii.hexlify(keyhash))
 
         top_hashes = self.get_top_blocks();
@@ -93,8 +97,9 @@ class Dag():
         signed_block = SignedBlock()
         signed_block.set_block(block)
         signed_block.set_signature(signature)
-        self.blocks[block_hash] = signed_block
-        print(block_hash.hex(), " was added to blockchain")
+        current_block_number = self.get_current_timeframe_block_number()
+        self.add_signed_block(current_block_number, signed_block);
+        print(block_hash.hex(), " was added to blockchain under number ", current_block_number)
         return signed_block
     
     def get_current_timeframe_block_number(self):
@@ -106,10 +111,13 @@ class Dag():
         current_block_number = self.get_current_timeframe_block_number();
         time_from = genesis_timestamp + current_block_number * BLOCK_TIME
         time_to = genesis_timestamp + (current_block_number + 1) * BLOCK_TIME
-        for _, block in self.blocks.items():
+        for _, block in self.blocks_by_hash.items():
             if time_from <= block.block.timestamp < time_to:
                 return True
         return False
+    
+    def has_block_number(self, number):
+        return number in self.blocks_by_number
 
     def get_current_epoch(self):
         current_block_number = self.get_current_timeframe_block_number();
@@ -130,3 +138,11 @@ class Dag():
     def get_era_number(self, current_block_number):
         era_duration = Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION + Epoch.PARTIAL_DURATION
         return current_block_number // era_duration
+    
+    def get_era_hash(self, current_era_number):
+        if current_era_number == 0:
+            return self.genesis_block().get_hash().digest()
+
+        era_duration = Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION + Epoch.PARTIAL_DURATION
+        previous_era_last_block_number = era_duration * current_era_number - 1
+        return self.blocks_by_number[previous_era_last_block_number][0]
