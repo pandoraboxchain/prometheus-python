@@ -7,9 +7,10 @@ import time
 import asyncio
 
 class Initializer():  
-    
+
     def __init__(self):
-        genesis_creation_time = int(datetime.datetime.now().timestamp())
+        BLOCK_TIME = 5  #TODO merge this value woth Dag value
+        genesis_creation_time = int(datetime.datetime.now().timestamp() - BLOCK_TIME)
         print("genesis_creation_time", genesis_creation_time)
 
         private_keys = BlockSigners()

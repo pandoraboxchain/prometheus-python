@@ -7,12 +7,12 @@ import datetime
 BLOCK_TIME = 5
 
 class Epoch():
-    ENCRYPTED = 0
-    REVEALED = 1
+    COMMIT = 0
+    REVEAL = 1
     PARTIAL = 2
 
-    ENCRYPTED_DURATION = 100
-    REVEALED_DURATION = 200
+    COMMIT_DURATION = 100
+    REVEAL_DURATION = 200
     PARTIAL_DURATION = 3
 
 class Dag():
@@ -29,7 +29,6 @@ class Dag():
         block = Block()
         block.timestamp = self.genesis_creation_time
         block.prev_hashes = [SHA256.new(b"0").digest()]
-        block.randoms = []
         return block
 
     def add_signed_block(self, index, block):
@@ -124,25 +123,27 @@ class Dag():
         return self.get_epoch_by_block_number(current_block_number)
 
     def get_epoch_by_block_number(self, current_block_number):
-        era_duration = Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION + Epoch.PARTIAL_DURATION
         era_number = self.get_era_number(current_block_number)
-        era_start_block = era_number * era_duration
-        print(current_block_number, "is in era", era_number)
-        if current_block_number <=  era_start_block + Epoch.ENCRYPTED_DURATION:
-            return Epoch.ENCRYPTED
-        elif current_block_number <=  era_start_block + Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION:
-            return Epoch.REVEALED
+        era_start_block = era_number * Dag.get_era_duration()
+        if current_block_number <=  era_start_block + Epoch.COMMIT_DURATION:
+            return Epoch.COMMIT
+        elif current_block_number <=  era_start_block + Epoch.COMMIT_DURATION + Epoch.REVEAL_DURATION:
+            return Epoch.REVEAL
         else:
             return Epoch.PARTIAL
 
+    def get_era_duration():
+        return Epoch.COMMIT_DURATION + Epoch.REVEAL_DURATION + Epoch.PARTIAL_DURATION
+
     def get_era_number(self, current_block_number):
-        era_duration = Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION + Epoch.PARTIAL_DURATION
-        return current_block_number // era_duration
+        if current_block_number == 0:
+            return 0 
+        return current_block_number // Dag.get_era_duration() + 1 #because genesis block is last block of era zero
     
     def get_era_hash(self, current_era_number):
         if current_era_number == 0:
-            return self.genesis_block().get_hash().digest()
+            return None
 
-        era_duration = Epoch.ENCRYPTED_DURATION + Epoch.REVEALED_DURATION + Epoch.PARTIAL_DURATION
-        previous_era_last_block_number = era_duration * current_era_number - 1
-        return self.blocks_by_number[previous_era_last_block_number][0]
+        previous_era_last_block_number = Dag.get_era_duration() * (current_era_number - 1)
+        era_identifier_block = self.blocks_by_number[previous_era_last_block_number][0]
+        return era_identifier_block.block.get_hash().digest()
