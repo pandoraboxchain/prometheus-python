@@ -1,5 +1,7 @@
 import unittest
 from chain.block import Block
+from transaction.transaction import CommitRandomTransaction, Type
+from crypto.enc_random import enc_part_random
 from Crypto.Hash import SHA256
 
 class TestBlock(unittest.TestCase):
@@ -8,7 +10,11 @@ class TestBlock(unittest.TestCase):
         original_block = Block()
         original_block.timestamp = 2344
         original_block.prev_hashes = [SHA256.new(b"323423").digest(), SHA256.new(b"0").digest()]
-        original_block.randoms = [1,2,3,4,5]
+        original_block.system_txs = []
+        tx = CommitRandomTransaction()
+        data, _ = enc_part_random(SHA256.new(b"era_hash").digest())
+        tx.rand = data
+        original_block.system_txs.append(tx)
 
         raw = original_block.pack()
         restored = Block()
