@@ -1,5 +1,5 @@
 import unittest
-#from ...chain.block import Block #TODO fix that import
+from chain.block import Block
 from Crypto.Hash import SHA256
 
 class TestBlock(unittest.TestCase):
@@ -12,7 +12,6 @@ class TestBlock(unittest.TestCase):
 
         raw = original_block.pack()
         restored = Block()
-        restored.set_raw_data(raw)
-        restored.parse()
+        restored.parse(raw)
 
-        self.assertEqual(original_block, restored)
+        self.assertEqual(original_block.get_hash().digest(), restored.get_hash().digest())
