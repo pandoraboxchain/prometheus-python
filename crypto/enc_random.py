@@ -1,4 +1,5 @@
 import struct
+import random
 from Crypto.PublicKey import RSA
 from Crypto import Random
 
