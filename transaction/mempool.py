@@ -1,2 +1,6 @@
 class Mempool():
-    pass
+    transactions = []
+
+    def add_transaction(self, tx):
+        self.transactions.append(tx)
+

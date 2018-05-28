@@ -6,12 +6,15 @@ from chain.dag import Dag
 from chain.block_signers import BlockSigners
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
+from transaction.mempool import Mempool
+from transaction.transaction import TransactionParser
 
 class Node():
     
     def __init__(self, genesis_creation_time, node_id, network, block_signer):
         self.dag = Dag(genesis_creation_time)
         self.permissions = Permissions()
+        self.mempool = Mempool()
         
         self.block_signer = block_signer
         self.network = network
@@ -36,11 +39,15 @@ class Node():
         current_validator = self.permissions.get_permission(self.dag, current_block_number)
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
-        print("Node number", self.node_id, "received block from node", node_id, "with block hash", signed_block.block.get_hash().hexdigest())
+        print("Node ", self.node_id, "received block from node", node_id, "with block hash", signed_block.block.get_hash().hexdigest())
         if signed_block.verify_signature(current_validator.public_key):
             self.dag.add_signed_block(signed_block)
         else:
             self.network.gossip_malicious(current_validator.public_key)
-            
+
+    def handle_transaction_message(self, raw_transaction):
+        transaction = TransactionParser.parse(raw_transaction)
+        print("Node ", self.node_id, "received transaction with hash", transaction.get_hash().hexdigest())
+        self.mempool.add_transaction(transaction)     
 
 
