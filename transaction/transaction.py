@@ -50,3 +50,6 @@ class RevealRandomTransaction():
     
     def get_len(self):
         return 32 + 128
+
+    def get_hash(self):
+        return SHA256.new(self.pack())        
