@@ -11,9 +11,9 @@ class Epoch():
     REVEAL = 1
     PARTIAL = 2
 
-    COMMIT_DURATION = 100
-    REVEAL_DURATION = 200
-    PARTIAL_DURATION = 3
+    COMMIT_DURATION = 2
+    REVEAL_DURATION = 2
+    PARTIAL_DURATION = 2
 
 class Dag():
     
@@ -28,7 +28,7 @@ class Dag():
     def genesis_block(self):
         block = Block()
         block.timestamp = self.genesis_creation_time
-        block.prev_hashes = [SHA256.new(b"0").digest()]
+        block.prev_hashes = []
         return block
 
     def add_signed_block(self, index, block):

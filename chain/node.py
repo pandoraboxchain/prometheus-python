@@ -1,6 +1,8 @@
 import time
 import asyncio
 
+from base64 import b64decode,b64encode
+
 from chain.node_api import NodeApi
 from chain.dag import Dag, Epoch
 from chain.block_signers import BlockSigners
@@ -9,7 +11,9 @@ from chain.signed_block import SignedBlock
 from transaction.mempool import Mempool
 from transaction.transaction import TransactionParser, CommitRandomTransaction, RevealRandomTransaction
 from verification.transaction_verifier import TransactionVerifier
+from verification.block_verifier import BlockVerifier
 from crypto.enc_random import enc_part_random
+from transaction.commits_set import CommitsSet
 
 class Node():
     
@@ -52,11 +56,15 @@ class Node():
         has_key_for_previous_era = has_reveal_key and self.last_commited_random_key[0] < era_number
         if not has_reveal_key or has_key_for_previous_era:
             era_hash = self.dag.get_era_hash(era_number)
+            private = self.block_signer.private_key
             tx = CommitRandomTransaction()
             data, key = enc_part_random(era_hash)
             tx.rand = data
+            tx.pubkey = b64encode(private.publickey().exportKey('DER'))
+            commit_hash = tx.get_hash().digest()
+            tx.signature = private.sign(commit_hash, 0)[0]
             raw_tx = TransactionParser.pack(tx)
-            self.last_commited_random_key = (era_number, key)
+            self.last_commited_random_key = (era_number, commit_hash, key)
             self.network.broadcast_transaction(self.node_id, raw_tx)
     
     def try_to_reveal_random(self, current_block_number):
@@ -65,8 +73,8 @@ class Node():
         has_key_for_this_era = has_reveal_key and self.last_commited_random_key[0] == era_number
         if has_reveal_key and has_key_for_this_era:
             tx = RevealRandomTransaction()
-            tx.commit_hash = 1234567890
-            tx.key = self.last_commited_random_key[1]
+            tx.commit_hash = self.last_commited_random_key[1]
+            tx.key = self.last_commited_random_key[2]
             raw_tx = TransactionParser.pack(tx)
             del self.last_commited_random_key
             self.network.broadcast_transaction(self.node_id, raw_tx)
@@ -78,7 +86,10 @@ class Node():
         signed_block.parse(raw_signed_block)
         print("Node ", self.node_id, "received block from node", node_id, "with block hash", signed_block.block.get_hash().hexdigest())
         if signed_block.verify_signature(current_validator.public_key):
-            self.dag.add_signed_block(current_block_number, signed_block)
+            block = signed_block.block
+            commits_set = CommitsSet(self.dag, block.prev_hashes[0])   #TODO check all previous hashes
+            if BlockVerifier.check_if_valid(block, commits_set):
+                self.dag.add_signed_block(current_block_number, signed_block)
         else:
             self.network.gossip_malicious(current_validator.public_key)
 
