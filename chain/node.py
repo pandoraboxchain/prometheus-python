@@ -4,7 +4,8 @@ import asyncio
 from base64 import b64decode,b64encode
 
 from chain.node_api import NodeApi
-from chain.dag import Dag, Epoch
+from chain.dag import Dag
+from chain.epoch import Round, Epoch
 from chain.block_signers import BlockSigners
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
@@ -21,6 +22,7 @@ class Node():
         self.dag = Dag(genesis_creation_time)
         self.permissions = Permissions()
         self.mempool = Mempool()
+        self.epoch = Epoch(self.dag)
         
         self.block_signer = block_signer
         self.network = network
@@ -32,10 +34,10 @@ class Node():
 
     async def run(self):
         while True:
-            current_block_number = self.dag.get_current_timeframe_block_number()
-            if self.dag.get_current_epoch() == Epoch.COMMIT:
+            current_block_number = self.epoch.get_current_timeframe_block_number()
+            if self.epoch.get_current_round() == Round.COMMIT:
                 self.try_to_commit_random(current_block_number)
-            elif self.dag.get_current_epoch() == Epoch.REVEAL:
+            elif self.epoch.get_current_round() == Round.REVEAL:
                 self.try_to_reveal_random(current_block_number)
                               
             self.try_to_sign_block(current_block_number)
@@ -44,18 +46,18 @@ class Node():
     def try_to_sign_block(self, current_block_number):
         current_block_validator = self.permissions.get_permission(self.dag, current_block_number)
         is_public_key_corresponds = current_block_validator.public_key == self.block_signer.private_key.publickey()
-        block_has_not_been_signed_yet = not self.dag.is_current_timeframe_block_present()
+        block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if is_public_key_corresponds and block_has_not_been_signed_yet:
-            signed_block = self.dag.sign_block(self.block_signer.private_key)
+            signed_block = self.dag.sign_block(self.block_signer.private_key, current_block_number)
             raw_signed_block = signed_block.pack();
             self.network.broadcast_block(self.node_id, raw_signed_block) 
 
     def try_to_commit_random(self, current_block_number):
-        era_number = self.dag.get_era_number(current_block_number)
+        era_number = self.epoch.get_epoch_number(current_block_number)
         has_reveal_key = hasattr(self, "last_commited_random_key")
         has_key_for_previous_era = has_reveal_key and self.last_commited_random_key[0] < era_number
         if not has_reveal_key or has_key_for_previous_era:
-            era_hash = self.dag.get_era_hash(era_number)
+            era_hash = self.epoch.get_epoch_hash(era_number)
             private = self.block_signer.private_key
             tx = CommitRandomTransaction()
             data, key = enc_part_random(era_hash)
@@ -68,7 +70,7 @@ class Node():
             self.network.broadcast_transaction(self.node_id, raw_tx)
     
     def try_to_reveal_random(self, current_block_number):
-        era_number = self.dag.get_era_number(current_block_number)
+        era_number = self.epoch.get_epoch_number(current_block_number)
         has_reveal_key = hasattr(self, "last_commited_random_key")
         has_key_for_this_era = has_reveal_key and self.last_commited_random_key[0] == era_number
         if has_reveal_key and has_key_for_this_era:
@@ -80,7 +82,7 @@ class Node():
             self.network.broadcast_transaction(self.node_id, raw_tx)
 
     def handle_block_message(self, node_id, raw_signed_block):
-        current_block_number = self.dag.get_current_timeframe_block_number()
+        current_block_number = self.epoch.get_current_timeframe_block_number()
         current_validator = self.permissions.get_permission(self.dag, current_block_number)
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)

@@ -6,15 +6,6 @@ import datetime
 
 BLOCK_TIME = 5
 
-class Epoch():
-    COMMIT = 0
-    REVEAL = 1
-    PARTIAL = 2
-
-    COMMIT_DURATION = 2
-    REVEAL_DURATION = 2
-    PARTIAL_DURATION = 2
-
 class Dag():
     
     def __init__(self, genesis_creation_time):
@@ -85,65 +76,19 @@ class Dag():
         for keyhash in top_hashes:
             print(binascii.hexlify(keyhash))
 
-    def sign_block(self, private): #TODO move somewhere more approptiate
+    def sign_block(self, private, number): #TODO move somewhere more approptiate
         block = Block()
         block.prev_hashes = [*self.get_top_blocks()]
         block.timestamp = int(datetime.datetime.now().timestamp())
-        block.randoms = []
 
         block_hash = block.get_hash().digest()
         signature = private.sign(block_hash, 0)[0]  #for some reason it returns tuple with second item being None
         signed_block = SignedBlock()
         signed_block.set_block(block)
         signed_block.set_signature(signature)
-        current_block_number = self.get_current_timeframe_block_number()
-        self.add_signed_block(current_block_number, signed_block);
-        print(block_hash.hex(), " was added to blockchain under number ", current_block_number)
+        self.add_signed_block(number, signed_block);
+        print(block_hash.hex(), " was added to blockchain under number ", number)
         return signed_block
-    
-    def get_current_timeframe_block_number(self):
-        time_diff = int(datetime.datetime.now().timestamp()) - self.genesis_block().timestamp
-        return int(time_diff / BLOCK_TIME)
 
-    def is_current_timeframe_block_present(self):
-        genesis_timestamp = self.genesis_block().timestamp
-        current_block_number = self.get_current_timeframe_block_number();
-        time_from = genesis_timestamp + current_block_number * BLOCK_TIME
-        time_to = genesis_timestamp + (current_block_number + 1) * BLOCK_TIME
-        for _, block in self.blocks_by_hash.items():
-            if time_from <= block.block.timestamp < time_to:
-                return True
-        return False
-    
     def has_block_number(self, number):
-        return number in self.blocks_by_number
-
-    def get_current_epoch(self):
-        current_block_number = self.get_current_timeframe_block_number();
-        return self.get_epoch_by_block_number(current_block_number)
-
-    def get_epoch_by_block_number(self, current_block_number):
-        era_number = self.get_era_number(current_block_number)
-        era_start_block = era_number * Dag.get_era_duration()
-        if current_block_number <=  era_start_block + Epoch.COMMIT_DURATION:
-            return Epoch.COMMIT
-        elif current_block_number <=  era_start_block + Epoch.COMMIT_DURATION + Epoch.REVEAL_DURATION:
-            return Epoch.REVEAL
-        else:
-            return Epoch.PARTIAL
-
-    def get_era_duration():
-        return Epoch.COMMIT_DURATION + Epoch.REVEAL_DURATION + Epoch.PARTIAL_DURATION
-
-    def get_era_number(self, current_block_number):
-        if current_block_number == 0:
-            return 0 
-        return current_block_number // Dag.get_era_duration() + 1 #because genesis block is last block of era zero
-    
-    def get_era_hash(self, current_era_number):
-        if current_era_number == 0:
-            return None
-
-        previous_era_last_block_number = Dag.get_era_duration() * (current_era_number - 1)
-        era_identifier_block = self.blocks_by_number[previous_era_last_block_number][0]
-        return era_identifier_block.block.get_hash().digest()
+        return number in self.blocks_by_number  

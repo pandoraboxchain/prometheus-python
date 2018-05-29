@@ -12,7 +12,7 @@ class TestTransaction(unittest.TestCase):
         data, _ = enc_part_random(SHA256.new(b"era_hash").digest())
         original.rand = data
         original.pubkey = os.urandom(128)
-        original.signature = os.urandom(128)
+        original.signature = int.from_bytes(os.urandom(128), byteorder='big')
 
         raw = original.pack()
         restored = CommitRandomTransaction()
