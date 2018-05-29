@@ -27,16 +27,18 @@ class TransactionParser():
 
 class CommitRandomTransaction():
     def get_hash(self):
-        return SHA256.new(self.pack())
+        return SHA256.new(self.rand + self.pubkey)
 
     def parse(self, raw_data):
-        self.rand = raw_data
+        self.rand = raw_data[:128]
+        self.pubkey = raw_data[128:256]
+        self.signature = raw_data[256:384]
     
     def pack(self):
-        return self.rand
+        return self.rand + self.pubkey + self.signature 
     
     def get_len(self):
-        return 128
+        return 384
 
 class RevealRandomTransaction():
     def parse(self, raw_data):

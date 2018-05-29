@@ -11,10 +11,6 @@ class TestBlock(unittest.TestCase):
         original_block.timestamp = 2344
         original_block.prev_hashes = [SHA256.new(b"323423").digest(), SHA256.new(b"0").digest()]
         original_block.system_txs = []
-        tx = CommitRandomTransaction()
-        data, _ = enc_part_random(SHA256.new(b"era_hash").digest())
-        tx.rand = data
-        original_block.system_txs.append(tx)
 
         raw = original_block.pack()
         restored = Block()

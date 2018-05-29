@@ -1,4 +1,5 @@
 import unittest
+import os
 from chain.block import Block
 from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
 from crypto.enc_random import enc_part_random
@@ -10,6 +11,8 @@ class TestTransaction(unittest.TestCase):
         original = CommitRandomTransaction()
         data, _ = enc_part_random(SHA256.new(b"era_hash").digest())
         original.rand = data
+        original.pubkey = os.urandom(128)
+        original.signature = os.urandom(128)
 
         raw = original.pack()
         restored = CommitRandomTransaction()
