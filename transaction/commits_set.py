@@ -11,8 +11,8 @@ class CommitsSet:
         self.dag = dag
         self.recursive_collect_commited_transactions(top_block_hash)
 
-    def recursive_collect_commited_transactions(self, tx_hash):
-        block = self.dag.blocks_by_hash[tx_hash]
+    def recursive_collect_commited_transactions(self, block_hash):
+        block = self.dag.blocks_by_hash[block_hash]
         if not hasattr(block, "system_txs"):
             return
         for tx in block.system_txs:
@@ -24,8 +24,8 @@ class CommitsSet:
         
 
     def add_transaction(self, tx):
-        tx_hash = tx.get_hash().digest()
-        self.transactions_by_hash[tx_hash] = tx
+        block_hash = tx.get_hash().digest()
+        self.transactions_by_hash[block_hash] = tx
 
         pubkey = tx.pubkey
         self.transactions_by_pubkey[pubkey] = tx

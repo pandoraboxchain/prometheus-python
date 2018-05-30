@@ -44,8 +44,9 @@ class Node():
             await asyncio.sleep(3)
 
     def try_to_sign_block(self, current_block_number):
-        current_block_validator = self.permissions.get_permission(self.dag, current_block_number)
-        is_public_key_corresponds = current_block_validator.public_key == self.block_signer.private_key.publickey()
+        seed = self.epoch.get_epoch_seed(self.epoch.get_epoch_number(current_block_number))
+        current_validator = self.permissions.get_permission(seed, current_block_number)
+        is_public_key_corresponds = current_validator.public_key == self.block_signer.private_key.publickey()
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if is_public_key_corresponds and block_has_not_been_signed_yet:
             signed_block = self.dag.sign_block(self.block_signer.private_key, current_block_number)
@@ -76,14 +77,16 @@ class Node():
         if has_reveal_key and has_key_for_this_era:
             tx = RevealRandomTransaction()
             tx.commit_hash = self.last_commited_random_key[1]
-            tx.key = self.last_commited_random_key[2]
+            key = b64encode(self.last_commited_random_key[2].exportKey('DER'))
+            tx.key = key
             raw_tx = TransactionParser.pack(tx)
             del self.last_commited_random_key
             self.network.broadcast_transaction(self.node_id, raw_tx)
 
     def handle_block_message(self, node_id, raw_signed_block):
         current_block_number = self.epoch.get_current_timeframe_block_number()
-        current_validator = self.permissions.get_permission(self.dag, current_block_number)
+        seed = self.epoch.get_epoch_seed(self.epoch.get_epoch_number(current_block_number))
+        current_validator = self.permissions.get_permission(seed, current_block_number)
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
         print("Node ", self.node_id, "received block from node", node_id, "with block hash", signed_block.block.get_hash().hexdigest())
@@ -92,7 +95,9 @@ class Node():
             commits_set = CommitsSet(self.dag, block.prev_hashes[0])   #TODO check all previous hashes
             if BlockVerifier.check_if_valid(block, commits_set):
                 self.dag.add_signed_block(current_block_number, signed_block)
+                print("Block was added under number", current_block_number)
         else:
+            print("Node", node_id, "sent block, though it's not her time")
             self.network.gossip_malicious(current_validator.public_key)
 
     def handle_transaction_message(self, node_id, raw_transaction):

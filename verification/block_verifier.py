@@ -19,3 +19,4 @@ class BlockVerifier():
                     return True
                 else:
                     return False
+        return True
