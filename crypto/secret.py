@@ -37,10 +37,10 @@ def decrypt_secret(splits, ciphertext):
     key = RSA.importKey(b64decode(dpk))
 
 
-def enc_part_random(publickey, split):
+def enc_part_secret(publickey, split):
     enc_data = public_key.encrypt(split.encode('utf-8'), 32)
     return enc_data
 
-def dec_part_random(privatekey, enc_data):
+def dec_part_secret(privatekey, enc_data):
     split = privatekey.decrypt(enc_data)
     return split
