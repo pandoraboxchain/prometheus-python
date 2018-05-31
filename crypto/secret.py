@@ -35,3 +35,12 @@ def decrypt_secret(splits, ciphertext):
     dpk = decryptor.decrypt(ciphertext)
     dpk = dpk.decode("utf-8").replace(' ','')
     key = RSA.importKey(b64decode(dpk))
+
+
+def enc_part_random(publickey, split):
+    enc_data = public_key.encrypt(split.encode('utf-8'), 32)
+    return enc_data
+
+def dec_part_random(privatekey, enc_data):
+    split = privatekey.decrypt(enc_data)
+    return split
