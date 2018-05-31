@@ -38,7 +38,7 @@ def decrypt_secret(splits, ciphertext):
 
 
 def enc_part_secret(publickey, split):
-    enc_data = public_key.encrypt(split.encode('utf-8'), 32)
+    enc_data = publickey.encrypt(split.encode('utf-8'), 32)
     return enc_data
 
 def dec_part_secret(privatekey, enc_data):
