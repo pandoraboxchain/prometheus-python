@@ -1,6 +1,7 @@
 import datetime
 from transaction.commits_set import CommitsSet
-from crypto.dec_part_random import dec_part_random
+from crypto.dec_part_random import decode_random_using_raw_key
+from crypto.sum_random import sum_random, calculate_validators_numbers
 
 BLOCK_TIME = 5
 
@@ -15,7 +16,7 @@ class Round():
 
 class Epoch():
 
-    cached_epoch_seeds = {}
+    cached_epoch_validators = {}
 
     def __init__(self, dag):
         self.dag = dag
@@ -40,10 +41,10 @@ class Epoch():
 
     def get_round_by_block_number(self, current_block_number):
         epoch_number = self.get_epoch_number(current_block_number)
-        epoch_start_block = (epoch_number - 1) * Epoch.get_duration() + 1
-        if current_block_number <=  epoch_start_block + Round.COMMIT_DURATION:
+        epoch_start_block = self.get_epoch_start_block_number(current_block_number)
+        if current_block_number <= epoch_start_block + Round.COMMIT_DURATION:
             return Round.COMMIT
-        elif current_block_number <=  epoch_start_block + Round.COMMIT_DURATION + Round.REVEAL_DURATION:
+        elif current_block_number <= epoch_start_block + Round.COMMIT_DURATION + Round.REVEAL_DURATION:
             return Round.REVEAL
         else:
             return Round.PARTIAL
@@ -55,6 +56,10 @@ class Epoch():
         if current_block_number == 0:
             return 0 
         return current_block_number // Epoch.get_duration() + 1 #because genesis block is last block of era zero
+
+    def get_epoch_start_block_number(self, epoch_number):
+        return Epoch.get_duration() * (epoch_number - 1) + 1
+        
     
     def get_epoch_hash(self, epoch_number):
         if epoch_number == 0:
@@ -62,17 +67,18 @@ class Epoch():
         if epoch_number == 1:
             return self.dag.genesis_block().get_hash().digest()
 
-        previous_era_last_block_number = Epoch.get_duration() * (epoch_number - 1) - 1
+        previous_era_last_block_number = self.get_epoch_start_block_number(epoch_number) - 1
         era_identifier_block = self.dag.blocks_by_number[previous_era_last_block_number][0]
         return era_identifier_block.block.get_hash().digest()
+    
+    def calculate_validators_numbers(self, epoch_number, validators_count):
+        if epoch_number in self.cached_epoch_validators:
+            return self.cached_epoch_validators[epoch_number]
 
-    def get_epoch_seed(self, epoch_number):
-        if epoch_number in self.cached_epoch_seeds:
-            return self.cached_epoch_seeds[epoch_number]
-        
         epoch_seed = self.calculate_epoch_seed(epoch_number)
-        print("calculated epoch", epoch_number, "seed is", epoch_seed)
-        self.cached_epoch_seeds[epoch_number] = epoch_seed
+        validators_list = calculate_validators_numbers(epoch_seed, validators_count, Epoch.get_duration())
+        self.cached_epoch_validators[epoch_number] = validators_list
+        return validators_list
 
     def calculate_epoch_seed(self, epoch_number):
         if epoch_number == 1:
@@ -82,16 +88,18 @@ class Epoch():
         epoch_hash = self.get_epoch_hash(epoch_number)
         commits_set = CommitsSet(self.dag, epoch_hash)
         reveals = self.collect_reveals_for_epoch(epoch_number - 1)
+        randoms_list = []
         for reveal in reveals:
-            commit = commits_set.transactions_by_hash[reveal.commited_hash]
-            rand = dec_part_random(commit.rand, reveal.key)
-            seed += rand
+            commit = commits_set.transactions_by_hash[reveal.commit_hash]
+            _, rand = decode_random_using_raw_key(commit.rand, reveal.key)
+            randoms_list.append(int.from_bytes(rand, byteorder='big'))
             print("revealed random from", reveal.get_hash(), "is", rand)
+        seed = sum_random(randoms_list)
         return seed
 
     def collect_reveals_for_epoch(self, epoch_number):
         reveals = []
-        epoch_start_block = (epoch_number - 1) * Epoch.get_duration() + 1
+        epoch_start_block = self.get_epoch_start_block_number(epoch_number)
         reveal_round_start_block = epoch_start_block + Round.COMMIT_DURATION
         reveal_round_end_block = reveal_round_start_block + Round.REVEAL_DURATION
         for i in range(reveal_round_start_block,reveal_round_end_block):
@@ -101,4 +109,23 @@ class Epoch():
                     for tx in block.block.system_txs:
                         reveals.append(tx)
         return reveals
+    
+    def is_last_block_of_era(self, block_number):
+        epoch_number = self.get_epoch_number(block_number)        
+        epoch_start_block = self.get_epoch_start_block_number(epoch_number)
+        return block_number == epoch_start_block + Epoch.get_duration() - 1
 
+    def get_validator_number(self, block_number, validators_count):
+        epoch_number = self.get_epoch_number(block_number)
+        epoch_start_block_number = self.get_epoch_start_block_number(epoch_number)
+        block_number_in_epoch = block_number - epoch_start_block_number
+        validators_list = self.get_epoch_validators_list(epoch_number)
+        return validators_list[block_number_in_epoch]
+
+    def convert_to_epoch_block_number(self, global_block_number):
+        epoch_number = self.get_epoch_number(global_block_number)
+        epoch_start_block_number = self.get_epoch_start_block_number(epoch_number)
+        return global_block_number - epoch_start_block_number
+
+    
+    

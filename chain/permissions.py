@@ -4,15 +4,18 @@ from chain.validators import Validators
 
 class Permissions():
 
-    def get_permission(self, seed, block_number):
-        if not hasattr(self, 'validators'):
-            self.validators = Validators()
-        index = self.get_next_validator_number(seed, block_number, self.validators.get_size())
-        print("next block validator should be node", index)
+    epoch_validators = {}
+
+    def __init__(self):
+        self.validators = Validators()
+
+    def get_permission(self, epoch_number, block_number_in_epoch):
+        index = self.epoch_validators[epoch_number][block_number_in_epoch]
         return self.validators.get_by_i(index)
 
-    def get_next_validator_number(self, seed, block_number, validators_length):
-        random.seed(seed)
-        for block_number in range(0, block_number):
-            _ = random.random()
-        return random.randint(0, validators_length - 1)
+    def get_validators_count(self):
+        return self.validators.get_size()
+    
+    def set_validators_list(self, epoch_number, validators_list):
+        self.epoch_validators[epoch_number] = validators_list
+

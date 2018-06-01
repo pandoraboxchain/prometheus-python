@@ -11,9 +11,9 @@ class BlockVerifier():
                     return False
                 return True
             if isinstance(tx, RevealRandomTransaction):
-                if not tx.commited_hash in commits_set.transaction_by_hash:
+                if not tx.commit_hash in commits_set.transaction_by_hash:
                     return False
-                commit = commits_set[tx.commited_hash]
+                commit = commits_set[tx.commit_hash]
                 result = dec_part_random(commit.rand, tx.key)
                 if result: #TODO make sure this check is meaningful
                     return True

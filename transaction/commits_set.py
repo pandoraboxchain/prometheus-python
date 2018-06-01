@@ -12,12 +12,11 @@ class CommitsSet:
         self.recursive_collect_commited_transactions(top_block_hash)
 
     def recursive_collect_commited_transactions(self, block_hash):
-        block = self.dag.blocks_by_hash[block_hash]
-        if not hasattr(block, "system_txs"):
-            return
-        for tx in block.system_txs:
-            if isinstance(tx, CommitRandomTransaction):
-                self.add_transaction(tx)
+        block = self.dag.blocks_by_hash[block_hash].block
+        if hasattr(block, "system_txs"):
+            for tx in block.system_txs:
+                if isinstance(tx, CommitRandomTransaction):
+                    self.add_transaction(tx)
 
         for prev_hash in block.prev_hashes:
             self.recursive_collect_commited_transactions(prev_hash)

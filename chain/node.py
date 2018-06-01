@@ -23,7 +23,9 @@ class Node():
         self.permissions = Permissions()
         self.mempool = Mempool()
         self.epoch = Epoch(self.dag)
-        
+
+        self.try_to_calculate_next_epoch_validators(0)
+
         self.block_signer = block_signer
         self.network = network
         self.node_id = node_id
@@ -44,13 +46,15 @@ class Node():
             await asyncio.sleep(3)
 
     def try_to_sign_block(self, current_block_number):
-        seed = self.epoch.get_epoch_seed(self.epoch.get_epoch_number(current_block_number))
-        current_validator = self.permissions.get_permission(seed, current_block_number)
+        epoch_number = self.epoch.get_epoch_number(current_block_number)
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
+        current_validator = self.permissions.get_permission(epoch_number, epoch_block_number)
         is_public_key_corresponds = current_validator.public_key == self.block_signer.private_key.publickey()
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if is_public_key_corresponds and block_has_not_been_signed_yet:
-            signed_block = self.dag.sign_block(self.block_signer.private_key, current_block_number)
+            signed_block = self.dag.sign_empty_block(self.block_signer.private_key, current_block_number)
             raw_signed_block = signed_block.pack();
+            self.try_to_calculate_next_epoch_validators(current_block_number)            
             self.network.broadcast_block(self.node_id, raw_signed_block) 
 
     def try_to_commit_random(self, current_block_number):
@@ -85,8 +89,9 @@ class Node():
 
     def handle_block_message(self, node_id, raw_signed_block):
         current_block_number = self.epoch.get_current_timeframe_block_number()
-        seed = self.epoch.get_epoch_seed(self.epoch.get_epoch_number(current_block_number))
-        current_validator = self.permissions.get_permission(seed, current_block_number)
+        epoch_number = self.epoch.get_epoch_number(current_block_number)
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
+        current_validator = self.permissions.get_permission(epoch_number, epoch_block_number)
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
         print("Node ", self.node_id, "received block from node", node_id, "with block hash", signed_block.block.get_hash().hexdigest())
@@ -95,10 +100,18 @@ class Node():
             commits_set = CommitsSet(self.dag, block.prev_hashes[0])   #TODO check all previous hashes
             if BlockVerifier.check_if_valid(block, commits_set):
                 self.dag.add_signed_block(current_block_number, signed_block)
+                self.try_to_calculate_next_epoch_validators(current_block_number)
                 print("Block was added under number", current_block_number)
         else:
             print("Node", node_id, "sent block, though it's not her time")
             self.network.gossip_malicious(current_validator.public_key)
+
+    def try_to_calculate_next_epoch_validators(self, current_block_number):
+        if self.epoch.is_last_block_of_era(current_block_number):
+            next_epoch_number = self.epoch.get_epoch_number(current_block_number) + 1
+            validators_count = self.permissions.get_validators_count()
+            validators_list = self.epoch.calculate_validators_numbers(next_epoch_number, validators_count)
+            self.permissions.set_validators_list(next_epoch_number, validators_list)
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)

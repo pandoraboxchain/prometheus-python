@@ -76,11 +76,14 @@ class Dag():
         for keyhash in top_hashes:
             print(binascii.hexlify(keyhash))
 
-    def sign_block(self, private, number): #TODO move somewhere more approptiate
+    def sign_empty_block(self, private, number): #TODO move somewhere more approptiate
         block = Block()
         block.prev_hashes = [*self.get_top_blocks()]
         block.timestamp = int(datetime.datetime.now().timestamp())
 
+        return self.sign_block(block, private, number)
+    
+    def sign_block(self, block, private, number):
         block_hash = block.get_hash().digest()
         signature = private.sign(block_hash, 0)[0]  #for some reason it returns tuple with second item being None
         signed_block = SignedBlock()
