@@ -31,7 +31,7 @@ class Block():
         for prev_hash in self.prev_hashes:
             raw_block += prev_hash
 
-        if hasattr(self, 'system_txs') and len(self.system_txs) > 0:
+        if hasattr(self, 'system_txs'):
             raw_block += struct.pack("B", len(self.system_txs))
             for tx in self.system_txs:
                 raw_block += TransactionParser.pack(tx)

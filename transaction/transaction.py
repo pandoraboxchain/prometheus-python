@@ -31,14 +31,14 @@ class CommitRandomTransaction():
 
     def parse(self, raw_data):
         self.rand = raw_data[:128]
-        self.pubkey = raw_data[128:256]
-        self.signature = int.from_bytes(raw_data[256:384], byteorder='big')
+        self.pubkey = raw_data[128:344]
+        self.signature = int.from_bytes(raw_data[344:472], byteorder='big')
     
     def pack(self):
         return self.rand + self.pubkey + self.signature.to_bytes(128, byteorder='big')
     
     def get_len(self):
-        return 384
+        return 472
 
 class RevealRandomTransaction():
     def parse(self, raw_data):
