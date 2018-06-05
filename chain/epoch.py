@@ -41,7 +41,7 @@ class Epoch():
 
     def get_round_by_block_number(self, current_block_number):
         epoch_number = self.get_epoch_number(current_block_number)
-        epoch_start_block = self.get_epoch_start_block_number(current_block_number)
+        epoch_start_block = self.get_epoch_start_block_number(epoch_number)
         if current_block_number <= epoch_start_block + Round.COMMIT_DURATION:
             return Round.COMMIT
         elif current_block_number <= epoch_start_block + Round.COMMIT_DURATION + Round.REVEAL_DURATION:
@@ -55,7 +55,7 @@ class Epoch():
     def get_epoch_number(self, current_block_number):
         if current_block_number == 0:
             return 0 
-        return current_block_number // Epoch.get_duration() + 1 #because genesis block is last block of era zero
+        return current_block_number // (Epoch.get_duration() + 1) + 1 #because genesis block is last block of era zero
 
     def get_epoch_start_block_number(self, epoch_number):
         return Epoch.get_duration() * (epoch_number - 1) + 1

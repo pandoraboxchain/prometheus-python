@@ -2,7 +2,6 @@ from chain.block import Block
 from chain.signed_block import SignedBlock
 from Crypto.Hash import SHA256
 import binascii
-import datetime
 
 BLOCK_TIME = 5
 
@@ -76,22 +75,12 @@ class Dag():
         for keyhash in top_hashes:
             print(binascii.hexlify(keyhash))
 
-    def sign_empty_block(self, private, number): #TODO move somewhere more approptiate
-        block = Block()
-        block.prev_hashes = [*self.get_top_blocks()]
-        block.timestamp = int(datetime.datetime.now().timestamp())
-
-        return self.sign_block(block, private, number)
-    
-    def sign_block(self, block, private, number):
-        block_hash = block.get_hash().digest()
-        signature = private.sign(block_hash, 0)[0]  #for some reason it returns tuple with second item being None
-        signed_block = SignedBlock()
-        signed_block.set_block(block)
-        signed_block.set_signature(signature)
-        self.add_signed_block(number, signed_block);
-        print(block_hash.hex(), " was added to blockchain under number ", number)
-        return signed_block
-
     def has_block_number(self, number):
-        return number in self.blocks_by_number  
+        return number in self.blocks_by_number
+    
+    def get_block_number_by_hash(self, block_hash):
+        block_by_hash = self.blocks_by_hash[block_hash]
+        for number, block_by_number in self.blocks_by_number.items():
+            if block_by_hash == block_by_number:
+                return number
+        return -1

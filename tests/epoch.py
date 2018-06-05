@@ -9,6 +9,7 @@ from chain.block import Block
 from chain.signed_block import SignedBlock
 from chain.dag import Dag
 from chain.epoch import Epoch, Round, BLOCK_TIME
+from chain.block_factory import BlockFactory
 from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
 from crypto.dec_part_random import dec_part_random
 from crypto.enc_random import enc_part_random, encode_value
@@ -48,9 +49,10 @@ class TestEpoch(unittest.TestCase):
             commit, reveal = TestEpoch.create_dummy_commit_reveal(epoch_hash, rand)
             commit_block = Block()
             commit_block.timestamp = block_number * BLOCK_TIME
-            commit_block.prev_hashes = [*dag.get_top_blocks()]
+            commit_block.prev_hashes = dag.get_top_blocks()
             commit_block.system_txs = [commit]
-            dag.sign_block(commit_block, private, block_number)
+            signed_block = BlockFactory.sign_block(commit_block, private)
+            dag.add_signed_block(block_number, signed_block)
             block_number += 1
 
             reveals.append(reveal)
@@ -60,17 +62,26 @@ class TestEpoch(unittest.TestCase):
         for reveal in reveals:
             reveal_block = Block()
             reveal_block.system_txs = [reveal]
-            reveal_block.prev_hashes = [*dag.get_top_blocks()]            
+            reveal_block.prev_hashes = dag.get_top_blocks()
             reveal_block.timestamp = block_number * BLOCK_TIME            
-            dag.sign_block(reveal_block, private, block_number)
+            signed_block = BlockFactory.sign_block(reveal_block, private)
+            dag.add_signed_block(block_number, signed_block)            
             block_number += 1
 
         for i in range(0, Round.PARTIAL_DURATION):
-            dag.sign_empty_block(private, block_number)
+            empty_block = BlockFactory.create_block_dummy(dag.get_top_blocks())
+            signed_block = BlockFactory.sign_block(empty_block, private)
+            dag.add_signed_block(block_number, signed_block)                        
             block_number += 1
 
         seed = epoch.calculate_epoch_seed(2)
         self.assertEqual(expected_seed, seed)
+
+    def test_epoch_number(self):
+        epoch = Epoch(Dag(0))
+        self.assertEqual(epoch.get_epoch_number(6), 1)
+        self.assertEqual(epoch.get_epoch_number(7), 2)
+        self.assertEqual(epoch.get_epoch_start_block_number(2), 7)
     
     def create_dummy_commit_reveal(era_hash, random_value):
         commit = CommitRandomTransaction()
