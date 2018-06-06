@@ -2,6 +2,7 @@ import unittest
 import os
 from chain.block import Block
 from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
+from transaction.transaction import SplitRandomTransaction
 from crypto.enc_random import enc_part_random
 from Crypto.Hash import SHA256
 
@@ -30,3 +31,15 @@ class TestTransaction(unittest.TestCase):
         restored.parse(raw)
 
         self.assertEqual(original.get_hash().digest(), restored.get_hash().digest())        
+
+    def test_split_pack_unpack(self):
+        original = SplitRandomTransaction()
+        original.pieces = [os.urandom(32), os.urandom(32), os.urandom(32)]
+        original.signature = int.from_bytes(os.urandom(128), byteorder='big')
+
+        raw = original.pack()
+        restored = SplitRandomTransaction()
+        restored.parse(raw)
+
+        self.assertEqual(original.get_hash().digest(), restored.get_hash().digest())        
+        
