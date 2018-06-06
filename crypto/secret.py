@@ -1,10 +1,12 @@
 import random
 import string
+import os
 
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from secretsharing import PlaintextToHexSecretSharer
+from secretsharing import secret_int_to_points, points_to_secret_int
 
 def split_secret(key):
     s = "".join([random.choice(string.ascii_letters+string.digits) for i in range(20)])
@@ -36,6 +38,10 @@ def decrypt_secret(splits, ciphertext):
     dpk = dpk.decode("utf-8").replace(' ','')
     key = RSA.importKey(b64decode(dpk))
 
+def split_random_secret(era_hash, threshold, num_points):
+    random = os.urandom(32)
+    data = random+era_hash
+    return secret_int_to_points(int.from_bytes(data, byteorder="big"), threshold, num_points)
 
 def enc_part_secret(publickey, split):
     enc_data = publickey.encrypt(split.encode('utf-8'), 32)
