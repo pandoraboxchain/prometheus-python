@@ -93,7 +93,6 @@ class Epoch():
             commit = commits_set.transactions_by_hash[reveal.commit_hash]
             _, rand = decode_random_using_raw_key(commit.rand, reveal.key)
             randoms_list.append(int.from_bytes(rand, byteorder='big'))
-            print("revealed random from", reveal.get_hash(), "is", rand)
         seed = sum_random(randoms_list)
         return seed
 
