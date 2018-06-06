@@ -82,6 +82,9 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(epoch.get_epoch_number(6), 1)
         self.assertEqual(epoch.get_epoch_number(7), 2)
         self.assertEqual(epoch.get_epoch_start_block_number(2), 7)
+        self.assertEqual(epoch.convert_to_epoch_block_number(7), 0)
+        self.assertEqual(epoch.convert_to_epoch_block_number(12), 5)
+        self.assertEqual(epoch.convert_to_epoch_block_number(13), 0)
     
     def create_dummy_commit_reveal(era_hash, random_value):
         commit = CommitRandomTransaction()

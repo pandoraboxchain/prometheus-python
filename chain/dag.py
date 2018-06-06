@@ -3,8 +3,6 @@ from chain.signed_block import SignedBlock
 from Crypto.Hash import SHA256
 import binascii
 
-BLOCK_TIME = 5
-
 class Dag():
     
     def __init__(self, genesis_creation_time):
@@ -14,6 +12,7 @@ class Dag():
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
         self.add_signed_block(0, signed_genesis_block)
+        print("Genesis block hash", self.genesis_block().get_hash().hexdigest())
 
     def genesis_block(self):
         block = Block()
@@ -78,9 +77,9 @@ class Dag():
     def has_block_number(self, number):
         return number in self.blocks_by_number
     
-    def get_block_number_by_hash(self, block_hash):
-        block_by_hash = self.blocks_by_hash[block_hash]
-        for number, block_by_number in self.blocks_by_number.items():
-            if block_by_hash == block_by_number:
-                return number
+    def get_block_number(self, block_hash):
+        for number, block_list_by_number in self.blocks_by_number.items():
+            for block_by_number in block_list_by_number:
+                if block_by_number.block.get_hash().digest() == block_hash:
+                    return number
         return -1

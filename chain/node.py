@@ -89,7 +89,6 @@ class Node():
             tx.commit_hash = self.last_commited_random_key[1]
             print("reveal tx for ", tx.commit_hash.hex())            
             key = b64encode(self.last_commited_random_key[2].exportKey('DER'))
-            print("key len from node is", len(key))
             tx.key = key
             raw_tx = TransactionParser.pack(tx)
             del self.last_commited_random_key
@@ -105,7 +104,8 @@ class Node():
         print("Node ", self.node_id, "received block from node", node_id, "with block hash", signed_block.block.get_hash().hexdigest())
         if signed_block.verify_signature(current_validator.public_key):
             block = signed_block.block
-            commits_set = CommitsSet(self.dag, block.prev_hashes[0])   #TODO check all previous hashes
+            print("prev_hash[0]", block.prev_hashes[0].hex())
+            commits_set = CommitsSet(self.epoch, epoch_number, block.prev_hashes[0])
             if BlockVerifier.check_if_valid(block, commits_set):
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.try_to_calculate_next_epoch_validators(current_block_number)

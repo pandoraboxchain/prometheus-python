@@ -3,7 +3,7 @@ from transaction.commits_set import CommitsSet
 from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_numbers
 
-BLOCK_TIME = 5
+BLOCK_TIME = 4
 
 class Round():
     COMMIT = 0
@@ -55,7 +55,7 @@ class Epoch():
     def get_epoch_number(self, current_block_number):
         if current_block_number == 0:
             return 0 
-        return current_block_number // (Epoch.get_duration() + 1) + 1 #because genesis block is last block of era zero
+        return (current_block_number - 1) // Epoch.get_duration() + 1 #because genesis block is last block of era zero
 
     def get_epoch_start_block_number(self, epoch_number):
         return Epoch.get_duration() * (epoch_number - 1) + 1
@@ -86,7 +86,7 @@ class Epoch():
         
         seed = 0
         epoch_hash = self.get_epoch_hash(epoch_number)
-        commits_set = CommitsSet(self.dag, epoch_hash)
+        commits_set = CommitsSet(self, epoch_number - 1, epoch_hash)
         reveals = self.collect_reveals_for_epoch(epoch_number - 1)
         randoms_list = []
         for reveal in reveals:
@@ -97,6 +97,24 @@ class Epoch():
         seed = sum_random(randoms_list)
         return seed
 
+    
+    def backwards_collect_commit_blocks_for_epoch(self, epoch_number, starting_block_hash):
+        commits = []
+        block = self.dag.blocks_by_hash[starting_block_hash].block
+        self.recursive_collect_commit_blocks(block, epoch_number, commits) 
+        return commits
+
+    def recursive_collect_commit_blocks(self, block, epoch_number, commits):
+        block_number = self.dag.get_block_number(block.get_hash().digest())
+        if self.get_epoch_number(block_number) != epoch_number:
+            return
+
+        commits.append(block)
+
+        for prev_hash in block.prev_hashes:
+            block = self.dag.blocks_by_hash[prev_hash].block
+            self.recursive_collect_commit_blocks(block, epoch_number, commits)
+        
     def collect_reveals_for_epoch(self, epoch_number):
         reveals = []
         epoch_start_block = self.get_epoch_start_block_number(epoch_number)
