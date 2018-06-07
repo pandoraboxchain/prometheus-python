@@ -16,6 +16,7 @@ from crypto.enc_random import enc_part_random, encode_value
 from crypto.sum_random import sum_random, calculate_validators_numbers
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits, decode_random
+from crypto.keys import Keys
 
 class TestEpoch(unittest.TestCase):
 
@@ -95,12 +96,12 @@ class TestEpoch(unittest.TestCase):
             dag.add_signed_block(block_number, signed_block)            
             block_number += 1
 
-        random_splits = epoch.get_random_pieces_for_epoch(1)
+        random_splits = epoch.get_random_splits_for_epoch(1)
         self.assertEqual(expected_random_pieces, random_splits)
 
         restored_randoms = []
         for i in range(0, len(random_splits)):
-            random = decode_random(random_splits[i], raw_private_keys)
+            random = decode_random(random_splits[i], Keys.list_from_bytes(raw_private_keys))
             restored_randoms.append(random)
 
         self.assertEqual(randoms_list, restored_randoms)

@@ -3,8 +3,8 @@ from transaction.commits_set import CommitsSet
 from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_numbers
 from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
+from crypto.keys import Keys
 from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
-
 BLOCK_TIME = 4
 
 class Round():
@@ -94,7 +94,7 @@ class Epoch():
         
         return private_keys
 
-    def get_random_pieces_for_epoch(self, epoch_number):
+    def get_random_splits_for_epoch(self, epoch_number):
         random_pieces_list = []
         blocks = self.get_all_blocks_for_round(epoch_number, Round.RANDOM)
         for block in blocks:
@@ -130,45 +130,15 @@ class Epoch():
         
         #epoch_hash = self.get_epoch_hash(epoch_number) #TODO: add validation
         private_keys = self.get_private_keys_for_epoch(epoch_number - 1)
-        random_pieces_list = self.get_random_pieces_for_epoch(epoch_number - 1)
+        random_pieces_list = self.get_random_splits_for_epoch(epoch_number - 1)
 
         randoms_list = []
         for random_pieces in random_pieces_list:
-            random = decode_random(random_pieces, private_keys)
+            random = decode_random(random_pieces, Keys.list_from_bytes(private_keys))
             randoms_list.append(random)
 
         seed = sum_random(randoms_list)
         return seed
-    
-    def backwards_collect_commit_blocks_for_epoch(self, epoch_number, starting_block_hash):
-        commits = []
-        block = self.dag.blocks_by_hash[starting_block_hash].block
-        self.recursive_collect_commit_blocks(block, epoch_number, commits) 
-        return commits
-
-    def recursive_collect_commit_blocks(self, block, epoch_number, commits):
-        block_number = self.dag.get_block_number(block.get_hash().digest())
-        if self.get_epoch_number(block_number) != epoch_number:
-            return
-
-        commits.append(block)
-
-        for prev_hash in block.prev_hashes:
-            block = self.dag.blocks_by_hash[prev_hash].block
-            self.recursive_collect_commit_blocks(block, epoch_number, commits)
-        
-    def collect_reveals_for_epoch(self, epoch_number):
-        reveals = []
-        epoch_start_block = self.get_epoch_start_block_number(epoch_number)
-        reveal_round_start_block = epoch_start_block + Round.PUBLIC_DURATION
-        reveal_round_end_block = reveal_round_start_block + Round.RANDOM_DURATION
-        for i in range(reveal_round_start_block,reveal_round_end_block):
-            block_list = self.dag.blocks_by_number[i]
-            for block in block_list:
-                if hasattr(block.block, "system_txs"):
-                    for tx in block.block.system_txs:
-                        reveals.append(tx)
-        return reveals
     
     def is_last_block_of_era(self, block_number):
         epoch_number = self.get_epoch_number(block_number)        

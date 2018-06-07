@@ -1,6 +1,7 @@
 import unittest
 import os
-from crypto.secret import split_secret, recover_splits
+from crypto.secret import split_secret, recover_splits, encode_splits, decode_random
+from crypto.private import Private
 
 class TestSecretSharing(unittest.TestCase):
 
@@ -20,4 +21,20 @@ class TestSecretSharing(unittest.TestCase):
 
         non_recovered = recover_splits(tuple_ordered_splits[0:2])
         self.assertNotEqual(original_number, non_recovered)
+
+    def test_encryption_and_decryption(self):
+        private_keys = []
+        public_keys = []
+        for i in range(0, 5):
+            private = Private.generate()
+            private_keys.append(private)
+            public_keys.append(private.publickey())
+
+        random_bytes = os.urandom(32)
+        random_value = int.from_bytes(random_bytes, byteorder='big')
+        splits = split_secret(random_bytes, 3, 5)
+        encoded_splits = encode_splits(splits, public_keys)
+        decoded_random = decode_random(encoded_splits, private_keys)
+
+        self.assertEqual(random_value, decoded_random)
         
