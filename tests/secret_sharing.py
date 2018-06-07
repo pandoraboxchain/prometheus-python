@@ -1,7 +1,6 @@
 import unittest
 import os
 from crypto.secret import split_secret, recover_splits
-from Crypto.Hash import SHA256
 
 class TestSecretSharing(unittest.TestCase):
 

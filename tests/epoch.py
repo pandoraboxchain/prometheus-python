@@ -15,7 +15,7 @@ from crypto.dec_part_random import dec_part_random
 from crypto.enc_random import enc_part_random, encode_value
 from crypto.sum_random import sum_random, calculate_validators_numbers
 from crypto.private import Private
-from crypto.secret import split_secret
+from crypto.secret import split_secret, encode_splits, decode_random
 
 class TestEpoch(unittest.TestCase):
 
@@ -67,7 +67,7 @@ class TestEpoch(unittest.TestCase):
             random_value = int.from_bytes(random_bytes, byteorder='big')
             split_random_tx = SplitRandomTransaction()
             splits = split_secret(random_bytes, 2, 3)
-            encoded_splits = epoch.encode_splits(splits, public_keys)
+            encoded_splits = encode_splits(splits, public_keys)
             split_random_tx.pieces = encoded_splits
             expected_random_pieces.append(split_random_tx.pieces)
             split_random_tx.signature = node_private_key.sign(pubkey_tx.get_hash().digest(), 0)[0]
@@ -100,7 +100,7 @@ class TestEpoch(unittest.TestCase):
 
         restored_randoms = []
         for i in range(0, len(random_splits)):
-            random = epoch.decode_random(random_splits[i], raw_private_keys)
+            random = decode_random(random_splits[i], raw_private_keys)
             restored_randoms.append(random)
 
         self.assertEqual(randoms_list, restored_randoms)

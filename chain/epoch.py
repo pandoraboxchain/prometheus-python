@@ -2,7 +2,7 @@ import datetime
 from transaction.commits_set import CommitsSet
 from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_numbers
-from crypto.secret import dec_part_secret_raw_key, recover_splits, enc_part_secret
+from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
 from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 
 BLOCK_TIME = 4
@@ -29,7 +29,7 @@ class Epoch():
 
     def is_current_timeframe_block_present(self):
         genesis_timestamp = self.dag.genesis_block().timestamp
-        current_block_number = self.get_current_timeframe_block_number();
+        current_block_number = self.get_current_timeframe_block_number()
         time_from = genesis_timestamp + current_block_number * BLOCK_TIME
         time_to = genesis_timestamp + (current_block_number + 1) * BLOCK_TIME
         for _, block in self.dag.blocks_by_hash.items():
@@ -38,7 +38,7 @@ class Epoch():
         return False
 
     def get_current_round(self):
-        current_block_number = self.get_current_timeframe_block_number();
+        current_block_number = self.get_current_timeframe_block_number()
         return self.get_round_by_block_number(current_block_number)
 
     def get_round_by_block_number(self, current_block_number):
@@ -123,36 +123,18 @@ class Epoch():
                 blocks.append(block.block)
 
         return blocks
-    
-    def decode_random(self, random_pieces, private_keys):
-        splits = []
-        for i in range(0, len(random_pieces)):
-            piece = random_pieces[i]
-            private_key = private_keys[i]
-            split = dec_part_secret_raw_key(private_key, piece, i)
-            splits.append(split)
-
-        return recover_splits(splits)
-
-    def encode_splits(self, splits, public_keys):
-        encoded_splits = []
-        for i in range(0, len(splits)):
-            encoded_split = enc_part_secret(public_keys[i], splits[i])
-            encoded_splits.append(encoded_split)
-        
-        return encoded_splits
 
     def calculate_epoch_seed(self, epoch_number):
         if epoch_number == 1:
             return 0
         
-        epoch_hash = self.get_epoch_hash(epoch_number)
+        #epoch_hash = self.get_epoch_hash(epoch_number) #TODO: add validation
         private_keys = self.get_private_keys_for_epoch(epoch_number - 1)
         random_pieces_list = self.get_random_pieces_for_epoch(epoch_number - 1)
 
         randoms_list = []
         for random_pieces in random_pieces_list:
-            random = self.decode_random(random_pieces, private_keys)
+            random = decode_random(random_pieces, private_keys)
             randoms_list.append(random)
 
         seed = sum_random(randoms_list)
@@ -192,13 +174,6 @@ class Epoch():
         epoch_number = self.get_epoch_number(block_number)        
         epoch_start_block = self.get_epoch_start_block_number(epoch_number)
         return block_number == epoch_start_block + Epoch.get_duration() - 1
-
-    def get_validator_number(self, block_number, validators_count):
-        epoch_number = self.get_epoch_number(block_number)
-        epoch_start_block_number = self.get_epoch_start_block_number(epoch_number)
-        block_number_in_epoch = block_number - epoch_start_block_number
-        validators_list = self.get_epoch_validators_list(epoch_number)
-        return validators_list[block_number_in_epoch]
 
     def convert_to_epoch_block_number(self, global_block_number):
         epoch_number = self.get_epoch_number(global_block_number)

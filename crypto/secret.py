@@ -29,6 +29,11 @@ def enc_part_secret(publickey, split):
     enc_data = publickey.encrypt(split, 32)[0]
     return enc_data
 
+def enc_part_secret_raw_key(pubkey_bytes, enc_data, number):
+    decoded_bytes = b64decode(pubkey_bytes)
+    key = RSA.importKey(decoded_bytes)
+    return enc_part_secret(key, enc_data)
+
 def dec_part_secret(privatekey, enc_data, number):
     split = privatekey.decrypt(enc_data)
     return (number + 1, int.from_bytes(split, byteorder="big"))
@@ -37,3 +42,21 @@ def dec_part_secret_raw_key(key_bytes, enc_data, number):
     decoded_bytes = b64decode(key_bytes)
     key = RSA.importKey(decoded_bytes)
     return dec_part_secret(key, enc_data, number)
+
+def decode_random(encoded_splits, private_keys):
+    splits = []
+    for i in range(0, len(encoded_splits)):
+        split = encoded_splits[i]
+        private_key = private_keys[i]
+        split = dec_part_secret_raw_key(private_key, split, i)
+        splits.append(split)
+
+    return recover_splits(splits)
+
+def encode_splits(splits, public_keys):
+    encoded_splits = []
+    for i in range(0, len(splits)):
+        encoded_split = enc_part_secret(public_keys[i], splits[i])
+        encoded_splits.append(encoded_split)
+    
+    return encoded_splits
