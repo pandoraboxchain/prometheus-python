@@ -2,17 +2,19 @@ import datetime
 from transaction.commits_set import CommitsSet
 from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_numbers
+from crypto.secret import dec_part_secret_raw_key, recover_splits, enc_part_secret
+from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 
 BLOCK_TIME = 4
 
 class Round():
-    COMMIT = 0
-    REVEAL = 1
-    PARTIAL = 2
+    PUBLIC = 0
+    RANDOM = 1
+    PRIVATE = 2
 
-    COMMIT_DURATION = 2
-    REVEAL_DURATION = 2
-    PARTIAL_DURATION = 2
+    PUBLIC_DURATION = 3
+    RANDOM_DURATION = 3
+    PRIVATE_DURATION = 3
 
 class Epoch():
 
@@ -42,15 +44,15 @@ class Epoch():
     def get_round_by_block_number(self, current_block_number):
         epoch_number = self.get_epoch_number(current_block_number)
         epoch_start_block = self.get_epoch_start_block_number(epoch_number)
-        if current_block_number <= epoch_start_block + Round.COMMIT_DURATION:
-            return Round.COMMIT
-        elif current_block_number <= epoch_start_block + Round.COMMIT_DURATION + Round.REVEAL_DURATION:
-            return Round.REVEAL
+        if current_block_number <= epoch_start_block + Round.PUBLIC_DURATION:
+            return Round.PUBLIC
+        elif current_block_number <= epoch_start_block + Round.PUBLIC_DURATION + Round.RANDOM_DURATION:
+            return Round.RANDOM
         else:
-            return Round.PARTIAL
+            return Round.PRIVATE
 
     def get_duration():
-        return Round.COMMIT_DURATION + Round.REVEAL_DURATION + Round.PARTIAL_DURATION
+        return Round.PUBLIC_DURATION + Round.RANDOM_DURATION + Round.PRIVATE_DURATION
 
     def get_epoch_number(self, current_block_number):
         if current_block_number == 0:
@@ -60,7 +62,6 @@ class Epoch():
     def get_epoch_start_block_number(self, epoch_number):
         return Epoch.get_duration() * (epoch_number - 1) + 1
         
-    
     def get_epoch_hash(self, epoch_number):
         if epoch_number == 0:
             return None
@@ -80,22 +81,82 @@ class Epoch():
         self.cached_epoch_validators[epoch_number] = validators_list
         return validators_list
 
+    def get_private_keys_for_epoch(self, epoch_number):
+        pk_blocks = self.get_all_blocks_for_round(epoch_number, Round.PRIVATE)
+        
+        private_keys = []
+
+        for block in pk_blocks:
+            for tx in block.system_txs:
+                if isinstance(tx, PrivateKeyTransaction):
+                    private_keys.append(tx.key)
+                    break #only one private key transaction can exists and it should be signed by block signer
+        
+        return private_keys
+
+    def get_random_pieces_for_epoch(self, epoch_number):
+        random_pieces_list = []
+        blocks = self.get_all_blocks_for_round(epoch_number, Round.RANDOM)
+        for block in blocks:
+            for tx in block.system_txs:
+                if isinstance(tx, SplitRandomTransaction):
+                    random_pieces_list.append(tx.pieces)
+        
+        return random_pieces_list
+
+    def get_all_blocks_for_round(self, epoch_number, round_type):
+        round_start = self.get_epoch_start_block_number(epoch_number)
+        round_end = 0
+        if round_type == Round.PUBLIC:
+            round_end += round_start + Round.PUBLIC_DURATION
+        elif round_type == Round.RANDOM:
+            round_start += Round.PUBLIC_DURATION
+            round_end = round_start + Round.RANDOM_DURATION
+        elif round_type == Round.PRIVATE:
+            round_start += Round.PUBLIC_DURATION + Round.RANDOM_DURATION
+            round_end = round_start + Round.PRIVATE_DURATION
+        
+        blocks = []
+        for i in range(round_start, round_end):
+            blocks_at_number = self.dag.blocks_by_number[i]
+            for block in blocks_at_number:
+                blocks.append(block.block)
+
+        return blocks
+    
+    def decode_random(self, random_pieces, private_keys):
+        splits = []
+        for i in range(0, len(random_pieces)):
+            piece = random_pieces[i]
+            private_key = private_keys[i]
+            split = dec_part_secret_raw_key(private_key, piece, i)
+            splits.append(split)
+
+        return recover_splits(splits)
+
+    def encode_splits(self, splits, public_keys):
+        encoded_splits = []
+        for i in range(0, len(splits)):
+            encoded_split = enc_part_secret(public_keys[i], splits[i])
+            encoded_splits.append(encoded_split)
+        
+        return encoded_splits
+
     def calculate_epoch_seed(self, epoch_number):
         if epoch_number == 1:
             return 0
         
-        seed = 0
         epoch_hash = self.get_epoch_hash(epoch_number)
-        commits_set = CommitsSet(self, epoch_number - 1, epoch_hash)
-        reveals = self.collect_reveals_for_epoch(epoch_number - 1)
+        private_keys = self.get_private_keys_for_epoch(epoch_number - 1)
+        random_pieces_list = self.get_random_pieces_for_epoch(epoch_number - 1)
+
         randoms_list = []
-        for reveal in reveals:
-            commit = commits_set.transactions_by_hash[reveal.commit_hash]
-            _, rand = decode_random_using_raw_key(commit.rand, reveal.key)
-            randoms_list.append(int.from_bytes(rand, byteorder='big'))
+        for random_pieces in random_pieces_list:
+            random = self.decode_random(random_pieces, private_keys)
+            randoms_list.append(random)
+
         seed = sum_random(randoms_list)
         return seed
-
     
     def backwards_collect_commit_blocks_for_epoch(self, epoch_number, starting_block_hash):
         commits = []
@@ -117,8 +178,8 @@ class Epoch():
     def collect_reveals_for_epoch(self, epoch_number):
         reveals = []
         epoch_start_block = self.get_epoch_start_block_number(epoch_number)
-        reveal_round_start_block = epoch_start_block + Round.COMMIT_DURATION
-        reveal_round_end_block = reveal_round_start_block + Round.REVEAL_DURATION
+        reveal_round_start_block = epoch_start_block + Round.PUBLIC_DURATION
+        reveal_round_end_block = reveal_round_start_block + Round.RANDOM_DURATION
         for i in range(reveal_round_start_block,reveal_round_end_block):
             block_list = self.dag.blocks_by_number[i]
             for block in block_list:

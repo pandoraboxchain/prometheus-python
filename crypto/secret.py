@@ -7,46 +7,33 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from secretsharing import PlaintextToHexSecretSharer
 from secretsharing import secret_int_to_points, points_to_secret_int
+from base64 import b64decode
 
-def split_secret(key):
-    s = "".join([random.choice(string.ascii_letters+string.digits) for i in range(20)])
-    split_s = PlaintextToHexSecretSharer.split_secret(s, 51, 100)
-    h = SHA256.new(s.encode("utf-8")).digest()
-    IV = h[0:16]
-    ekey = h[16:32]
-    mode = AES.MODE_CBC
-    encryptor = AES.new(ekey, mode, IV=IV)
-    ciphertext = encryptor.encrypt(text)
-    binPrivKey = key.exportKey('DER')
-    p_text = b64encode(binPrivKey).decode('utf-8')
-    while len(p_text) % 16 != 0:
-        p_text+=' '
-    ciphertext = encryptor.encrypt(p_text)
-    return {
-        "ciphertext": ciphertext,
-        "splits": split_s,
-    }
-
-def decrypt_secret(splits, ciphertext):
-    s = PlaintextToHexSecretSharer.recover_secret(splits)
-    h = SHA256.new(s.encode("utf-8")).digest()
-    IV = h[0:16]
-    ekey = h[16:32]
-    mode = AES.MODE_CBC
-    decryptor = AES.new(ekey, mode, IV=IV)
-    dpk = decryptor.decrypt(ciphertext)
-    dpk = dpk.decode("utf-8").replace(' ','')
-    key = RSA.importKey(b64decode(dpk))
+def split_secret(data, threshold, num_points):
+    splits = []
+    split_ints = secret_int_to_points(int.from_bytes(data, byteorder="big"), threshold, num_points)
+    for item in split_ints:
+        bytes = item[1].to_bytes(32, byteorder="big")
+        splits.append(bytes)
+    return splits
 
 def split_random_secret(era_hash, threshold, num_points):
     random = os.urandom(32)
     data = random+era_hash
-    return secret_int_to_points(int.from_bytes(data, byteorder="big"), threshold, num_points)
+    return split_secret(data, threshold, num_points)
+
+def recover_splits(splits):
+    return points_to_secret_int(splits)
 
 def enc_part_secret(publickey, split):
-    enc_data = publickey.encrypt(split.encode('utf-8'), 32)
+    enc_data = publickey.encrypt(split, 32)[0]
     return enc_data
 
-def dec_part_secret(privatekey, enc_data):
+def dec_part_secret(privatekey, enc_data, number):
     split = privatekey.decrypt(enc_data)
-    return split
+    return (number + 1, int.from_bytes(split, byteorder="big"))
+
+def dec_part_secret_raw_key(key_bytes, enc_data, number):
+    decoded_bytes = b64decode(key_bytes)
+    key = RSA.importKey(decoded_bytes)
+    return dec_part_secret(key, enc_data, number)

@@ -10,11 +10,12 @@ from chain.signed_block import SignedBlock
 from chain.dag import Dag
 from chain.epoch import Epoch, Round, BLOCK_TIME
 from chain.block_factory import BlockFactory
-from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
+from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from crypto.dec_part_random import dec_part_random
 from crypto.enc_random import enc_part_random, encode_value
 from crypto.sum_random import sum_random, calculate_validators_numbers
 from crypto.private import Private
+from crypto.secret import split_secret
 
 class TestEpoch(unittest.TestCase):
 
@@ -27,52 +28,82 @@ class TestEpoch(unittest.TestCase):
 
         self.assertEqual(first_era_hash, genesis_hash)
 
-    def test_commit_reveal_validators_list(self):
+    def test_rounds(self):
         dag = Dag(0)
         epoch = Epoch(dag)
 
-        private = Private.generate()
+        node_private_key = Private.generate()
 
-        randoms_list = []
-        for i in range(0, Round.COMMIT_DURATION):
-            random_value = int.from_bytes(os.urandom(32), byteorder='big')       
-            randoms_list.append(random_value)
+        private_keys = []
 
-        expected_seed = sum_random(randoms_list)
-
-        reveals = []
         block_number = 1
 
         epoch_hash = epoch.get_epoch_hash(1)
 
-        for rand in randoms_list:
-            commit, reveal = TestEpoch.create_dummy_commit_reveal(epoch_hash, rand)
-            commit_block = Block()
-            commit_block.timestamp = block_number * BLOCK_TIME
-            commit_block.prev_hashes = dag.get_top_blocks()
-            commit_block.system_txs = [commit]
-            signed_block = BlockFactory.sign_block(commit_block, private)
+        for i in range(0, Round.PUBLIC_DURATION):
+            private = Private.generate()
+            pubkey_tx = PublicKeyTransaction()
+            pubkey_tx.generated_pubkey = b64encode(private.publickey().exportKey('DER'))
+            pubkey_tx.sender_pubkey = b64encode(node_private_key.publickey().exportKey('DER'))
+            pubkey_tx.signature = node_private_key.sign(pubkey_tx.get_hash().digest(), 0)[0]
+            public_key_block = Block()
+            public_key_block.timestamp = block_number * BLOCK_TIME
+            public_key_block.prev_hashes = dag.get_top_blocks()
+            public_key_block.system_txs = [pubkey_tx]
+            signed_block = BlockFactory.sign_block(public_key_block, node_private_key)
             dag.add_signed_block(block_number, signed_block)
             block_number += 1
 
-            reveals.append(reveal)
+            private_keys.append(private)
 
-        self.assertEqual(len(reveals), Round.REVEAL_DURATION)
+        public_keys = []
+        for private in private_keys:
+            public_keys.append(private.publickey())
 
-        for reveal in reveals:
-            reveal_block = Block()
-            reveal_block.system_txs = [reveal]
-            reveal_block.prev_hashes = dag.get_top_blocks()
-            reveal_block.timestamp = block_number * BLOCK_TIME            
-            signed_block = BlockFactory.sign_block(reveal_block, private)
+        randoms_list = []
+        expected_random_pieces = []
+        for i in range(0, Round.RANDOM_DURATION):
+            random_bytes = os.urandom(32)
+            random_value = int.from_bytes(random_bytes, byteorder='big')
+            split_random_tx = SplitRandomTransaction()
+            splits = split_secret(random_bytes, 2, 3)
+            encoded_splits = epoch.encode_splits(splits, public_keys)
+            split_random_tx.pieces = encoded_splits
+            expected_random_pieces.append(split_random_tx.pieces)
+            split_random_tx.signature = node_private_key.sign(pubkey_tx.get_hash().digest(), 0)[0]
+            split_random_block = Block()
+            split_random_block.timestamp = block_number * BLOCK_TIME
+            split_random_block.prev_hashes = dag.get_top_blocks()
+            split_random_block.system_txs = [split_random_tx]
+            signed_block = BlockFactory.sign_block(split_random_block, node_private_key)
+            dag.add_signed_block(block_number, signed_block)
+            randoms_list.append(random_value)
+            block_number += 1
+
+        expected_seed = sum_random(randoms_list)  
+
+        raw_private_keys = []
+        for private in private_keys:
+            private_key_tx = PrivateKeyTransaction()
+            private_key_tx.key = b64encode(private.exportKey('DER'))
+            raw_private_keys.append(private_key_tx.key)
+            private_key_block = Block()
+            private_key_block.system_txs = [private_key_tx]
+            private_key_block.prev_hashes = dag.get_top_blocks()
+            private_key_block.timestamp = block_number * BLOCK_TIME            
+            signed_block = BlockFactory.sign_block(private_key_block, private)
             dag.add_signed_block(block_number, signed_block)            
             block_number += 1
 
-        for i in range(0, Round.PARTIAL_DURATION):
-            empty_block = BlockFactory.create_block_dummy(dag.get_top_blocks())
-            signed_block = BlockFactory.sign_block(empty_block, private)
-            dag.add_signed_block(block_number, signed_block)                        
-            block_number += 1
+        random_splits = epoch.get_random_pieces_for_epoch(1)
+        self.assertEqual(expected_random_pieces, random_splits)
+
+        restored_randoms = []
+        for i in range(0, len(random_splits)):
+            random = epoch.decode_random(random_splits[i], raw_private_keys)
+            restored_randoms.append(random)
+
+        self.assertEqual(randoms_list, restored_randoms)
 
         seed = epoch.calculate_epoch_seed(2)
         self.assertEqual(expected_seed, seed)
@@ -80,34 +111,7 @@ class TestEpoch(unittest.TestCase):
     def test_epoch_number(self):
         epoch = Epoch(Dag(0))
         self.assertEqual(epoch.get_epoch_number(6), 1)
-        self.assertEqual(epoch.get_epoch_number(7), 2)
-        self.assertEqual(epoch.get_epoch_start_block_number(2), 7)
-        self.assertEqual(epoch.convert_to_epoch_block_number(7), 0)
-        self.assertEqual(epoch.convert_to_epoch_block_number(12), 5)
-        self.assertEqual(epoch.convert_to_epoch_block_number(13), 0)
-    
-    def create_dummy_commit_reveal(era_hash, random_value):
-        commit = CommitRandomTransaction()
-        encoded, key = encode_value(random_value, era_hash) #todo return random or something
-        commit.rand = encoded
-        commit.pubkey = os.urandom(128)
-        commit.signature = int.from_bytes(os.urandom(128), byteorder='big')
-
-        reveal = RevealRandomTransaction()
-        reveal.commit_hash = commit.get_hash().digest()
-        reveal.key = b64encode(key.exportKey('DER'))
-
-        return (commit, reveal)
-
-    def create_signed_block_with_tx(transaction):
-        block = Block()
-        block.prev_hashes = [*self.get_top_blocks()]
-        block.timestamp = int(datetime.datetime.now().timestamp())
-        block.system_txs = [transaction]
-        block_hash = block.get_hash().digest()
-        signature = private.sign(block_hash, 0)[0]  #for some reason it returns tuple with second item being None
-        signed_block = SignedBlock()
-        signed_block.set_block(block)
-        signed_block.set_signature(signature)
-
-        return signed_block
+        self.assertEqual(epoch.get_epoch_number(10), 2)
+        self.assertEqual(epoch.get_epoch_start_block_number(2), 10)
+        self.assertEqual(epoch.convert_to_epoch_block_number(10), 0)
+        self.assertEqual(epoch.convert_to_epoch_block_number(12), 2)

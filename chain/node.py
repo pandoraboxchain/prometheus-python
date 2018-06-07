@@ -38,9 +38,9 @@ class Node():
     async def run(self):
         while True:
             current_block_number = self.epoch.get_current_timeframe_block_number()
-            if self.epoch.get_round_by_block_number(current_block_number) == Round.COMMIT:
+            if self.epoch.get_round_by_block_number(current_block_number) == Round.PUBLIC:
                 self.try_to_commit_random(current_block_number)
-            elif self.epoch.get_round_by_block_number(current_block_number) == Round.REVEAL:
+            elif self.epoch.get_round_by_block_number(current_block_number) == Round.RANDOM:
                 self.try_to_reveal_random(current_block_number)
                               
             self.try_to_sign_block(current_block_number)

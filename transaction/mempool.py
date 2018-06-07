@@ -13,11 +13,11 @@ class Mempool():
             self.reveals.append(tx)
 
     def get_transactions_for_round(self, round_type):
-        if round_type == Round.COMMIT:
+        if round_type == Round.PUBLIC:
             commits = self.commits.copy()
             self.commits.clear();
             return commits
-        elif round_type == Round.REVEAL:
+        elif round_type == Round.RANDOM:
             reveals = self.reveals.copy()
             self.reveals.clear()
             return reveals
