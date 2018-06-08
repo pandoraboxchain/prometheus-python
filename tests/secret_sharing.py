@@ -2,6 +2,7 @@ import unittest
 import os
 from crypto.secret import split_secret, recover_splits, encode_splits, decode_random
 from crypto.private import Private
+from crypto.keys import Keys
 
 class TestSecretSharing(unittest.TestCase):
 
@@ -30,11 +31,14 @@ class TestSecretSharing(unittest.TestCase):
             private_keys.append(private)
             public_keys.append(private.publickey())
 
+        raw_private_keys = Keys.list_to_bytes(private_keys)
+        decoded_private_keys = Keys.list_from_bytes(raw_private_keys)
+
         random_bytes = os.urandom(32)
         random_value = int.from_bytes(random_bytes, byteorder='big')
         splits = split_secret(random_bytes, 3, 5)
         encoded_splits = encode_splits(splits, public_keys)
-        decoded_random = decode_random(encoded_splits, private_keys)
+        decoded_random = decode_random(encoded_splits, decoded_private_keys)
 
         self.assertEqual(random_value, decoded_random)
         

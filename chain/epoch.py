@@ -44,13 +44,14 @@ class Epoch():
     def get_round_by_block_number(self, current_block_number):
         epoch_number = self.get_epoch_number(current_block_number)
         epoch_start_block = self.get_epoch_start_block_number(epoch_number)
-        if current_block_number <= epoch_start_block + Round.PUBLIC_DURATION:
+        if current_block_number < epoch_start_block + Round.PUBLIC_DURATION:
             return Round.PUBLIC
-        elif current_block_number <= epoch_start_block + Round.PUBLIC_DURATION + Round.RANDOM_DURATION:
+        elif current_block_number < epoch_start_block + Round.PUBLIC_DURATION + Round.RANDOM_DURATION:
             return Round.RANDOM
         else:
             return Round.PRIVATE
 
+    @staticmethod
     def get_duration():
         return Round.PUBLIC_DURATION + Round.RANDOM_DURATION + Round.PRIVATE_DURATION
 

@@ -10,9 +10,11 @@ class TransactionParser():
     def parse(raw_data):
         tx_type = struct.unpack_from("B", raw_data)[0]
         if tx_type == Type.PUBLIC:
-            tx = CommitRandomTransaction()
+            tx = PublicKeyTransaction()
         elif tx_type == Type.RANDOM:
-            tx = RevealRandomTransaction()
+            tx = SplitRandomTransaction()
+        elif tx_type == Type.PRIVATE:
+            tx = PrivateKeyTransaction()
         else:
             assert False, "Cannot parse unknown transaction type"
         tx.parse(raw_data[1:])
@@ -20,10 +22,14 @@ class TransactionParser():
 
     def pack(tx):
         raw = b''
-        if isinstance(tx, CommitRandomTransaction):
+        if isinstance(tx, PublicKeyTransaction):
             raw += struct.pack("B", Type.PUBLIC)
-        elif isinstance(tx, RevealRandomTransaction):
+        elif isinstance(tx, SplitRandomTransaction):
             raw += struct.pack("B", Type.RANDOM)
+        elif isinstance(tx, PrivateKeyTransaction):
+            raw += struct.pack("B", Type.PRIVATE)
+        else:
+            assert False, "Cannot pack unknown transaction type"
         raw += tx.pack()
         return raw
 
@@ -97,11 +103,13 @@ class SplitRandomTransaction():
     def parse(self, raw_data):
         self.signature = int.from_bytes(raw_data[0:128], byteorder='big')
         self.pieces = []
-        piece_byte_size = 64
+        piece_byte_size = 128
         pieces_len = struct.unpack_from("H", raw_data, 128)[0]
         pieces_bytes = raw_data[130:]
         for i in range(0, pieces_len):
             self.pieces.append(pieces_bytes[i * piece_byte_size : (i+1) * piece_byte_size])
+        
+        self.len = 130 + pieces_len * piece_byte_size
             
     def pack(self):
         raw = self.signature.to_bytes(128, byteorder='big')

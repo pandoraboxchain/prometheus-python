@@ -1,7 +1,7 @@
 import unittest
 import os
 from chain.block import Block
-from transaction.transaction import CommitRandomTransaction, Type
+from transaction.transaction import SplitRandomTransaction, Type
 from crypto.enc_random import enc_part_random
 from Crypto.Hash import SHA256
 
@@ -12,13 +12,11 @@ class TestBlock(unittest.TestCase):
         original_block.timestamp = 2344
         original_block.prev_hashes = [SHA256.new(b"323423").digest(), SHA256.new(b"0").digest()]
 
-        commit_tx = CommitRandomTransaction()
-        data, _ = enc_part_random(SHA256.new(b"era_hash").digest())
-        commit_tx.rand = data
-        commit_tx.pubkey = os.urandom(216)
-        commit_tx.signature = int.from_bytes(os.urandom(128), byteorder='big')
+        tx = SplitRandomTransaction()
+        tx.pieces = [os.urandom(128), os.urandom(128), os.urandom(128)]
+        tx.signature = int.from_bytes(os.urandom(128), byteorder='big')
 
-        original_block.system_txs = [commit_tx]
+        original_block.system_txs = [tx]
 
         raw = original_block.pack()
         restored = Block()
