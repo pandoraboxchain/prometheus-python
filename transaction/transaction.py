@@ -108,9 +108,6 @@ class SplitRandomTransaction():
         self.len = 130
         for i in range(0, pieces_len):
             piece_size = struct.unpack_from("B", pieces_bytes)[0]
-            self.pieces.append(pieces_bytes[i * piece_byte_size : (i+1) * piece_byte_size])
-        
-        self.len = 130 + pieces_len * piece_byte_size
             piece = pieces_bytes[1:piece_size + 1]
             self.pieces.append(piece)
             pieces_bytes = pieces_bytes[1 + piece_size:]
