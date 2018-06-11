@@ -34,7 +34,7 @@ class TestTransaction(unittest.TestCase):
 
     def test_split_pack_unpack(self):
         original = SplitRandomTransaction()
-        original.pieces = [os.urandom(32), os.urandom(32), os.urandom(32)]
+        original.pieces = [os.urandom(128), os.urandom(127), os.urandom(128)]
         original.signature = int.from_bytes(os.urandom(128), byteorder='big')
 
         raw = original.pack()

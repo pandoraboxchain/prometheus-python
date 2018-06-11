@@ -95,6 +95,17 @@ class Epoch():
         
         return private_keys
 
+    def get_public_keys_for_epoch(self, epoch_number):
+        blocks = self.get_all_blocks_for_round(epoch_number, Round.PUBLIC)
+        
+        public_keys = {}
+
+        for block in blocks:
+            for tx in block.system_txs:
+                if isinstance(tx, PublicKeyTransaction):
+                    public_keys[tx.sender_pubkey] = tx.generated_pubkey
+        return public_keys
+
     def get_random_splits_for_epoch(self, epoch_number):
         random_pieces_list = []
         blocks = self.get_all_blocks_for_round(epoch_number, Round.RANDOM)

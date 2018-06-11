@@ -114,12 +114,16 @@ class Node():
              if epoch_number == self.last_epoch_random_published:
                  return
 
-        #FIXME here is the hole in logic
-        #this pubkeys must be not signers pubkeys, but theirs published pubkeys
         ordered_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_number, Round.PRIVATE_DURATION)
+        published_pubkeys = self.epoch.get_public_keys_for_epoch(epoch_number)
+        sorted_published_pubkeys = []
+        for sender_pubkey in ordered_pubkeys:
+            generated_pubkey = published_pubkeys[Keys.to_bytes(sender_pubkey)]
+            sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
+        
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
-        encoded_splits = encode_splits(splits, ordered_pubkeys)
+        encoded_splits = encode_splits(splits, sorted_published_pubkeys)
         
         self.last_epoch_random_published = epoch_number 
 
@@ -146,7 +150,7 @@ class Node():
             else:
                 print("Block was not added. Considered invalid")
         else:
-            print("Node", node_id, "sent block, though it's not her time")
+            print("Node", node_id, "sent block, but it's signature is wrong")
             self.network.gossip_malicious(current_validator.public_key)
 
     def try_to_calculate_next_epoch_validators(self, current_block_number):

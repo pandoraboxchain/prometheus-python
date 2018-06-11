@@ -103,13 +103,18 @@ class SplitRandomTransaction():
     def parse(self, raw_data):
         self.signature = int.from_bytes(raw_data[0:128], byteorder='big')
         self.pieces = []
-        piece_byte_size = 128
         pieces_len = struct.unpack_from("H", raw_data, 128)[0]
         pieces_bytes = raw_data[130:]
+        self.len = 130
         for i in range(0, pieces_len):
+            piece_size = struct.unpack_from("B", pieces_bytes)[0]
             self.pieces.append(pieces_bytes[i * piece_byte_size : (i+1) * piece_byte_size])
         
         self.len = 130 + pieces_len * piece_byte_size
+            piece = pieces_bytes[1:piece_size + 1]
+            self.pieces.append(piece)
+            pieces_bytes = pieces_bytes[1 + piece_size:]
+            self.len += 1 + piece_size
             
     def pack(self):
         raw = self.signature.to_bytes(128, byteorder='big')
@@ -119,6 +124,8 @@ class SplitRandomTransaction():
     def pack_pieces(self):
         raw = struct.pack("H", len(self.pieces))
         for piece in self.pieces:
+            piece_len = len(piece)
+            raw += struct.pack("B", len(piece))
             raw += piece
         return raw
     
