@@ -15,6 +15,19 @@ class Mempool():
             self.public_keys.append(tx)
         elif isinstance(tx, PrivateKeyTransaction):
             self.private_keys.append(tx)
+        else:
+            assert False, "Can't add. Transaction type is unknown"
+
+    # remove all occurences of given transaction
+    def remove_transaction(self, tx):
+        if isinstance(tx, SplitRandomTransaction):
+            self.split_randoms = [a for a in self.split_randoms if a.get_hash().digest() != tx.get_hash().digest()]
+        elif isinstance(tx, PublicKeyTransaction):
+            self.public_keys = [a for a in self.public_keys if a.get_hash().digest() != tx.get_hash().digest()]
+        elif isinstance(tx, PrivateKeyTransaction):
+            self.private_keys = [a for a in self.private_keys if a.get_hash().digest() != tx.get_hash().digest()]
+        else:
+            assert False, "Can't remove. Transaction type is unknown"
 
     def get_transactions_for_round(self, round_type):
         if round_type == Round.RANDOM:
@@ -32,4 +45,8 @@ class Mempool():
             return private_keys
         else:
             assert False, "No known transactions for round"
+
+    def remove_transactions(self, transactions):
+        for tx in transactions:
+            self.remove_transaction(tx)
 

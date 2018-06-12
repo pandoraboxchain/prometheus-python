@@ -127,6 +127,7 @@ class Node():
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
         encoded_splits = encode_splits(splits, sorted_published_pubkeys)
+        print("Node", self.node_id, "broadcasting random")
         
         self.last_epoch_random_published = epoch_number 
 
@@ -148,6 +149,7 @@ class Node():
             block = signed_block.block
             if True: #TODO: add block verification
                 self.dag.add_signed_block(current_block_number, signed_block)
+                self.mempool.remove_transactions(block.system_txs)
                 self.try_to_calculate_next_epoch_validators(current_block_number)
             else:
                 print("Block was not added. Considered invalid")
