@@ -93,6 +93,9 @@ class Epoch():
                     private_keys.append(tx.key)
                     break #only one private key transaction can exists and it should be signed by block signer
         
+        for pk in private_keys:
+            Keys.display(Keys.from_bytes(pk).publickey())
+
         return private_keys
 
     def get_public_keys_for_epoch(self, epoch_number):

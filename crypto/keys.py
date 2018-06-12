@@ -25,3 +25,9 @@ class Keys():
         for key in keys_list:
             encoded_keys.append(Keys.to_bytes(key))
         return encoded_keys
+
+    @staticmethod
+    def display(key):
+        if not isinstance(key, (bytes, bytearray)):
+            key = Keys.to_bytes(key)
+        print(key[77:90].hex()+"..."+key[-25:-12].hex())

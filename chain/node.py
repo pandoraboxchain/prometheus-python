@@ -116,11 +116,13 @@ class Node():
         ordered_senders_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_number, Round.PRIVATE_DURATION)
         published_pubkeys = self.epoch.get_public_keys_for_epoch(epoch_number)
         
+        print("ordered pubkeys")
         sorted_published_pubkeys = []
         for sender_pubkey in ordered_senders_pubkeys:
             generated_pubkeys = published_pubkeys[Keys.to_bytes(sender_pubkey)]
             pubkey = generated_pubkeys.pop(0) #TODO come up with some ordering guarantees
             sorted_published_pubkeys.append(Keys.from_bytes(pubkey))
+            Keys.display(pubkey)
         
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
