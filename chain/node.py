@@ -35,7 +35,8 @@ class Node():
         self.network = network
         self.node_id = node_id
         self.try_to_calculate_next_epoch_validators(0)
-        #self.epoch_private_key where first element is era number, and second is key to reveal commited random
+        self.epoch_private_keys = []
+        #self.epoch_private_keys where first element is era number, and second is key to reveal commited random
 
     def start(self):
         pass
@@ -52,7 +53,6 @@ class Node():
                 #real private key publish will happen when signing block
                 if hasattr(self, "self.last_epoch_random_published"):
                     del self.last_epoch_random_published
-
                               
             self.try_to_sign_block(current_block_number)
             await asyncio.sleep(3)
@@ -78,48 +78,49 @@ class Node():
     def try_to_publish_public_key(self, current_block_number):
         epoch_number = self.epoch.get_epoch_number(current_block_number)
 
+        if self.epoch_private_keys:
+            return
+            
         node_pubkey = self.block_signer.private_key.publickey()
         pubkey_publishers = self.permissions.get_ordered_pubkeys_for_last_round(epoch_number, Round.PRIVATE_DURATION)
-        if not node_pubkey in pubkey_publishers:
-            return
-
-        has_key = hasattr(self, "epoch_private_key")
-        has_key_for_previous_epoch = has_key and self.epoch_private_key[0] < epoch_number
-        if not has_key or has_key_for_previous_epoch:
-            node_private = self.block_signer.private_key
-            generated_private = Private.generate()
-            tx = PublicKeyTransaction()
-            tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
-            tx.sender_pubkey = Keys.to_bytes(node_private.publickey())
-            tx.signature = node_private.sign(tx.get_hash().digest(), 0)[0]
-            self.epoch_private_key = (epoch_number, generated_private)
-            print("Node ", self.node_id, "broadcasted public key")
-            self.mempool.add_transaction(tx)
-            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+        for publisher in pubkey_publishers:
+            if node_pubkey == publisher:
+                node_private = self.block_signer.private_key
+                generated_private = Private.generate()
+                tx = PublicKeyTransaction()
+                tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
+                tx.sender_pubkey = Keys.to_bytes(node_private.publickey())
+                tx.signature = node_private.sign(tx.get_hash().digest(), 0)[0]
+                self.epoch_private_keys.append(generated_private)
+                print("Node ", self.node_id, "broadcasted public key")
+                self.mempool.add_transaction(tx)
+                self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def try_to_publish_private(self, current_block_number):
         epoch_number = self.epoch.get_epoch_number(current_block_number)
-        has_key = hasattr(self, "epoch_private_key")
-        has_key_for_this_epoch = has_key and self.epoch_private_key[0] == epoch_number
-        if has_key and has_key_for_this_epoch:
+        if self.epoch_private_keys:
             tx = PrivateKeyTransaction()
-            tx.key = Keys.to_bytes(self.epoch_private_key[1])
-            del self.epoch_private_key
+            tx.key = Keys.to_bytes(self.epoch_private_keys.pop(0))
             self.mempool.add_transaction(tx)
-            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+            # intentionally do not broadcast transaction since private key better be part of a block
+            # only one private key tx should be in a block
+            # self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+            print("Node", self.node_id, "sent private key")
 
     def try_to_send_split_random(self, current_block_number):    
         epoch_number = self.epoch.get_epoch_number(current_block_number)
         if hasattr(self,"last_epoch_random_published"):
-             if epoch_number == self.last_epoch_random_published:
-                 return
+            if epoch_number == self.last_epoch_random_published:
+                return
 
-        ordered_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_number, Round.PRIVATE_DURATION)
+        ordered_senders_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_number, Round.PRIVATE_DURATION)
         published_pubkeys = self.epoch.get_public_keys_for_epoch(epoch_number)
+        
         sorted_published_pubkeys = []
-        for sender_pubkey in ordered_pubkeys:
-            generated_pubkey = published_pubkeys[Keys.to_bytes(sender_pubkey)]
-            sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
+        for sender_pubkey in ordered_senders_pubkeys:
+            generated_pubkeys = published_pubkeys[Keys.to_bytes(sender_pubkey)]
+            pubkey = generated_pubkeys.pop(0) #TODO come up with some ordering guarantees
+            sorted_published_pubkeys.append(Keys.from_bytes(pubkey))
         
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
@@ -146,7 +147,6 @@ class Node():
             if True: #TODO: add block verification
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.try_to_calculate_next_epoch_validators(current_block_number)
-                print("Node ", self.node_id, "received block from node", node_id, "with block hash", signed_block.block.get_hash().hexdigest())
             else:
                 print("Block was not added. Considered invalid")
         else:

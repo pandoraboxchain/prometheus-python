@@ -28,6 +28,7 @@ class Mempool():
         elif round_type == Round.PRIVATE:
             private_keys = self.private_keys.copy()
             self.private_keys.clear()
+            print("Taken", len(private_keys), "private keys from mempool")
             return private_keys
         else:
             assert False, "No known transactions for round"

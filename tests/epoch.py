@@ -116,3 +116,6 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(epoch.get_epoch_start_block_number(2), 10)
         self.assertEqual(epoch.convert_to_epoch_block_number(10), 0)
         self.assertEqual(epoch.convert_to_epoch_block_number(12), 2)
+        self.assertEqual(epoch.get_round_by_block_number(7), Round.PRIVATE)
+        self.assertEqual(epoch.get_round_by_block_number(8), Round.PRIVATE)
+        self.assertEqual(epoch.get_round_by_block_number(9), Round.PRIVATE)

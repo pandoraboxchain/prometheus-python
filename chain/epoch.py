@@ -103,7 +103,11 @@ class Epoch():
         for block in blocks:
             for tx in block.system_txs:
                 if isinstance(tx, PublicKeyTransaction):
-                    public_keys[tx.sender_pubkey] = tx.generated_pubkey
+                    if not tx.sender_pubkey in public_keys:
+                        public_keys[tx.sender_pubkey] = [tx.generated_pubkey]
+                    else:
+                        public_keys[tx.sender_pubkey].append(tx.generated_pubkey)
+                        
         return public_keys
 
     def get_random_splits_for_epoch(self, epoch_number):
@@ -114,7 +118,11 @@ class Epoch():
                 if isinstance(tx, SplitRandomTransaction):
                     random_pieces_list.append(tx.pieces)
         
-        return random_pieces_list
+        unique_randoms = [] 
+        for random in random_pieces_list:       #quick hack to take only unique randoms
+            if not random in unique_randoms:
+                unique_randoms.append(random)
+        return unique_randoms
 
     def get_all_blocks_for_round(self, epoch_number, round_type):
         round_start = self.get_epoch_start_block_number(epoch_number)
