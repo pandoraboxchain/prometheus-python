@@ -40,40 +40,6 @@ class Dag():
 
         return top_blocks
 
-    def test_top_blocks(self):
-        block1 = Block()
-        block1.prev_hashes = [self.genesis_block().get_hash().digest()]
-        block1.timestamp = 32452345234;
-        block1.randoms = []
-        signed_block1 = SignedBlock()
-        signed_block1.set_block(block1);
-        self.add_signed_block(1,signed_block1);
-
-        block2 = Block()
-        block2.prev_hashes = [block1.get_hash().digest()];
-        block2.timestamp = 32452345;
-        block2.randoms = []
-        signed_block2 = SignedBlock()
-        signed_block2.set_block(block2);
-        self.add_signed_block(2,signed_block2);
-
-        block3 = Block()
-        block3.prev_hashes = [block1.get_hash().digest()];
-        block3.timestamp = 1231827398;
-        block3.randoms = []
-        signed_block3 = SignedBlock()
-        signed_block3.set_block(block3);
-        self.add_signed_block(3,signed_block3);
-
-        for keyhash in self.blocks_by_hash:
-            print(binascii.hexlify(keyhash))
-
-        top_hashes = self.get_top_blocks();
-
-        print("tops")
-        for keyhash in top_hashes:
-            print(binascii.hexlify(keyhash))
-
     def has_block_number(self, number):
         return number in self.blocks_by_number
     
@@ -83,3 +49,18 @@ class Dag():
                 if block_by_number.block.get_hash().digest() == block_hash:
                     return number
         return -1
+    
+    def calculate_chain_length(self, top_block_hash):
+        length = [0]
+        top_block = self.blocks_by_hash[top_block_hash]
+        self.recursive_previous_block_count(top_block, length)
+        return length[0]
+
+    def recursive_previous_block_count(self, block, count):
+        count[0] += 1   #trick to emulate pass by reference 
+        for prev_hash in block.block.prev_hashes:
+            block = self.blocks_by_hash[prev_hash]
+            self.recursive_previous_block_count(block, count)
+
+
+        
