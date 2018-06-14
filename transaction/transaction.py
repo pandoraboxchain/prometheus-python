@@ -35,7 +35,7 @@ class TransactionParser():
 
 class CommitRandomTransaction():
     def get_hash(self):
-        return SHA256.new(self.rand + self.pubkey)
+        return SHA256.new(self.rand + self.pubkey).digest()
 
     def parse(self, raw_data):
         self.rand = raw_data[:128]
@@ -65,11 +65,11 @@ class RevealRandomTransaction():
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack())
+        return SHA256.new(self.pack()).digest()
 
 class PublicKeyTransaction():
     def get_hash(self):
-        return SHA256.new(self.generated_pubkey + self.sender_pubkey)
+        return SHA256.new(self.generated_pubkey + self.sender_pubkey).digest()
 
     def parse(self, raw_data):
         self.generated_pubkey = raw_data[:216]
@@ -97,7 +97,7 @@ class PrivateKeyTransaction():
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack())
+        return SHA256.new(self.pack()).digest()
 
 class SplitRandomTransaction():
     def parse(self, raw_data):
@@ -130,4 +130,4 @@ class SplitRandomTransaction():
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack_pieces())
+        return SHA256.new(self.pack_pieces()).digest()

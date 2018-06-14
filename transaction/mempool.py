@@ -21,11 +21,11 @@ class Mempool():
     # remove all occurences of given transaction
     def remove_transaction(self, tx):
         if isinstance(tx, SplitRandomTransaction):
-            self.split_randoms = [a for a in self.split_randoms if a.get_hash().digest() != tx.get_hash().digest()]
+            self.split_randoms = [a for a in self.split_randoms if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, PublicKeyTransaction):
-            self.public_keys = [a for a in self.public_keys if a.get_hash().digest() != tx.get_hash().digest()]
+            self.public_keys = [a for a in self.public_keys if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, PrivateKeyTransaction):
-            self.private_keys = [a for a in self.private_keys if a.get_hash().digest() != tx.get_hash().digest()]
+            self.private_keys = [a for a in self.private_keys if a.get_hash() != tx.get_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"
 

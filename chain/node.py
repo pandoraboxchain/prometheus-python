@@ -90,7 +90,7 @@ class Node():
                 tx = PublicKeyTransaction()
                 tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
                 tx.sender_pubkey = Keys.to_bytes(node_private.publickey())
-                tx.signature = node_private.sign(tx.get_hash().digest(), 0)[0]
+                tx.signature = node_private.sign(tx.get_hash(), 0)[0]
                 self.epoch_private_keys.append(generated_private)
                 print("Node ", self.node_id, "broadcasted public key")
                 self.mempool.add_transaction(tx)
@@ -133,7 +133,7 @@ class Node():
 
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
-        tx.signature = self.block_signer.private_key.sign(tx.get_hash().digest(), 0)[0]
+        tx.signature = self.block_signer.private_key.sign(tx.get_hash(), 0)[0]
         self.mempool.add_transaction(tx)
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
     

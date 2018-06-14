@@ -19,7 +19,7 @@ class TestTransaction(unittest.TestCase):
         restored = CommitRandomTransaction()
         restored.parse(raw)
 
-        self.assertEqual(original.get_hash().digest(), restored.get_hash().digest())
+        self.assertEqual(original.get_hash(), restored.get_hash())
 
     def test_pack_parse_reveal_transaction(self):
         original = RevealRandomTransaction()
@@ -30,7 +30,7 @@ class TestTransaction(unittest.TestCase):
         restored = RevealRandomTransaction()
         restored.parse(raw)
 
-        self.assertEqual(original.get_hash().digest(), restored.get_hash().digest())        
+        self.assertEqual(original.get_hash(), restored.get_hash())        
 
     def test_split_pack_unpack(self):
         original = SplitRandomTransaction()
@@ -41,5 +41,5 @@ class TestTransaction(unittest.TestCase):
         restored = SplitRandomTransaction()
         restored.parse(raw)
 
-        self.assertEqual(original.get_hash().digest(), restored.get_hash().digest())        
+        self.assertEqual(original.get_hash(), restored.get_hash())        
         

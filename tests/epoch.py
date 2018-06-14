@@ -25,7 +25,7 @@ class TestEpoch(unittest.TestCase):
         epoch = Epoch(dag)
 
         first_era_hash = epoch.get_epoch_hash(1)
-        genesis_hash = dag.genesis_block().get_hash().digest()
+        genesis_hash = dag.genesis_block().get_hash()
 
         self.assertEqual(first_era_hash, genesis_hash)
 
@@ -46,7 +46,7 @@ class TestEpoch(unittest.TestCase):
             pubkey_tx = PublicKeyTransaction()
             pubkey_tx.generated_pubkey = b64encode(private.publickey().exportKey('DER'))
             pubkey_tx.sender_pubkey = b64encode(node_private_key.publickey().exportKey('DER'))
-            pubkey_tx.signature = node_private_key.sign(pubkey_tx.get_hash().digest(), 0)[0]
+            pubkey_tx.signature = node_private_key.sign(pubkey_tx.get_hash(), 0)[0]
             public_key_block = Block()
             public_key_block.timestamp = block_number * BLOCK_TIME
             public_key_block.prev_hashes = dag.get_top_blocks()
@@ -71,7 +71,7 @@ class TestEpoch(unittest.TestCase):
             encoded_splits = encode_splits(splits, public_keys)
             split_random_tx.pieces = encoded_splits
             expected_random_pieces.append(split_random_tx.pieces)
-            split_random_tx.signature = node_private_key.sign(pubkey_tx.get_hash().digest(), 0)[0]
+            split_random_tx.signature = node_private_key.sign(pubkey_tx.get_hash(), 0)[0]
             split_random_block = Block()
             split_random_block.timestamp = block_number * BLOCK_TIME
             split_random_block.prev_hashes = dag.get_top_blocks()

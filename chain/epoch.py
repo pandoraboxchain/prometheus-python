@@ -67,11 +67,11 @@ class Epoch():
         if epoch_number == 0:
             return None
         if epoch_number == 1:
-            return self.dag.genesis_block().get_hash().digest()
+            return self.dag.genesis_block().get_hash()
 
         previous_era_last_block_number = self.get_epoch_start_block_number(epoch_number) - 1
         era_identifier_block = self.dag.blocks_by_number[previous_era_last_block_number][0]
-        return era_identifier_block.block.get_hash().digest()
+        return era_identifier_block.block.get_hash()
     
     def calculate_validators_numbers(self, epoch_number, validators_count):
         if epoch_number in self.cached_epoch_validators:

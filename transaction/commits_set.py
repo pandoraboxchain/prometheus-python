@@ -19,7 +19,7 @@ class CommitsSet:
         
 
     def add_transaction(self, tx):
-        tx_hash = tx.get_hash().digest()
+        tx_hash = tx.get_hash()
         self.transactions_by_hash[tx_hash] = tx
 
         pubkey = tx.pubkey

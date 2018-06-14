@@ -12,7 +12,7 @@ class Dag():
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
         self.add_signed_block(0, signed_genesis_block)
-        print("Genesis block hash", self.genesis_block().get_hash().hexdigest())
+        print("Genesis block hash", self.genesis_block().get_hash().hex())
 
     def genesis_block(self):
         block = Block()
@@ -21,7 +21,7 @@ class Dag():
         return block
 
     def add_signed_block(self, index, block):
-        block_hash = block.block.get_hash().digest()
+        block_hash = block.block.get_hash()
         self.blocks_by_hash[block_hash] = block
         if index in self.blocks_by_number:
             self.blocks_by_number[index].append(block)
@@ -46,7 +46,7 @@ class Dag():
     def get_block_number(self, block_hash):
         for number, block_list_by_number in self.blocks_by_number.items():
             for block_by_number in block_list_by_number:
-                if block_by_number.block.get_hash().digest() == block_hash:
+                if block_by_number.block.get_hash() == block_hash:
                     return number
         return -1
     

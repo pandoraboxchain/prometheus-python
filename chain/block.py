@@ -5,7 +5,7 @@ from transaction.transaction import TransactionParser
 class Block():
 
     def get_hash(self):
-        return SHA256.new(self.pack())
+        return SHA256.new(self.pack()).digest()
 
     def parse(self, raw_data):
         self.timestamp = struct.unpack_from("I", raw_data)[0]

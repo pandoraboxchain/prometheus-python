@@ -25,5 +25,5 @@ class SignedBlock():
         self.signature = signature
 
     def verify_signature(self, pubkey):
-        block_hash = self.block.get_hash().digest()
+        block_hash = self.block.get_hash()
         return pubkey.verify(block_hash, (self.signature,))

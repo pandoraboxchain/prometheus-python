@@ -17,7 +17,7 @@ class BlockFactory():
         return block
     
     def sign_block(block, private):
-        block_hash = block.get_hash().digest()
+        block_hash = block.get_hash()
         signature = private.sign(block_hash, 0)[0]  #for some reason it returns tuple with second item being None
         signed_block = SignedBlock()
         signed_block.set_block(block)
