@@ -30,7 +30,7 @@ class Dag():
     
     def get_top_blocks(self):
         links = []
-        for block_hash, signed_block in self.blocks_by_hash.items():
+        for _, signed_block in self.blocks_by_hash.items():
             links += signed_block.block.prev_hashes
         
         top_blocks = self.blocks_by_hash.copy();
@@ -62,5 +62,11 @@ class Dag():
             block = self.blocks_by_hash[prev_hash]
             self.recursive_previous_block_count(block, count)
 
-
-        
+    def is_ancestor(self, block_hash, hash_to_find):
+        block = self.blocks_by_hash[block_hash]
+        result = False
+        for prev_hash in block.block.prev_hashes:
+            if prev_hash == hash_to_find:
+                return True
+            result = result or self.is_ancestor(prev_hash, hash_to_find)
+        return result
