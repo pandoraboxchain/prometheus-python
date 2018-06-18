@@ -1,10 +1,13 @@
-from Crypto.Hash import SHA256
 import struct
+from Crypto.Hash import SHA256
+from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction
 
 class Type():
     PUBLIC = 0
     RANDOM = 1
     PRIVATE = 2
+    STAKEHOLD = 3
+    PENALTY = 4
 
 class TransactionParser():
     def parse(raw_data):
@@ -15,6 +18,10 @@ class TransactionParser():
             tx = SplitRandomTransaction()
         elif tx_type == Type.PRIVATE:
             tx = PrivateKeyTransaction()
+        elif tx_type == Type.STAKEHOLD:
+            tx = StakeHoldTransaction()
+        elif tx_type == Type.PENALTY:
+            tx = PenaltyTransaction()
         else:
             assert False, "Cannot parse unknown transaction type"
         tx.parse(raw_data[1:])
@@ -28,6 +35,10 @@ class TransactionParser():
             raw += struct.pack("B", Type.RANDOM)
         elif isinstance(tx, PrivateKeyTransaction):
             raw += struct.pack("B", Type.PRIVATE)
+        elif isinstance(tx, StakeHoldTransaction):
+            raw += struct.pack("B", Type.STAKEHOLD)
+        elif isinstance(tx, PenaltyTransaction):
+            raw += struct.pack("B", Type.PENALTY)
         else:
             assert False, "Cannot pack unknown transaction type"
         raw += tx.pack()
