@@ -11,9 +11,11 @@ from chain.block_signers import BlockSigners
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
+from chain.merger import Merger
 from transaction.mempool import Mempool
-from transaction.transaction import TransactionParser, CommitRandomTransaction, RevealRandomTransaction
+from transaction.transaction import TransactionParser
 from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
+from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction
 from verification.transaction_verifier import TransactionVerifier
 from verification.block_verifier import BlockVerifier
 from crypto.enc_random import enc_part_random
@@ -66,6 +68,7 @@ class Node():
         if is_public_key_corresponds and block_has_not_been_signed_yet:
             if self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
                 self.try_to_publish_private(current_block_number) #TODO maybe should be a part of block
+            self.try_to_penalize_violators(current_block_number)
             transactions = self.mempool.get_transactions_for_round(self.epoch.get_current_round())
             block = BlockFactory.create_block_dummy(self.dag.get_top_blocks())
             block.system_txs = transactions
@@ -106,6 +109,22 @@ class Node():
             # only one private key tx should be in a block
             # self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
             print("Node", self.node_id, "sent private key")
+
+    def try_to_penalize_violators(self, current_block_number):
+        merger = Merger(self.dag)
+        conflicts = merger.get_conflicts()
+
+        if conflicts:
+            for conflict in conflicts:
+                block = self.dag.blocks_by_hash[conflict]
+                self.network.broadcast_block(block)
+            
+            penalty = PenaltyTransaction()
+            penalty.conflicts = conflicts
+            penalty.signature = self.block_signer.private_key.sign(penalty.get_hash(), 0)[0]
+
+            self.mempool.add_transaction(penalty) #do not broadcast, since it should be part of the block
+
 
     def try_to_send_split_random(self, current_block_number):    
         epoch_number = self.epoch.get_epoch_number(current_block_number)

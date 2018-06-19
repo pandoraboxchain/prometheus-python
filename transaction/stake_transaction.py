@@ -28,9 +28,7 @@ class PenaltyTransaction():
         for i in range(0, conflict_count):
             conflict = raw_conflicts[i * 32 : (i+1) * 32]
             self.conflicts.append(conflict)
-        raw_pubkey = raw_conflicts[32 * conflict_count:]
-        self.violator_pubkey = raw_pubkey[:216]
-        raw_signature = raw_pubkey[216:]
+        raw_signature = raw_conflicts[32 * conflict_count:]
         self.signature = int.from_bytes(raw_signature[:128], byteorder='big') #pubkey should be of block signer
         self.len = 1 + conflict_count * 32 + 128
     
@@ -38,7 +36,6 @@ class PenaltyTransaction():
         raw = struct.pack("B", len(self.conflicts))
         for conflict in self.conflicts:
             raw += conflict
-        raw += self.violator_pubkey
         raw += self.signature.to_bytes(128, byteorder='big')        
         return raw
     
