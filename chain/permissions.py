@@ -34,6 +34,12 @@ class Permissions():
             validator_at_index = self.validators.get_by_i(index)
             pubkeys.append(validator_at_index.public_key)
         return pubkeys
+
+    def is_malicious(self, node_id):
+        if node_id == 1:
+            return True
+        return False
+
     
 
 

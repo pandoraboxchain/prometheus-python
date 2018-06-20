@@ -1,5 +1,6 @@
 from chain.epoch import Round
 from transaction.transaction import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
+from transaction.transaction import PenaltyTransaction
 
 class Mempool():
 
@@ -26,6 +27,8 @@ class Mempool():
             self.public_keys = [a for a in self.public_keys if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, PrivateKeyTransaction):
             self.private_keys = [a for a in self.private_keys if a.get_hash() != tx.get_hash()]
+        elif isinstance(tx, PenaltyTransaction):
+            pass
         else:
             assert False, "Can't remove. Transaction type is unknown"
 

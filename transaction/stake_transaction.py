@@ -33,14 +33,18 @@ class PenaltyTransaction():
         self.len = 1 + conflict_count * 32 + 128
     
     def pack(self):
+        raw = self.pack_conflicts()
+        raw += self.signature.to_bytes(128, byteorder='big')        
+        return raw
+
+    def pack_conflicts(self):
         raw = struct.pack("B", len(self.conflicts))
         for conflict in self.conflicts:
             raw += conflict
-        raw += self.signature.to_bytes(128, byteorder='big')        
         return raw
     
     def get_len(self):
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return SHA256.new(self.pack_conflicts()).digest()

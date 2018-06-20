@@ -63,6 +63,9 @@ class Dag():
             self.recursive_previous_block_count(block, count)
 
     def is_ancestor(self, block_hash, hash_to_find):
+        if block_hash == hash_to_find:
+            return True
+            
         block = self.blocks_by_hash[block_hash]
         result = False
         for prev_hash in block.block.prev_hashes:

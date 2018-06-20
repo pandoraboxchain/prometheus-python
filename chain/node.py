@@ -57,7 +57,7 @@ class Node():
                     del self.last_epoch_random_published
                               
             self.try_to_sign_block(current_block_number)
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
     def try_to_sign_block(self, current_block_number):
         epoch_number = self.epoch.get_epoch_number(current_block_number)
@@ -68,15 +68,26 @@ class Node():
         if is_public_key_corresponds and block_has_not_been_signed_yet:
             if self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
                 self.try_to_publish_private(current_block_number) #TODO maybe should be a part of block
-            self.try_to_penalize_violators(current_block_number)
             transactions = self.mempool.get_transactions_for_round(self.epoch.get_current_round())
-            block = BlockFactory.create_block_dummy(self.dag.get_top_blocks())
+            penalty = self.form_penalize_violators_transaction(current_block_number)
+            if penalty : transactions.append(penalty)
+            current_top_blocks = self.dag.get_top_blocks()
+            block = BlockFactory.create_block_dummy(current_top_blocks)
             block.system_txs = transactions
             signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
             self.dag.add_signed_block(current_block_number, signed_block)
-            raw_signed_block = signed_block.pack()
-            self.try_to_calculate_next_epoch_validators(current_block_number)            
-            self.network.broadcast_block(self.node_id, raw_signed_block) 
+            self.try_to_calculate_next_epoch_validators(current_block_number)             
+            self.network.broadcast_block(self.node_id, signed_block.pack())
+
+            if self.permissions.is_malicious(self.node_id):
+                additional_block_timestamp = block.timestamp + 1
+                block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
+                block.system_txs = transactions.copy()
+                signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
+                self.dag.add_signed_block(current_block_number, signed_block)
+                self.network.broadcast_block(self.node_id, signed_block.pack())
+                print("Node", self.node_id, "has sent additional block")
+
 
     def try_to_publish_public_key(self, current_block_number):
         epoch_number = self.epoch.get_epoch_number(current_block_number)
@@ -110,20 +121,24 @@ class Node():
             # self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
             print("Node", self.node_id, "sent private key")
 
-    def try_to_penalize_violators(self, current_block_number):
+    def form_penalize_violators_transaction(self, current_block_number):
         merger = Merger(self.dag)
         conflicts = merger.get_conflicts()
 
         if conflicts:
             for conflict in conflicts:
                 block = self.dag.blocks_by_hash[conflict]
-                self.network.broadcast_block(block)
+                self.network.broadcast_block(self.node_id, block.pack())
             
+            print("found conflicting blocks")
+            print(conflict)
+
             penalty = PenaltyTransaction()
             penalty.conflicts = conflicts
             penalty.signature = self.block_signer.private_key.sign(penalty.get_hash(), 0)[0]
-
-            self.mempool.add_transaction(penalty) #do not broadcast, since it should be part of the block
+            return penalty
+        
+        return None
 
 
     def try_to_send_split_random(self, current_block_number):    

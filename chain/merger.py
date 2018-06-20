@@ -12,20 +12,26 @@ class Merger():
         return self.dag.get_top_blocks()
     
     def get_conflicts(self):
-        print("topblocks len", len(self.dag.get_top_blocks()))
         top_blocks = list(self.dag.get_top_blocks().keys())
         conflicts = []
         if len(top_blocks) > 1:
             top = self.get_longest_chain_top_block(top_blocks)
-            number = self.dag.get_block_number(top) - 1
+            number = self.dag.get_block_number(top)
             conflict_count = len(self.dag.blocks_by_number[number]) - 1
-            while conflict_count > 0 and number > 0:
-                conflict_count = 0
+            print("conflict_count", conflict_count)
+            chains_intesect = False
+            while number > 0 and not chains_intesect:
                 for block in self.dag.blocks_by_number[number]:
                     block_hash = block.block.get_hash()
                     if not self.dag.is_ancestor(top, block_hash):
                         conflicts.append(block_hash)
-                        conflict_count += 1
+                
+                if len(self.dag.blocks_by_number[number]) > 1:
+                    chains_intesect = True
+                    prev_hashes = self.dag.blocks_by_number[number][0].block.prev_hashes
+                    for block in self.dag.blocks_by_number[number]:
+                        chains_intesect = chains_intesect and block.block.prev_hashes == prev_hashes
+
                 number -= 1
 
         return conflicts
