@@ -92,7 +92,11 @@ class Epoch():
                 if isinstance(tx, PrivateKeyTransaction):
                     private_keys.append(tx.key)
                     break #only one private key transaction can exists and it should be signed by block signer
-        
+
+        #we need to take only unique keys as malicious user could send two or more blocks at the same time
+        private_keys = Epoch.make_unique_list(private_keys)
+
+        print("This epoch private keys")
         for pk in private_keys:
             Keys.display(Keys.from_bytes(pk).publickey())
 
@@ -121,10 +125,7 @@ class Epoch():
                 if isinstance(tx, SplitRandomTransaction):
                     random_pieces_list.append(tx.pieces)
         
-        unique_randoms = [] 
-        for random in random_pieces_list:       #quick hack to take only unique randoms
-            if not random in unique_randoms:
-                unique_randoms.append(random)
+        unique_randoms = Epoch.make_unique_list(random_pieces_list)
         return unique_randoms
 
     def get_all_blocks_for_round(self, epoch_number, round_type):
@@ -173,5 +174,11 @@ class Epoch():
         epoch_start_block_number = self.get_epoch_start_block_number(epoch_number)
         return global_block_number - epoch_start_block_number
 
-    
+    @staticmethod
+    def make_unique_list(list): #TODO move into separate file
+        unique_list = [] 
+        for item in list:       
+            if not item in unique_list:
+                unique_list.append(item)
+        return unique_list
     

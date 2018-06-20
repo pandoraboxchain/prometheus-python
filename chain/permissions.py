@@ -36,7 +36,7 @@ class Permissions():
         return pubkeys
 
     def is_malicious(self, node_id):
-        if node_id == 1:
+        if node_id == 8:
             return True
         return False
 
