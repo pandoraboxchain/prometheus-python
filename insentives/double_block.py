@@ -1,8 +1,4 @@
-class HardPenalty():
-
-    def __init__(self, size):
-        self.type = "hard"
-        self.size = size
+from insentives.hard import HardPenalty
 
 class PenaltyDoubleBlock():
 
