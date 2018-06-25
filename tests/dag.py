@@ -6,7 +6,7 @@ from chain.block_factory import BlockFactory
 from chain.dag import Dag
 from crypto.private import Private
 from chain.epoch import BLOCK_TIME
-from chain.dag import RoundIter
+from chain.dag import ChainIter
 
 class TestDag(unittest.TestCase):
 
@@ -109,15 +109,13 @@ class TestDag(unittest.TestCase):
         other_signed_block4 = BlockFactory.sign_block(other_block4, private)
         dag.add_signed_block(4, other_signed_block4)
 
-        # dag.pretty_print()
+        chain_iter = ChainIter(dag, block3.get_hash())
+        self.assertEqual(chain_iter.next().block.get_hash(), block3.get_hash())
+        self.assertEqual(chain_iter.next().block.get_hash(), block2.get_hash())
+        self.assertEqual(chain_iter.next().block.get_hash(), block1.get_hash())
 
-        round_iter = RoundIter(dag, block3.get_hash(), 0)
-        self.assertEqual(round_iter.next().block.get_hash(), block3.get_hash())
-        self.assertEqual(round_iter.next().block.get_hash(), block2.get_hash())
-        self.assertEqual(round_iter.next().block.get_hash(), block1.get_hash())
-
-        round_iter = RoundIter(dag, other_block4.get_hash(), 0)
-        self.assertEqual(round_iter.next().block.get_hash(), other_block4.get_hash())
-        self.assertEqual(round_iter.next(), None)   #detect intentionally skipped block
-        self.assertEqual(round_iter.next().block.get_hash(), other_block2.get_hash())
-        self.assertEqual(round_iter.next().block.get_hash(), block1.get_hash())
+        chain_iter = ChainIter(dag, other_block4.get_hash())
+        self.assertEqual(chain_iter.next().block.get_hash(), other_block4.get_hash())
+        self.assertEqual(chain_iter.next(), None)   #detect intentionally skipped block
+        self.assertEqual(chain_iter.next().block.get_hash(), other_block2.get_hash())
+        self.assertEqual(chain_iter.next().block.get_hash(), block1.get_hash())

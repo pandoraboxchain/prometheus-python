@@ -4,6 +4,9 @@ from chain.block import Block
 
 class SignedBlock():
 
+    def get_hash(self):
+        return self.block.get_hash()
+
     def parse(self, raw_data):
         self.signature = int.from_bytes(raw_data[0:128], byteorder='big')
         block_length = struct.unpack_from("I", raw_data, 128)[0]

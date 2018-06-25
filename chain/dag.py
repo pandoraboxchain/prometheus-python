@@ -94,20 +94,18 @@ class Dag():
             else:
                 print("None")
     
-class RoundIter:
-    def __init__(self, dag, block_hash, end_number):
+class ChainIter:
+    def __init__(self, dag, block_hash):
         self.block_hash = block_hash
         self.dag = dag
         self.block_number = dag.get_block_number(block_hash)
-        if not end_number: end_number = 0
-        self.end_number = end_number
 
     def __iter__(self):
         return self
 
     def next(self):
         block_number = self.dag.get_block_number(self.block_hash)
-        if block_number == self.end_number or block_number == 0:
+        if block_number == 0:
             raise StopIteration()
         
         if block_number < self.block_number - 1:
