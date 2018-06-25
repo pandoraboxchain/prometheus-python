@@ -60,6 +60,9 @@ class Node():
             await asyncio.sleep(1)
 
     def try_to_sign_block(self, current_block_number):
+        if self.permissions.is_malicious_skip_block(self.node_id):
+            return
+            
         epoch_number = self.epoch.get_epoch_number(current_block_number)
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         current_validator = self.permissions.get_permission(epoch_number, epoch_block_number)
@@ -79,7 +82,7 @@ class Node():
             self.try_to_calculate_next_epoch_validators(current_block_number)             
             self.network.broadcast_block(self.node_id, signed_block.pack())
 
-            if self.permissions.is_malicious(self.node_id):
+            if self.permissions.is_malicious_excessive_block(self.node_id):
                 additional_block_timestamp = block.timestamp + 1
                 block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
                 block.system_txs = transactions.copy()
@@ -192,7 +195,7 @@ class Node():
             self.network.gossip_malicious(current_validator.public_key)
 
     def try_to_calculate_next_epoch_validators(self, current_block_number):
-        if self.epoch.is_last_block_of_era(current_block_number):
+        if self.epoch.is_last_block_of_epoch(current_block_number):
             next_epoch_number = self.epoch.get_epoch_number(current_block_number) + 1
             validators_count = self.permissions.get_validators_count()
             validators_list = self.epoch.calculate_validators_numbers(next_epoch_number, validators_count)

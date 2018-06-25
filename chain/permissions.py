@@ -35,8 +35,13 @@ class Permissions():
             pubkeys.append(validator_at_index.public_key)
         return pubkeys
 
-    def is_malicious(self, node_id):
+    def is_malicious_excessive_block(self, node_id):
         if node_id == 8:
+            return True
+        return False
+
+    def is_malicious_skip_block(self, node_id):
+        if node_id == 1:
             return True
         return False
 

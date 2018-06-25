@@ -15,10 +15,8 @@ class Merger():
         top_blocks = list(self.dag.get_top_blocks().keys())
         conflicts = []
         if len(top_blocks) > 1:
-            top = self.get_longest_chain_top_block(top_blocks)
+            top = self.dag.get_longest_chain_top_block(top_blocks)
             number = self.dag.get_block_number(top)
-            conflict_count = len(self.dag.blocks_by_number[number]) - 1
-            print("conflict_count", conflict_count)
             chains_intesect = False
             while number > 0 and not chains_intesect:
                 for block in self.dag.blocks_by_number[number]:
@@ -36,16 +34,7 @@ class Merger():
 
         return conflicts
 
-    def get_longest_chain_top_block(self, top_blocks):
-        max_length = 0
-        max_length_index = 0
-        for i in range(0, len(top_blocks)):
-            length = self.dag.calculate_chain_length(top_blocks[i])
-            if length > max_length:
-                max_length = length
-                max_length_index = i
 
-        return top_blocks[max_length_index]
             
             
 

@@ -12,7 +12,6 @@ class Dag():
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
         self.add_signed_block(0, signed_genesis_block)
-        print("Genesis block hash", self.genesis_block().get_hash().hex())
 
     def genesis_block(self):
         block = Block()
@@ -73,3 +72,50 @@ class Dag():
                 return True
             result = result or self.is_ancestor(prev_hash, hash_to_find)
         return result
+
+    #TODO randomly choose one chain if there are two with the same length
+    def get_longest_chain_top_block(self, top_blocks):
+        max_length = 0
+        max_length_index = 0
+        for i in range(0, len(top_blocks)):
+            length = self.calculate_chain_length(top_blocks[i])
+            if length > max_length:
+                max_length = length
+                max_length_index = i
+
+        return top_blocks[max_length_index]
+
+    def pretty_print(self):
+        count = max(self.blocks_by_number.keys())
+        for i in range(0, count):
+            if i in self.blocks_by_number:
+                for block in self.blocks_by_number[i]:
+                    print("|", block.block.get_hash().hex()[:5])
+            else:
+                print("None")
+    
+class RoundIter:
+    def __init__(self, dag, block_hash, end_number):
+        self.block_hash = block_hash
+        self.dag = dag
+        self.block_number = dag.get_block_number(block_hash)
+        if not end_number: end_number = 0
+        self.end_number = end_number
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        block_number = self.dag.get_block_number(self.block_hash)
+        if block_number == self.end_number or block_number == 0:
+            raise StopIteration()
+        
+        if block_number < self.block_number - 1:
+            self.block_number -= 1
+            return None
+        
+        block = self.dag.blocks_by_hash[self.block_hash]
+        self.block_hash = block.block.prev_hashes[0]
+        self.block_number = block_number
+        return block
+        
