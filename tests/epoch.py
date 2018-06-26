@@ -44,8 +44,8 @@ class TestEpoch(unittest.TestCase):
         for i in range(0, Round.PUBLIC_DURATION):
             private = Private.generate()
             pubkey_tx = PublicKeyTransaction()
-            pubkey_tx.generated_pubkey = b64encode(private.publickey().exportKey('DER'))
-            pubkey_tx.sender_pubkey = b64encode(node_private_key.publickey().exportKey('DER'))
+            pubkey_tx.generated_pubkey = Keys.to_bytes(private.publickey())
+            pubkey_tx.sender_pubkey = Keys.to_bytes(node_private_key.publickey())
             pubkey_tx.signature = node_private_key.sign(pubkey_tx.get_hash(), 0)[0]
             public_key_block = Block()
             public_key_block.timestamp = block_number * BLOCK_TIME
@@ -86,7 +86,7 @@ class TestEpoch(unittest.TestCase):
         raw_private_keys = []
         for private in private_keys:
             private_key_tx = PrivateKeyTransaction()
-            private_key_tx.key = b64encode(private.exportKey('DER'))
+            private_key_tx.key = Keys.to_bytes(private)
             raw_private_keys.append(private_key_tx.key)
             private_key_block = Block()
             private_key_block.system_txs = [private_key_tx]

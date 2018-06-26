@@ -188,7 +188,6 @@ class Epoch():
         for block in round_iter:
             for tx in block.block.system_txs:
                 if isinstance(tx, SplitRandomTransaction):
-                    print(tx.pieces)
                     random_pieces_list.append(tx.pieces)
         
         random_pieces_list = list(reversed(random_pieces_list))
