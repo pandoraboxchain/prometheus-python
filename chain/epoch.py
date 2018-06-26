@@ -165,30 +165,35 @@ class Epoch():
         return blocks
 
     def get_private_keys_for_epoch_from_block(self, block_hash):
-
-        block_number = self.dag.get_block_number(block_hash)
-        epoch_number = self.get_epoch_number(block_number)
-        round_start = self.get_epoch_start_block_number(epoch_number) + Round.PUBLIC_DURATION + Round.RANDOM_DURATION
-        round_end = round_start + Round.PRIVATE_DURATION
-
         private_keys = []
-        while block_number >= round_start:
-            if self.dag.get_block_number(block_hash) != block_number:
-                private_keys.append(None)
-                continue
+        round_iter = RoundIter(self.dag, block_hash, Round.PRIVATE)
 
-            block = self.dag.blocks_by_hash[block_hash]
-            for tx in block.system_txs:
-                if isinstance(tx, PrivateKeyTransaction):
-                    private_keys.append(tx.key)
-                    break #only one private key transaction can exist and it should be signed by block signer
-            
-            block = block.prev_hashes[0] #intentionally take first previous block as network would not accept blocks with other private keys
-            block_number -= 1
-        
-        reversed(private_keys)
+        for block in round_iter:
+            if block:
+                for tx in block.system_txs:
+                    if isinstance(tx, PrivateKeyTransaction):
+                        private_keys.append(tx.key)
+                        break #only one private key transaction can exist and it should be signed by block signer
+            else:
+                private_keys.append(None)
+                
+        private_keys = list(reversed(private_keys))
 
         return private_keys 
+    
+
+    def get_random_splits_for_epoch_from_block(self, block_hash):
+        random_pieces_list = []
+        round_iter = RoundIter(self.dag, block_hash, Round.RANDOM)
+        for block in round_iter:
+            for tx in block.block.system_txs:
+                if isinstance(tx, SplitRandomTransaction):
+                    print(tx.pieces)
+                    random_pieces_list.append(tx.pieces)
+        
+        random_pieces_list = list(reversed(random_pieces_list))
+        # unique_randoms = Epoch.make_unique_list(random_pieces_list)
+        return random_pieces_list
 
     def calculate_epoch_seed_from_block(self, block_hash):
         if block_hash == self.dag.genesis_block().get_hash():
@@ -243,10 +248,13 @@ class RoundIter:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         block = self.chain_iter.next()
         block_number = self.chain_iter.block_number
         if block_number < self.round_end:
             raise StopIteration()
         
         return block
+    
+    def next(self):
+        return self.__next__()

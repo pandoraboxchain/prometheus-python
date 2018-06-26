@@ -41,8 +41,6 @@ class TestEpoch(unittest.TestCase):
 
         block_number = 1
 
-        epoch_hash = epoch.get_epoch_hash(1)
-
         for i in range(0, Round.PUBLIC_DURATION):
             private = Private.generate()
             pubkey_tx = PublicKeyTransaction()
@@ -51,7 +49,7 @@ class TestEpoch(unittest.TestCase):
             pubkey_tx.signature = node_private_key.sign(pubkey_tx.get_hash(), 0)[0]
             public_key_block = Block()
             public_key_block.timestamp = block_number * BLOCK_TIME
-            public_key_block.prev_hashes = dag.get_top_blocks()
+            public_key_block.prev_hashes = dag.get_top_blocks_hashes()
             public_key_block.system_txs = [pubkey_tx]
             signed_block = BlockFactory.sign_block(public_key_block, node_private_key)
             dag.add_signed_block(block_number, signed_block)
@@ -76,7 +74,7 @@ class TestEpoch(unittest.TestCase):
             split_random_tx.signature = node_private_key.sign(pubkey_tx.get_hash(), 0)[0]
             split_random_block = Block()
             split_random_block.timestamp = block_number * BLOCK_TIME
-            split_random_block.prev_hashes = dag.get_top_blocks()
+            split_random_block.prev_hashes = dag.get_top_blocks_hashes()
             split_random_block.system_txs = [split_random_tx]
             signed_block = BlockFactory.sign_block(split_random_block, node_private_key)
             dag.add_signed_block(block_number, signed_block)
@@ -92,13 +90,15 @@ class TestEpoch(unittest.TestCase):
             raw_private_keys.append(private_key_tx.key)
             private_key_block = Block()
             private_key_block.system_txs = [private_key_tx]
-            private_key_block.prev_hashes = dag.get_top_blocks()
+            private_key_block.prev_hashes = dag.get_top_blocks_hashes()
             private_key_block.timestamp = block_number * BLOCK_TIME            
             signed_block = BlockFactory.sign_block(private_key_block, private)
             dag.add_signed_block(block_number, signed_block)            
             block_number += 1
+        
+        top_block_hash = dag.get_top_blocks_hashes()[0]
 
-        random_splits = epoch.get_random_splits_for_epoch(1)
+        random_splits = epoch.get_random_splits_for_epoch_from_block(top_block_hash)
         self.assertEqual(expected_random_pieces, random_splits)
 
         restored_randoms = []

@@ -1,4 +1,3 @@
-import unittest
 import os
 
 from chain.block import Block

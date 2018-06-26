@@ -38,6 +38,9 @@ class Dag():
                 del top_blocks[link]
 
         return top_blocks
+    
+    def get_top_blocks_hashes(self):
+        return list(self.get_top_blocks().keys())
 
     def has_block_number(self, number):
         return number in self.blocks_by_number
@@ -103,7 +106,7 @@ class ChainIter:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         block_number = self.dag.get_block_number(self.block_hash)
         if block_number == 0:
             raise StopIteration()
@@ -116,4 +119,7 @@ class ChainIter:
         self.block_hash = block.block.prev_hashes[0]
         self.block_number = block_number
         return block
+
+    def next(self):
+        return self.__next__()
         
