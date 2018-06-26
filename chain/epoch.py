@@ -170,7 +170,7 @@ class Epoch():
 
         for block in round_iter:
             if block:
-                for tx in block.system_txs:
+                for tx in block.block.system_txs:
                     if isinstance(tx, PrivateKeyTransaction):
                         private_keys.append(tx.key)
                         break #only one private key transaction can exist and it should be signed by block signer
@@ -179,16 +179,32 @@ class Epoch():
                 
         private_keys = list(reversed(private_keys))
 
-        return private_keys 
+        return private_keys
+    
+    def get_public_keys_for_epoch_from_block(self, block_hash):
+        public_keys = {}
+        round_iter = RoundIter(self.dag, block_hash, Round.PUBLIC)
+
+        for block in round_iter:
+            if block:
+                for tx in block.block.system_txs:
+                    if isinstance(tx, PublicKeyTransaction):
+                        if not tx.sender_pubkey in public_keys:
+                            public_keys[tx.sender_pubkey] = [tx.generated_pubkey]
+                        else:
+                            public_keys[tx.sender_pubkey].append(tx.generated_pubkey)
+                        
+        return public_keys
     
 
     def get_random_splits_for_epoch_from_block(self, block_hash):
         random_pieces_list = []
         round_iter = RoundIter(self.dag, block_hash, Round.RANDOM)
         for block in round_iter:
-            for tx in block.block.system_txs:
-                if isinstance(tx, SplitRandomTransaction):
-                    random_pieces_list.append(tx.pieces)
+            if block:
+                for tx in block.block.system_txs:
+                    if isinstance(tx, SplitRandomTransaction):
+                        random_pieces_list.append(tx.pieces)
         
         random_pieces_list = list(reversed(random_pieces_list))
         # unique_randoms = Epoch.make_unique_list(random_pieces_list)
@@ -200,6 +216,16 @@ class Epoch():
         
         block_number = self.dag.get_block_number(block_hash)
         assert self.is_last_block_of_epoch(block_number), "Epoch seed should be calculated from last epoch block"
+
+        private_keys = self.get_private_keys_for_epoch_from_block(block_hash)
+        random_pieces_list = self.get_random_splits_for_epoch_from_block(block_hash)
+        randoms_list = []
+        for random_pieces in random_pieces_list:
+            random = decode_random(random_pieces, Keys.list_from_bytes(private_keys))
+            randoms_list.append(random)
+
+        seed = sum_random(randoms_list)
+        return seed
 
 
     def calculate_epoch_seed(self, epoch_number):

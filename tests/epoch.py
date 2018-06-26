@@ -108,7 +108,7 @@ class TestEpoch(unittest.TestCase):
 
         self.assertEqual(randoms_list, restored_randoms)
 
-        seed = epoch.calculate_epoch_seed(2)
+        seed = epoch.calculate_epoch_seed_from_block(top_block_hash)
         self.assertEqual(expected_seed, seed)
 
     def test_epoch_number(self):
