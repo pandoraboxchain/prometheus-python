@@ -110,22 +110,28 @@ class ChainIter:
         self.block_hash = block_hash
         self.dag = dag
         self.block_number = dag.get_block_number(block_hash)
+        self.time_to_stop = False
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        block_number = self.dag.get_block_number(self.block_hash)
-        if block_number == 0:
+        if self.time_to_stop:
             raise StopIteration()
         
+        block_number = self.dag.get_block_number(self.block_hash)
         if block_number < self.block_number - 1:
             self.block_number -= 1
             return None
         
         block = self.dag.blocks_by_hash[self.block_hash]
-        self.block_hash = block.block.prev_hashes[0]
         self.block_number = block_number
+        
+        if block_number == 0: #genesis block. Stop iteration on next()
+            self.time_to_stop = True
+        else:
+            self.block_hash = block.block.prev_hashes[0]
+        
         return block
 
     def next(self):
