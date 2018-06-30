@@ -17,6 +17,7 @@ class Permissions():
     def get_validators_for_epoch_hash(self, epoch_hash):
         if not epoch_hash in self.epoch_validators:
             validators = self.epoch.calculate_validators_indexes(epoch_hash, self.get_validators_count())
+            print("validators for", epoch_hash.hex(), validators)
             self.epoch_validators[epoch_hash] = validators 
         return self.epoch_validators[epoch_hash]
 
@@ -40,12 +41,12 @@ class Permissions():
         return pubkeys
 
     def is_malicious_excessive_block(self, node_id):
-        if node_id == 8:
+        if node_id == 15:
             return True
         return False
 
     def is_malicious_skip_block(self, node_id):
-        if node_id == 1:
+        if node_id == 15:
             return True
         return False
 

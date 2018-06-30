@@ -64,6 +64,8 @@ class Epoch():
 
     @staticmethod
     def get_epoch_start_block_number(epoch_number):
+        if epoch_number == 0:
+            return 0
         return Epoch.get_duration() * (epoch_number - 1) + 1
         
     def get_epoch_hash(self, epoch_number):
@@ -159,6 +161,8 @@ class Epoch():
             return 0
         
         block_number = self.dag.get_block_number(block_hash)
+        if not self.is_last_block_of_epoch(block_number):
+            x = 0
         assert self.is_last_block_of_epoch(block_number), "Epoch seed should be calculated from last epoch block"
 
         private_keys = self.get_private_keys_for_epoch(block_hash)

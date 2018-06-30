@@ -61,6 +61,7 @@ class Node():
 
     def try_to_sign_block(self, current_block_number):
         if self.permissions.is_malicious_skip_block(self.node_id):
+            print("Node", self.node_id, "maliciously skips block")
             return
         
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
@@ -84,12 +85,14 @@ class Node():
         transactions = self.mempool.get_transactions_for_round(self.epoch.get_current_round())
         penalty = self.form_penalize_violators_transaction(current_block_number)
         if penalty : transactions.append(penalty)
-        current_top_blocks = self.dag.get_top_blocks()
+        current_top_blocks = self.dag.get_top_blocks_hashes()
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = transactions
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
+        print("Block signed by node", self.node_id)
         self.network.broadcast_block(self.node_id, signed_block.pack())
+
 
         if self.permissions.is_malicious_excessive_block(self.node_id):
             additional_block_timestamp = block.timestamp + 1
@@ -162,9 +165,9 @@ class Node():
 
         epoch_hashes = self.epoch.get_epoch_hashes()
         
-        for epoch_hash in epoch_hashes:
+        for top_hash, epoch_hash in epoch_hashes.items():
             ordered_senders_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash, Round.PRIVATE_DURATION)
-            published_pubkeys = self.epoch.get_public_keys_for_epoch(epoch_hash)
+            published_pubkeys = self.epoch.get_public_keys_for_epoch(top_hash)
             
             print("ordered pubkeys")
             sorted_published_pubkeys = []
@@ -221,6 +224,10 @@ class Node():
                 print("Block was not added. Considered invalid")
         else:
             print("Node", node_id, "sent block, but it's signature is wrong")
+            print("Its pubkey is", Keys.display(self.block_signer.private_key.publickey()))
+            print("But allowed signers")
+            for allowed_signer in allowed_signers:
+                Keys.display(allowed_signer)
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)

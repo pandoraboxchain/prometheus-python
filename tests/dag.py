@@ -25,7 +25,7 @@ class TestDag(unittest.TestCase):
         signed_block3 = BlockFactory.sign_block(block3, private)
         dag.add_signed_block(3, signed_block3)
 
-        top_hashes = list(dag.get_top_blocks().keys());
+        top_hashes = dag.get_top_blocks_hashes()
 
         self.assertEqual(top_hashes[0], block2.get_hash())
         self.assertEqual(top_hashes[1], block3.get_hash())

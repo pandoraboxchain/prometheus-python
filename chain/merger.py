@@ -8,9 +8,6 @@ class Merger():
     def __init__(self, dag):
         self.dag = dag
 
-    def get_tops(self):
-        return self.dag.get_top_blocks()
-    
     def get_conflicts(self):
         top_blocks = list(self.dag.get_top_blocks().keys())
         conflicts = []
