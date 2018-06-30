@@ -1,7 +1,7 @@
 import datetime
 from transaction.commits_set import CommitsSet
 from crypto.dec_part_random import decode_random_using_raw_key
-from crypto.sum_random import sum_random, calculate_validators_numbers
+from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
 from crypto.keys import Keys
 from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
@@ -19,10 +19,9 @@ class Round():
 
 class Epoch():
 
-    cached_epoch_validators = {}
-
     def __init__(self, dag):
         self.dag = dag
+        self.tops_and_epochs = { dag.genesis_block().get_hash() : dag.genesis_block().get_hash() }
 
     def get_current_timeframe_block_number(self):
         time_diff = int(datetime.datetime.now().timestamp()) - self.dag.genesis_block().timestamp
@@ -77,65 +76,10 @@ class Epoch():
         era_identifier_block = self.dag.blocks_by_number[previous_era_last_block_number][0]
         return era_identifier_block.block.get_hash()
     
-    def calculate_validators_numbers(self, epoch_number, validators_count):
-        if epoch_number in self.cached_epoch_validators:
-            return self.cached_epoch_validators[epoch_number]
-
-        epoch_seed = self.calculate_epoch_seed(epoch_number)
-        validators_list = calculate_validators_numbers(epoch_seed, validators_count, Epoch.get_duration())
-        self.cached_epoch_validators[epoch_number] = validators_list
+    def calculate_validators_indexes(self, epoch_hash, validators_count):
+        epoch_seed = self.calculate_epoch_seed(epoch_hash)
+        validators_list = calculate_validators_indexes(epoch_seed, validators_count, Epoch.get_duration())
         return validators_list
-
-    def get_private_keys_for_epoch(self, epoch_number):
-        #TODO properly handle block absence and multiple blocks with the same numbers
-        
-        pk_blocks = self.get_all_blocks_for_round(epoch_number, Round.PRIVATE)
-        
-        private_keys = []
-
-        for block in pk_blocks:
-            if block == None:
-                private_keys.append(None)
-            else:
-                for tx in block.system_txs:
-                    if isinstance(tx, PrivateKeyTransaction):
-                        private_keys.append(tx.key)
-                        break #only one private key transaction can exist and it should be signed by block signer
-
-        #we need to take only unique keys as malicious user could send two or more blocks at the same time
-        private_keys = Epoch.make_unique_list(private_keys)
-
-        print("This epoch private keys")
-        for pk in private_keys:
-            Keys.display(Keys.from_bytes(pk).publickey())
-
-        return private_keys
-
-    def get_public_keys_for_epoch(self, epoch_number):
-        blocks = self.get_all_blocks_for_round(epoch_number, Round.PUBLIC)
-        
-        public_keys = {}
-
-        for block in blocks:
-            for tx in block.system_txs:
-                if isinstance(tx, PublicKeyTransaction):
-                    if not tx.sender_pubkey in public_keys:
-                        public_keys[tx.sender_pubkey] = [tx.generated_pubkey]
-                    else:
-                        public_keys[tx.sender_pubkey].append(tx.generated_pubkey)
-                        
-        return public_keys
-
-    def get_random_splits_for_epoch(self, epoch_number):
-        random_pieces_list = []
-        blocks = self.get_all_blocks_for_round(epoch_number, Round.RANDOM)
-        for block in blocks:
-            for tx in block.system_txs:
-                if isinstance(tx, SplitRandomTransaction):
-                    random_pieces_list.append(tx.pieces)
-        
-        unique_randoms = Epoch.make_unique_list(random_pieces_list)
-        return unique_randoms
 
     @staticmethod
     def get_range_for_round(epoch_number, round_type):
@@ -164,7 +108,7 @@ class Epoch():
 
         return blocks
 
-    def get_private_keys_for_epoch_from_block(self, block_hash):
+    def get_private_keys_for_epoch(self, block_hash):
         private_keys = []
         round_iter = RoundIter(self.dag, block_hash, Round.PRIVATE)
 
@@ -181,7 +125,7 @@ class Epoch():
 
         return private_keys
     
-    def get_public_keys_for_epoch_from_block(self, block_hash):
+    def get_public_keys_for_epoch(self, block_hash):
         public_keys = {}
         round_iter = RoundIter(self.dag, block_hash, Round.PUBLIC)
 
@@ -197,7 +141,7 @@ class Epoch():
         return public_keys
     
 
-    def get_random_splits_for_epoch_from_block(self, block_hash):
+    def get_random_splits_for_epoch(self, block_hash):
         random_pieces_list = []
         round_iter = RoundIter(self.dag, block_hash, Round.RANDOM)
         for block in round_iter:
@@ -210,15 +154,15 @@ class Epoch():
         # unique_randoms = Epoch.make_unique_list(random_pieces_list)
         return random_pieces_list
 
-    def calculate_epoch_seed_from_block(self, block_hash):
+    def calculate_epoch_seed(self, block_hash):
         if block_hash == self.dag.genesis_block().get_hash():
             return 0
         
         block_number = self.dag.get_block_number(block_hash)
         assert self.is_last_block_of_epoch(block_number), "Epoch seed should be calculated from last epoch block"
 
-        private_keys = self.get_private_keys_for_epoch_from_block(block_hash)
-        random_pieces_list = self.get_random_splits_for_epoch_from_block(block_hash)
+        private_keys = self.get_private_keys_for_epoch(block_hash)
+        random_pieces_list = self.get_random_splits_for_epoch(block_hash)
         randoms_list = []
         for random_pieces in random_pieces_list:
             random = decode_random(random_pieces, Keys.list_from_bytes(private_keys))
@@ -227,19 +171,6 @@ class Epoch():
         seed = sum_random(randoms_list)
         return seed
 
-
-    def calculate_epoch_seed(self, epoch_number):
-        if epoch_number == 1:
-            return 0
-        private_keys = self.get_private_keys_for_epoch(epoch_number - 1)
-        random_pieces_list = self.get_random_splits_for_epoch(epoch_number - 1)
-        randoms_list = []
-        for random_pieces in random_pieces_list:
-            random = decode_random(random_pieces, Keys.list_from_bytes(private_keys))
-            randoms_list.append(random)
-
-        seed = sum_random(randoms_list)
-        return seed
     
     def is_last_block_of_epoch(self, block_number):
         epoch_number = self.get_epoch_number(block_number)        
@@ -258,6 +189,37 @@ class Epoch():
             if not item in unique_list:
                 unique_list.append(item)
         return unique_list
+    
+    def find_epoch_hash_for_block(self, block_hash):
+        chain_iter = ChainIter(self.dag, block_hash)
+        for block in chain_iter:
+            if self.is_last_block_of_epoch(chain_iter.block_number):
+                return block.get_hash()
+    
+    # returns top blocks hashes and their corresponding epoch seeds
+    def get_epoch_hashes(self):
+        return self.tops_and_epochs
+
+    def on_new_block_added(self, block):
+        block_hash = block.get_hash()
+        previous_top_epoch_hash = None
+        for prev_hash in block.block.prev_hashes:
+            if prev_hash in self.tops_and_epochs:
+                prev_block_number = self.dag.get_block_number(prev_hash)
+                prev_block_epoch_number = Epoch.get_epoch_number(prev_block_number)
+                block_number = self.dag.get_block_number(block_hash)
+                block_epoch_number = Epoch.get_epoch_number(block_number)
+
+                #if this block is from new epoch, then previous block must be last, so we may assume it is epoch hash
+                if prev_block_epoch_number < block_epoch_number:
+                    previous_top_epoch_hash = prev_hash
+                else: #just preserve epoch hash
+                    previous_top_epoch_hash = self.tops_and_epochs[prev_hash]
+                del self.tops_and_epochs[prev_hash]
+        
+        if previous_top_epoch_hash or not self.tops_and_epochs:
+            self.tops_and_epochs[block_hash] = previous_top_epoch_hash
+
 
 class RoundIter:
     def __init__(self, dag, block_hash, round_type):

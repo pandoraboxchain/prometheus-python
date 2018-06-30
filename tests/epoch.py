@@ -13,7 +13,7 @@ from chain.block_factory import BlockFactory
 from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from crypto.dec_part_random import dec_part_random
 from crypto.enc_random import enc_part_random, encode_value
-from crypto.sum_random import sum_random, calculate_validators_numbers
+from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits, decode_random
 from crypto.keys import Keys
@@ -98,7 +98,7 @@ class TestEpoch(unittest.TestCase):
         
         top_block_hash = dag.get_top_blocks_hashes()[0]
 
-        random_splits = epoch.get_random_splits_for_epoch_from_block(top_block_hash)
+        random_splits = epoch.get_random_splits_for_epoch(top_block_hash)
         self.assertEqual(expected_random_pieces, random_splits)
 
         restored_randoms = []
@@ -108,7 +108,7 @@ class TestEpoch(unittest.TestCase):
 
         self.assertEqual(randoms_list, restored_randoms)
 
-        seed = epoch.calculate_epoch_seed_from_block(top_block_hash)
+        seed = epoch.calculate_epoch_seed(top_block_hash)
         self.assertEqual(expected_seed, seed)
 
     def test_epoch_number(self):
@@ -148,3 +148,34 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(round_iter.next().get_hash(), dag.blocks_by_number[9][1].get_hash())
         self.assertEqual(round_iter.next().get_hash(), dag.blocks_by_number[8][1].get_hash())
         self.assertEqual(round_iter.next().get_hash(), dag.blocks_by_number[7][1].get_hash())
+
+    def test_top_blocks(self):
+        dag = Dag(0)
+        epoch = Epoch(dag)
+        dag.subscribe_to_new_block_notification(epoch)
+        private = Private.generate()
+        
+        epoch_hash = dag.genesis_block().get_hash()
+        
+        self.assertEqual(dag.genesis_block().get_hash(), list(epoch.get_epoch_hashes().keys())[0])
+        self.assertEqual(dag.genesis_block().get_hash(), list(epoch.get_epoch_hashes().values())[0])
+
+        block1 = BlockFactory.create_block_with_timestamp([dag.genesis_block().get_hash()], BLOCK_TIME)
+        signed_block1 = BlockFactory.sign_block(block1, private)
+        dag.add_signed_block(1, signed_block1)
+
+        self.assertEqual(block1.get_hash(), list(epoch.get_epoch_hashes().keys())[0])
+        self.assertEqual(epoch_hash, list(epoch.get_epoch_hashes().values())[0])
+
+        prev_hash = block1.get_hash()
+        for i in range(2, 11):
+            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
+            signed_block = BlockFactory.sign_block(block, private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = block.get_hash()
+
+        top_block_hash = dag.blocks_by_number[10][0].get_hash()
+        epoch_hash = dag.blocks_by_number[9][0].get_hash()
+
+        self.assertEqual(top_block_hash, list(epoch.get_epoch_hashes().keys())[0])
+        self.assertEqual(epoch_hash, list(epoch.get_epoch_hashes().values())[0])

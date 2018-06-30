@@ -4,23 +4,27 @@ from chain.validators import Validators
 
 class Permissions():
 
-    epoch_validators = {}
-
-    def __init__(self):
+    def __init__(self, epoch):
         self.validators = Validators()
+        self.epoch = epoch
+        self.epoch_validators = {}
 
-    def get_permission(self, epoch_number, block_number_in_epoch):
-        index = self.epoch_validators[epoch_number][block_number_in_epoch]
+    def get_permission(self, epoch_hash, block_number_in_epoch):
+        validators_for_epoch = self.get_validators_for_epoch_hash(epoch_hash)
+        index = validators_for_epoch[block_number_in_epoch]
         return self.validators.get_by_i(index)
+
+    def get_validators_for_epoch_hash(self, epoch_hash):
+        if not epoch_hash in self.epoch_validators:
+            validators = self.epoch.calculate_validators_indexes(epoch_hash, self.get_validators_count())
+            self.epoch_validators[epoch_hash] = validators 
+        return self.epoch_validators[epoch_hash]
 
     def get_validators_count(self):
         return self.validators.get_size()
-    
-    def set_validators_list(self, epoch_number, validators_list):
-        self.epoch_validators[epoch_number] = validators_list
 
-    def get_ordered_pubkeys_for_last_round(self, epoch_number, count):
-        selected_epoch_validators = self.epoch_validators[epoch_number]
+    def get_ordered_pubkeys_for_last_round(self, epoch_hash, count):
+        selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
         length = len(selected_epoch_validators)
         indexes_list = []
         for i in range(length - count, length):

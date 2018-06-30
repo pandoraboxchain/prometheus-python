@@ -9,6 +9,8 @@ class Dag():
         self.genesis_creation_time = genesis_creation_time
         self.blocks_by_hash = {}
         self.blocks_by_number = {}
+        self.tops_and_epochs = {}
+        self.new_block_listeners = []
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
         self.add_signed_block(0, signed_genesis_block)
@@ -26,6 +28,9 @@ class Dag():
             self.blocks_by_number[index].append(block)
         else:
             self.blocks_by_number[index] = [block]
+
+        for listener in self.new_block_listeners:
+            listener.on_new_block_added(block)
     
     def get_top_blocks(self):
         links = []
@@ -44,7 +49,7 @@ class Dag():
 
     def has_block_number(self, number):
         return number in self.blocks_by_number
-    
+
     def get_block_number(self, block_hash):
         for number, block_list_by_number in self.blocks_by_number.items():
             for block_by_number in block_list_by_number:
@@ -96,6 +101,9 @@ class Dag():
                     print("|", block.block.get_hash().hex()[:5])
             else:
                 print("None")
+
+    def subscribe_to_new_block_notification(self, listener):
+        self.new_block_listeners.append(listener)
     
 class ChainIter:
     def __init__(self, dag, block_hash):

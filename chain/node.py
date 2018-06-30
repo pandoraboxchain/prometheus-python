@@ -28,15 +28,15 @@ class Node():
     
     def __init__(self, genesis_creation_time, node_id, network, block_signer):
         self.dag = Dag(genesis_creation_time)
-        self.permissions = Permissions()
-        self.mempool = Mempool()
         self.epoch = Epoch(self.dag)
+        self.dag.subscribe_to_new_block_notification(self.epoch)
+        self.permissions = Permissions(self.epoch)
+        self.mempool = Mempool()
 
 
         self.block_signer = block_signer
         self.network = network
         self.node_id = node_id
-        self.try_to_calculate_next_epoch_validators(0)
         self.epoch_private_keys = []
         #self.epoch_private_keys where first element is era number, and second is key to reveal commited random
 
@@ -62,44 +62,54 @@ class Node():
     def try_to_sign_block(self, current_block_number):
         if self.permissions.is_malicious_skip_block(self.node_id):
             return
-            
-        epoch_number = self.epoch.get_epoch_number(current_block_number)
+        
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        current_validator = self.permissions.get_permission(epoch_number, epoch_block_number)
-        is_public_key_corresponds = current_validator.public_key == self.block_signer.private_key.publickey()
+        
+        allowed_to_sign = False
+        epoch_hashes = self.epoch.get_epoch_hashes()
+        for top, epoch_hash in epoch_hashes.items():
+            permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
+            if permission.public_key == self.block_signer.private_key.publickey():
+                allowed_to_sign = True
+                break
+    
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
-        if is_public_key_corresponds and block_has_not_been_signed_yet:
-            if self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
-                self.try_to_publish_private(current_block_number) #TODO maybe should be a part of block
-            transactions = self.mempool.get_transactions_for_round(self.epoch.get_current_round())
-            penalty = self.form_penalize_violators_transaction(current_block_number)
-            if penalty : transactions.append(penalty)
-            current_top_blocks = self.dag.get_top_blocks()
-            block = BlockFactory.create_block_dummy(current_top_blocks)
-            block.system_txs = transactions
+        if allowed_to_sign and block_has_not_been_signed_yet:
+            self.sing_block(current_block_number)
+            
+
+    def sing_block(self, current_block_number):
+        if self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
+            self.try_to_publish_private(current_block_number) #TODO maybe should be a part of block
+        transactions = self.mempool.get_transactions_for_round(self.epoch.get_current_round())
+        penalty = self.form_penalize_violators_transaction(current_block_number)
+        if penalty : transactions.append(penalty)
+        current_top_blocks = self.dag.get_top_blocks()
+        block = BlockFactory.create_block_dummy(current_top_blocks)
+        block.system_txs = transactions
+        signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
+        self.dag.add_signed_block(current_block_number, signed_block)
+        self.network.broadcast_block(self.node_id, signed_block.pack())
+
+        if self.permissions.is_malicious_excessive_block(self.node_id):
+            additional_block_timestamp = block.timestamp + 1
+            block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
+            block.system_txs = transactions.copy()
             signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
             self.dag.add_signed_block(current_block_number, signed_block)
-            self.try_to_calculate_next_epoch_validators(current_block_number)             
             self.network.broadcast_block(self.node_id, signed_block.pack())
-
-            if self.permissions.is_malicious_excessive_block(self.node_id):
-                additional_block_timestamp = block.timestamp + 1
-                block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
-                block.system_txs = transactions.copy()
-                signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
-                self.dag.add_signed_block(current_block_number, signed_block)
-                self.network.broadcast_block(self.node_id, signed_block.pack())
-                print("Node", self.node_id, "has sent additional block")
-
+            print("Node", self.node_id, "has sent additional block")
 
     def try_to_publish_public_key(self, current_block_number):
-        epoch_number = self.epoch.get_epoch_number(current_block_number)
-
         if self.epoch_private_keys:
             return
             
         node_pubkey = self.block_signer.private_key.publickey()
-        pubkey_publishers = self.permissions.get_ordered_pubkeys_for_last_round(epoch_number, Round.PRIVATE_DURATION)
+        
+        pubkey_publishers = []
+        for _, epoch_hash in self.epoch.get_epoch_hashes().items():
+            pubkey_publishers += self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash, Round.PRIVATE_DURATION)
+
         for publisher in pubkey_publishers:
             if node_pubkey == publisher:
                 node_private = self.block_signer.private_key
@@ -150,57 +160,67 @@ class Node():
             if epoch_number == self.last_epoch_random_published:
                 return
 
-        ordered_senders_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_number, Round.PRIVATE_DURATION)
-        published_pubkeys = self.epoch.get_public_keys_for_epoch(epoch_number)
+        epoch_hashes = self.epoch.get_epoch_hashes()
         
-        print("ordered pubkeys")
-        sorted_published_pubkeys = []
-        for sender_pubkey in ordered_senders_pubkeys:
-            generated_pubkeys = published_pubkeys[Keys.to_bytes(sender_pubkey)]
-            pubkey = generated_pubkeys.pop(0) #TODO come up with some ordering guarantees
-            sorted_published_pubkeys.append(Keys.from_bytes(pubkey))
-            Keys.display(pubkey)
+        for epoch_hash in epoch_hashes:
+            ordered_senders_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash, Round.PRIVATE_DURATION)
+            published_pubkeys = self.epoch.get_public_keys_for_epoch(epoch_hash)
+            
+            print("ordered pubkeys")
+            sorted_published_pubkeys = []
+            for sender_pubkey in ordered_senders_pubkeys:
+                generated_pubkeys = published_pubkeys[Keys.to_bytes(sender_pubkey)]
+                pubkey = generated_pubkeys.pop(0) #TODO come up with some ordering guarantees
+                sorted_published_pubkeys.append(Keys.from_bytes(pubkey))
+                Keys.display(pubkey)
+
+            tx = self.form_transaction_for_random(sorted_published_pubkeys)
+
+            self.mempool.add_transaction(tx)
+            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))  
         
+        self.last_epoch_random_published = epoch_number    
+    
+    def form_transaction_for_random(self, sorted_public_keys):
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
-        encoded_splits = encode_splits(splits, sorted_published_pubkeys)
+        encoded_splits = encode_splits(splits, sorted_public_keys)
         print("Node", self.node_id, "broadcasting random")
         
-        self.last_epoch_random_published = epoch_number 
-
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
         tx.signature = self.block_signer.private_key.sign(tx.get_hash(), 0)[0]
-        self.mempool.add_transaction(tx)
-        self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
-    
+        return tx
+
     def handle_block_message(self, node_id, raw_signed_block):
+        signed_block = SignedBlock()
+        signed_block.parse(raw_signed_block)
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_number = self.epoch.get_epoch_number(current_block_number)
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        current_validator = self.permissions.get_permission(epoch_number, epoch_block_number)
-        signed_block = SignedBlock()
-        signed_block.parse(raw_signed_block)
 
-        if signed_block.verify_signature(current_validator.public_key):
+        epoch_hashes = self.epoch.get_epoch_hashes()
+        allowed_signers = []
+        for prev_hash in signed_block.block.prev_hashes:
+            if prev_hash in epoch_hashes:
+                epoch_hash = epoch_hashes[prev_hash]
+                permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
+                allowed_signers.append(permission.public_key)
+
+        is_block_allowed = False
+        for allowed_signer in allowed_signers:
+            if signed_block.verify_signature(allowed_signer):
+                is_block_allowed = True
+
+        if is_block_allowed:
             block = signed_block.block
             if True: #TODO: add block verification
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
-                self.try_to_calculate_next_epoch_validators(current_block_number)
             else:
                 print("Block was not added. Considered invalid")
         else:
             print("Node", node_id, "sent block, but it's signature is wrong")
-            self.network.gossip_malicious(current_validator.public_key)
-
-    def try_to_calculate_next_epoch_validators(self, current_block_number):
-        if self.epoch.is_last_block_of_epoch(current_block_number):
-            next_epoch_number = self.epoch.get_epoch_number(current_block_number) + 1
-            validators_count = self.permissions.get_validators_count()
-            validators_list = self.epoch.calculate_validators_numbers(next_epoch_number, validators_count)
-            print("calculated validators list for node ", self.node_id, validators_list)
-            self.permissions.set_validators_list(next_epoch_number, validators_list)
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
