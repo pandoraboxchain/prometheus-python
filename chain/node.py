@@ -195,20 +195,31 @@ class Node():
         tx.signature = self.block_signer.private_key.sign(tx.get_hash(), 0)[0]
         return tx
 
+    def get_allowed_signers_for_next_block(self, block):
+        current_block_number = self.epoch.get_current_timeframe_block_number()
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
+        epoch_hashes = self.epoch.get_epoch_hashes()
+        allowed_signers = []
+        for prev_hash in block.prev_hashes:
+            epoch_hash = None
+            if prev_hash in epoch_hashes:
+                epoch_hash = epoch_hashes[prev_hash]
+            else:
+                epoch_hash = self.epoch.find_epoch_hash_for_block(prev_hash)
+            
+            if epoch_hash:
+                permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
+                allowed_signers.append(permission.public_key)
+
+        assert len(allowed_signers) > 0, "No signers allowed to sign next block"
+        return allowed_signers
+
+
     def handle_block_message(self, node_id, raw_signed_block):
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
-        current_block_number = self.epoch.get_current_timeframe_block_number()
-        epoch_number = self.epoch.get_epoch_number(current_block_number)
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-
-        epoch_hashes = self.epoch.get_epoch_hashes()
-        allowed_signers = []
-        for prev_hash in signed_block.block.prev_hashes:
-            if prev_hash in epoch_hashes:
-                epoch_hash = epoch_hashes[prev_hash]
-                permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
-                allowed_signers.append(permission.public_key)
+        
+        allowed_signers = self.get_allowed_signers_for_next_block(signed_block.block)
 
         is_block_allowed = False
         for allowed_signer in allowed_signers:
@@ -218,16 +229,13 @@ class Node():
         if is_block_allowed:
             block = signed_block.block
             if True: #TODO: add block verification
+                current_block_number = self.epoch.get_current_timeframe_block_number()
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
             else:
                 print("Block was not added. Considered invalid")
         else:
             print("Node", node_id, "sent block, but it's signature is wrong")
-            print("Its pubkey is", Keys.display(self.block_signer.private_key.publickey()))
-            print("But allowed signers")
-            for allowed_signer in allowed_signers:
-                Keys.display(allowed_signer)
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)

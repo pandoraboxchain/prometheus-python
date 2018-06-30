@@ -177,6 +177,8 @@ class Epoch():
 
     
     def is_last_block_of_epoch(self, block_number):
+        if block_number == 0: return True
+
         epoch_number = self.get_epoch_number(block_number)        
         epoch_start_block = self.get_epoch_start_block_number(epoch_number)
         return block_number == epoch_start_block + Epoch.get_duration() - 1
@@ -199,6 +201,7 @@ class Epoch():
         for block in chain_iter:
             if self.is_last_block_of_epoch(chain_iter.block_number):
                 return block.get_hash()
+        return None
     
     # returns top blocks hashes and their corresponding epoch seeds
     def get_epoch_hashes(self):

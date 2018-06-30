@@ -41,7 +41,7 @@ class Permissions():
         return pubkeys
 
     def is_malicious_excessive_block(self, node_id):
-        if node_id == 15:
+        if node_id == 1:
             return True
         return False
 
