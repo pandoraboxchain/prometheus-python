@@ -17,7 +17,6 @@ class Permissions():
     def get_validators_for_epoch_hash(self, epoch_hash):
         if not epoch_hash in self.epoch_validators:
             validators = self.epoch.calculate_validators_indexes(epoch_hash, self.get_validators_count())
-            print("validators for", epoch_hash.hex(), validators)
             self.epoch_validators[epoch_hash] = validators 
         return self.epoch_validators[epoch_hash]
 

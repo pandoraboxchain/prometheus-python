@@ -27,7 +27,7 @@ class Keys():
         return encoded_keys
 
     @staticmethod
-    def display(key):
+    def to_visual_string(key):
         if not isinstance(key, (bytes, bytearray)):
             key = Keys.to_bytes(key)
-        print(key[77:90].hex()+"..."+key[-25:-12].hex())
+        return key[77:90].hex()+"..."+key[-25:-12].hex()

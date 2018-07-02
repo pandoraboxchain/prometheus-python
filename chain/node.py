@@ -1,6 +1,7 @@
 import time
 import asyncio
 import os
+import logging
 
 from base64 import b64decode,b64encode
 
@@ -27,6 +28,7 @@ from crypto.secret import split_secret, encode_splits, decode_random
 class Node():
     
     def __init__(self, genesis_creation_time, node_id, network, block_signer):
+        self.logger = logging.getLogger("Node " + str(node_id))
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
         self.dag.subscribe_to_new_block_notification(self.epoch)
@@ -61,7 +63,7 @@ class Node():
 
     def try_to_sign_block(self, current_block_number):
         if self.permissions.is_malicious_skip_block(self.node_id):
-            print("Node", self.node_id, "maliciously skips block")
+            self.logger.info("Maliciously skiped block")
             return
         
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
@@ -73,6 +75,12 @@ class Node():
             if permission.public_key == self.block_signer.private_key.publickey():
                 allowed_to_sign = True
                 break
+
+        #log possible validators indexes
+        if epoch_block_number == 0:
+            for epoch_hash in epoch_hashes.values():
+                self.logger.info("Next epoch hash is %s", epoch_hash.hex())
+                self.logger.info("Validators will be %s", self.permissions.epoch_validators[epoch_hash])
     
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if allowed_to_sign and block_has_not_been_signed_yet:
@@ -90,7 +98,7 @@ class Node():
         block.system_txs = transactions
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
-        print("Block signed by node", self.node_id)
+        self.logger.info("Block signed by node")
         self.network.broadcast_block(self.node_id, signed_block.pack())
 
 
@@ -101,7 +109,7 @@ class Node():
             signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
             self.dag.add_signed_block(current_block_number, signed_block)
             self.network.broadcast_block(self.node_id, signed_block.pack())
-            print("Node", self.node_id, "has sent additional block")
+            self.logger.info("Sent additional block")
 
     def try_to_publish_public_key(self, current_block_number):
         if self.epoch_private_keys:
@@ -122,7 +130,7 @@ class Node():
                 tx.sender_pubkey = Keys.to_bytes(node_private.publickey())
                 tx.signature = node_private.sign(tx.get_hash(), 0)[0]
                 self.epoch_private_keys.append(generated_private)
-                print("Node ", self.node_id, "broadcasted public key")
+                self.logger.info("Broadcasted public key")
                 self.mempool.add_transaction(tx)
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
@@ -135,7 +143,7 @@ class Node():
             # intentionally do not broadcast transaction since private key better be part of a block
             # only one private key tx should be in a block
             # self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
-            print("Node", self.node_id, "sent private key")
+            self.logger.info("Sent private key")
 
     def form_penalize_violators_transaction(self, current_block_number):
         merger = Merger(self.dag)
@@ -146,8 +154,8 @@ class Node():
                 block = self.dag.blocks_by_hash[conflict]
                 self.network.broadcast_block(self.node_id, block.pack())
             
-            print("found conflicting blocks")
-            print(conflict)
+            self.logger.info("found conflicting blocks")
+            self.logger.info(conflict)
 
             penalty = PenaltyTransaction()
             penalty.conflicts = conflicts
@@ -169,13 +177,13 @@ class Node():
             ordered_senders_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash, Round.PRIVATE_DURATION)
             published_pubkeys = self.epoch.get_public_keys_for_epoch(top_hash)
             
-            print("ordered pubkeys")
+            self.logger.info("Ordered pubkeys for secret sharing:")
             sorted_published_pubkeys = []
             for sender_pubkey in ordered_senders_pubkeys:
                 generated_pubkeys = published_pubkeys[Keys.to_bytes(sender_pubkey)]
                 pubkey = generated_pubkeys.pop(0) #TODO come up with some ordering guarantees
                 sorted_published_pubkeys.append(Keys.from_bytes(pubkey))
-                Keys.display(pubkey)
+                self.logger.info(Keys.to_visual_string(pubkey))
 
             tx = self.form_transaction_for_random(sorted_published_pubkeys)
 
@@ -188,7 +196,7 @@ class Node():
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
         encoded_splits = encode_splits(splits, sorted_public_keys)
-        print("Node", self.node_id, "broadcasting random")
+        self.logger.info("Broadcasting random")
         
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
@@ -233,9 +241,9 @@ class Node():
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
             else:
-                print("Block was not added. Considered invalid")
+                self.logger.error("Block was not added. Considered invalid")
         else:
-            print("Node", node_id, "sent block, but it's signature is wrong")
+            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
@@ -245,6 +253,6 @@ class Node():
            # print("It is valid. Adding to mempool")
             self.mempool.add_transaction(transaction)
         else:
-            print("It's invalid. Do something about it")
+            self.logger.error("Received tx is invalid")
 
 
