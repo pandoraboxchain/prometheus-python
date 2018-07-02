@@ -1,6 +1,7 @@
 import random
 
 from chain.validators import Validators
+from chain.epoch import Epoch
 
 class Permissions():
 
@@ -21,7 +22,9 @@ class Permissions():
         return self.epoch_validators[epoch_hash]
 
     def get_validators_count(self):
-        return self.validators.get_size()
+        return Epoch.get_duration()
+        #TODO proper validators count deduction 
+        # return self.validators.get_size()
 
     def get_ordered_pubkeys_for_last_round(self, epoch_hash, count):
         selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
