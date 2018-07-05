@@ -65,9 +65,13 @@ class Epoch():
 
     @staticmethod
     def get_epoch_start_block_number(epoch_number):
-        if epoch_number == 0:
-            return 0
+        if epoch_number == 0: return 0
         return Epoch.get_duration() * (epoch_number - 1) + 1
+    
+    def get_epoch_end_block_number(epoch_number):
+        if epoch_number == 0: return 0
+        epoch_start_block = Epoch.get_epoch_start_block_number(epoch_number)
+        return epoch_start_block + Epoch.get_duration() - 1
         
     def get_epoch_hash(self, epoch_number):
         if epoch_number == 0:
@@ -82,6 +86,7 @@ class Epoch():
     def calculate_validators_indexes(self, epoch_hash, validators_count):
         epoch_seed = self.calculate_epoch_seed(epoch_hash)
         validators_list = calculate_validators_indexes(epoch_seed, validators_count, Epoch.get_duration())
+        print("calculated validators:", validators_list)
         return validators_list
 
     @staticmethod
@@ -112,8 +117,13 @@ class Epoch():
         return blocks
 
     def get_private_keys_for_epoch(self, block_hash):
-        private_keys = []
         round_iter = RoundIter(self.dag, block_hash, Round.PRIVATE)
+        
+        private_keys = []
+        block_number = self.dag.get_block_number(block_hash)
+        epoch_number = self.get_epoch_number(block_number)
+        for i in range(block_number, Epoch.get_epoch_end_block_number(epoch_number)):
+            private_keys.append(None)
 
         for block in round_iter:
             if block:
@@ -161,13 +171,22 @@ class Epoch():
             return 0
         
         block_number = self.dag.get_block_number(block_hash)
-        assert self.is_last_block_of_epoch(block_number), ("Epoch seed should be calculated from last epoch block. Tried block number", self.convert_to_epoch_block_number(block_number))
 
         private_keys = self.get_private_keys_for_epoch(block_hash)
         public_keys = self.get_public_keys_for_epoch(block_hash)
         published_private_keys = self.filter_out_skipped_public_keys(private_keys, public_keys)
         random_pieces_list = self.get_random_splits_for_epoch(block_hash)
 
+        print("pubkeys")
+        for _, public_key in public_keys.items():
+            print(Keys.to_visual_string(public_key))
+        print("privkeys converted")
+        for key in published_private_keys:
+            if not key:
+                print("None")
+                continue
+            pubkey = Keys.from_bytes(key).publickey()
+            print(Keys.to_visual_string(pubkey))
         assert len(public_keys) == len(published_private_keys), "Public and private keys must match"
 
         randoms_list = []
@@ -196,8 +215,7 @@ class Epoch():
         if block_number == 0: return True
 
         epoch_number = self.get_epoch_number(block_number)        
-        epoch_start_block = self.get_epoch_start_block_number(epoch_number)
-        return block_number == epoch_start_block + Epoch.get_duration() - 1
+        return block_number == Epoch.get_epoch_end_block_number(epoch_number)
 
     def convert_to_epoch_block_number(self, global_block_number):
         epoch_number = self.get_epoch_number(global_block_number)
@@ -214,9 +232,13 @@ class Epoch():
     
     def find_epoch_hash_for_block(self, block_hash):
         chain_iter = ChainIter(self.dag, block_hash)
+        just_take_next_non_skipped_block = False
         for block in chain_iter:
-            if self.is_last_block_of_epoch(chain_iter.block_number):
-                return block.get_hash()
+            if self.is_last_block_of_epoch(chain_iter.block_number) or just_take_next_non_skipped_block:
+                if block:                
+                    return block.get_hash()
+                else:
+                    just_take_next_non_skipped_block = True
         return None
     
     # returns top blocks hashes and their corresponding epoch seeds

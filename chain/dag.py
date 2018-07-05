@@ -55,6 +55,7 @@ class Dag():
             for block_by_number in block_list_by_number:
                 if block_by_number.block.get_hash() == block_hash:
                     return number
+        assert False, "Cannot find block number"
         return -1
     
     def calculate_chain_length(self, top_block_hash):
@@ -104,6 +105,14 @@ class Dag():
 
     def subscribe_to_new_block_notification(self, listener):
         self.new_block_listeners.append(listener)
+
+    def collect_next_blocks(self, block_hash):
+        next_blocks = []
+        for block in self.blocks_by_hash:
+            if block_hash in block.block.prev_hashes:
+                next_blocks.append(block.get_hash())
+        return next_blocks
+                
     
 class ChainIter:
     def __init__(self, dag, block_hash):

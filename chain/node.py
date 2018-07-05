@@ -65,11 +65,7 @@ class Node():
 
             await asyncio.sleep(1)
     
-    def try_to_sign_block(self, current_block_number):
-        if self.permissions.is_malicious_skip_block(self.node_id):
-            self.logger.info("Maliciously skiped block")
-            return
-        
+    def try_to_sign_block(self, current_block_number):        
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         
         allowed_to_sign = False
@@ -82,7 +78,10 @@ class Node():
 
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if allowed_to_sign and block_has_not_been_signed_yet:
-            self.sign_block(current_block_number)
+            if self.permissions.is_malicious_skip_block(self.node_id):
+                self.logger.info("Maliciously skiped block")
+            else:
+                self.sign_block(current_block_number)
             
 
     def sign_block(self, current_block_number):

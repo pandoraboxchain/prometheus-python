@@ -4,12 +4,14 @@ from base64 import b64decode,b64encode
 class Keys():
     @staticmethod
     def from_bytes(key_bytes):
+        if not key_bytes: return None
         decoded_bytes = b64decode(key_bytes)
         key = RSA.importKey(decoded_bytes)
         return key
 
     @staticmethod
     def to_bytes(key):
+        if not key: return None
         return b64encode(key.exportKey('DER'))
 
     @staticmethod

@@ -202,3 +202,38 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(top_block_hash, list(epoch.get_epoch_hashes().keys())[0])
         self.assertEqual(epoch_hash, list(epoch.get_epoch_hashes().values())[0])
 
+    def test_private_keys_extraction(self):
+        dag = Dag(0)
+        epoch = Epoch(dag)
+        dag.subscribe_to_new_block_notification(epoch)
+        node_private = Private.generate()
+
+        prev_hash = dag.genesis_block().get_hash()
+        for i in range(1, 7):
+            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
+            signed_block = BlockFactory.sign_block(block, node_private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = block.get_hash()
+
+        generated_private_keys = []
+        for i in range(7, 9): #intentionally skip last block of round
+            generated_private = Private.generate()
+            generated_private_keys.append(Keys.to_bytes(generated_private))
+
+            private_key_tx = PrivateKeyTransaction()
+            private_key_tx.key = Keys.to_bytes(generated_private)
+            private_key_block = Block()
+            private_key_block.system_txs = [private_key_tx]
+            private_key_block.prev_hashes = dag.get_top_blocks_hashes()
+            private_key_block.timestamp = i * BLOCK_TIME            
+            signed_block = BlockFactory.sign_block(private_key_block, node_private)
+            dag.add_signed_block(i, signed_block)
+
+
+        epoch_hash = dag.blocks_by_number[8][0].get_hash()
+
+        extracted_privates = epoch.get_private_keys_for_epoch(epoch_hash)
+
+        self.assertEqual(extracted_privates[0], generated_private_keys[0])
+        self.assertEqual(extracted_privates[1], generated_private_keys[1])
+        self.assertEqual(extracted_privates[2], None)
