@@ -35,7 +35,9 @@ class TestEpoch(unittest.TestCase):
         dag = Dag(0)
         epoch = Epoch(dag)
 
-        node_private_key = Private.generate()
+        node_private_keys = []
+        for i in range(0, Epoch.get_duration() + 1):
+            node_private_keys.append(Private.generate())
 
         private_keys = []
 
@@ -43,6 +45,7 @@ class TestEpoch(unittest.TestCase):
 
         for i in range(0, Round.PUBLIC_DURATION):
             private = Private.generate()
+            node_private_key = node_private_keys[block_number]
             pubkey_tx = PublicKeyTransaction()
             pubkey_tx.generated_pubkey = Keys.to_bytes(private.publickey())
             pubkey_tx.sender_pubkey = Keys.to_bytes(node_private_key.publickey())
@@ -71,6 +74,7 @@ class TestEpoch(unittest.TestCase):
             encoded_splits = encode_splits(splits, public_keys)
             split_random_tx.pieces = encoded_splits
             expected_random_pieces.append(split_random_tx.pieces)
+            node_private_key = node_private_keys[block_number]
             split_random_tx.signature = node_private_key.sign(pubkey_tx.get_hash(), 0)[0]
             split_random_block = Block()
             split_random_block.timestamp = block_number * BLOCK_TIME
@@ -92,7 +96,7 @@ class TestEpoch(unittest.TestCase):
             private_key_block.system_txs = [private_key_tx]
             private_key_block.prev_hashes = dag.get_top_blocks_hashes()
             private_key_block.timestamp = block_number * BLOCK_TIME            
-            signed_block = BlockFactory.sign_block(private_key_block, private)
+            signed_block = BlockFactory.sign_block(private_key_block, node_private_keys[block_number])
             dag.add_signed_block(block_number, signed_block)            
             block_number += 1
         
@@ -118,6 +122,8 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(epoch.get_epoch_start_block_number(2), 10)
         self.assertEqual(epoch.convert_to_epoch_block_number(10), 0)
         self.assertEqual(epoch.convert_to_epoch_block_number(12), 2)
+        self.assertEqual(epoch.convert_to_epoch_block_number(18), 8)
+        self.assertEqual(epoch.convert_to_epoch_block_number(19), 0)
         self.assertEqual(Epoch.get_round_by_block_number(7), Round.PRIVATE)
         self.assertEqual(Epoch.get_round_by_block_number(8), Round.PRIVATE)
         self.assertEqual(Epoch.get_round_by_block_number(9), Round.PRIVATE)
@@ -168,14 +174,31 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(epoch_hash, list(epoch.get_epoch_hashes().values())[0])
 
         prev_hash = block1.get_hash()
-        for i in range(2, 11):
+        for i in range(2, 10):
             block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
             signed_block = BlockFactory.sign_block(block, private)
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        top_block_hash = dag.blocks_by_number[10][0].get_hash()
+        epoch.check_if_new_epoch_and_update_hashes(10)
+
+        top_block_hash = dag.blocks_by_number[9][0].get_hash()
         epoch_hash = dag.blocks_by_number[9][0].get_hash()
 
         self.assertEqual(top_block_hash, list(epoch.get_epoch_hashes().keys())[0])
         self.assertEqual(epoch_hash, list(epoch.get_epoch_hashes().values())[0])
+
+        for i in range(10, 19):
+            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
+            signed_block = BlockFactory.sign_block(block, private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = block.get_hash()
+
+        epoch.check_if_new_epoch_and_update_hashes(18)
+
+        top_block_hash = dag.blocks_by_number[18][0].get_hash()
+        epoch_hash = dag.blocks_by_number[18][0].get_hash()
+
+        self.assertEqual(top_block_hash, list(epoch.get_epoch_hashes().keys())[0])
+        self.assertEqual(epoch_hash, list(epoch.get_epoch_hashes().values())[0])
+

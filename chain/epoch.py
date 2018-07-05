@@ -22,6 +22,7 @@ class Epoch():
     def __init__(self, dag):
         self.dag = dag
         self.tops_and_epochs = { dag.genesis_block().get_hash() : dag.genesis_block().get_hash() }
+        self.current_epoch = 1
 
     def get_current_timeframe_block_number(self):
         time_diff = int(datetime.datetime.now().timestamp()) - self.dag.genesis_block().timestamp
@@ -135,10 +136,9 @@ class Epoch():
             if block:
                 for tx in block.block.system_txs:
                     if isinstance(tx, PublicKeyTransaction):
-                        if not tx.sender_pubkey in public_keys:
-                            public_keys[tx.sender_pubkey] = [tx.generated_pubkey]
-                        else:
-                            public_keys[tx.sender_pubkey].append(tx.generated_pubkey)
+                        if tx.sender_pubkey in public_keys:
+                            assert False, "One sender published more than one public key. Aborting"
+                        public_keys[tx.sender_pubkey] = tx.generated_pubkey
                         
         return public_keys
     
@@ -161,21 +161,37 @@ class Epoch():
             return 0
         
         block_number = self.dag.get_block_number(block_hash)
-        if not self.is_last_block_of_epoch(block_number):
-            x = 0
-        assert self.is_last_block_of_epoch(block_number), "Epoch seed should be calculated from last epoch block"
+        assert self.is_last_block_of_epoch(block_number), ("Epoch seed should be calculated from last epoch block. Tried block number", self.convert_to_epoch_block_number(block_number))
 
         private_keys = self.get_private_keys_for_epoch(block_hash)
+        public_keys = self.get_public_keys_for_epoch(block_hash)
+        published_private_keys = self.filter_out_skipped_public_keys(private_keys, public_keys)
         random_pieces_list = self.get_random_splits_for_epoch(block_hash)
+
+        assert len(public_keys) == len(published_private_keys), "Public and private keys must match"
+
         randoms_list = []
         for random_pieces in random_pieces_list:
-            random = decode_random(random_pieces, Keys.list_from_bytes(private_keys))
+            assert len(published_private_keys) == len(random_pieces), "Amount of splits must match amount of public keys"
+            random = decode_random(random_pieces, Keys.list_from_bytes(published_private_keys))
             randoms_list.append(random)
 
         seed = sum_random(randoms_list)
         return seed
 
-    
+    def filter_out_skipped_public_keys(self, private_keys, public_keys):
+        filtered_private_keys = []
+        for private_key in private_keys:
+            if private_key == None:
+                filtered_private_keys.append(None)
+            else:
+                expected_public = Keys.from_bytes(private_key).publickey()
+                if Keys.to_bytes(expected_public) in public_keys.values():
+                    filtered_private_keys.append(private_key)
+        return private_keys
+
+
+
     def is_last_block_of_epoch(self, block_number):
         if block_number == 0: return True
 
@@ -212,20 +228,22 @@ class Epoch():
         previous_top_epoch_hash = None
         for prev_hash in block.block.prev_hashes:
             if prev_hash in self.tops_and_epochs:
-                prev_block_number = self.dag.get_block_number(prev_hash)
-                prev_block_epoch_number = Epoch.get_epoch_number(prev_block_number)
-                block_number = self.dag.get_block_number(block_hash)
-                block_epoch_number = Epoch.get_epoch_number(block_number)
-
-                #if this block is from new epoch, then previous block must be last, so we may assume it is epoch hash
-                if prev_block_epoch_number < block_epoch_number:
-                    previous_top_epoch_hash = prev_hash
-                else: #just preserve epoch hash
-                    previous_top_epoch_hash = self.tops_and_epochs[prev_hash]
+                previous_top_epoch_hash = self.tops_and_epochs[prev_hash]
                 del self.tops_and_epochs[prev_hash]
         
         if previous_top_epoch_hash or not self.tops_and_epochs:
             self.tops_and_epochs[block_hash] = previous_top_epoch_hash
+        
+    # this method should be called before posibility of adding any new block, so it can recalculate epoch hashes
+    def check_if_new_epoch_and_update_hashes(self, upcoming_block_number):
+        upcoming_epoch = self.get_epoch_number(upcoming_block_number)
+        if upcoming_epoch > self.current_epoch:
+            self.recalculate_epoch_hashes()
+
+    def recalculate_epoch_hashes(self):
+        for top, _ in self.tops_and_epochs.items():
+            #this could be optimized to just taking previous hahash as 
+            self.tops_and_epochs[top] = self.find_epoch_hash_for_block(top)
 
 
 class RoundIter:

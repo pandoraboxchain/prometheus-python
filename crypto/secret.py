@@ -47,7 +47,9 @@ def decode_random(encoded_splits, private_keys):
 def encode_splits(splits, public_keys):
     encoded_splits = []
     for i in range(0, len(splits)):
-        encoded_split = enc_part_secret(public_keys[i], splits[i])
-        encoded_splits.append(encoded_split)
+        public_key = public_keys[i]
+        if public_key:
+            encoded_split = enc_part_secret(public_key, splits[i])
+            encoded_splits.append(encoded_split)
     
     return encoded_splits

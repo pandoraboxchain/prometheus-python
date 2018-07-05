@@ -124,6 +124,9 @@ class ChainIter:
             self.block_number -= 1
             return None
         
+        if not self.block_hash in self.dag.blocks_by_hash:
+            assert False, ("Can't find block in Dag", self.block_hash.hex())
+
         block = self.dag.blocks_by_hash[self.block_hash]
         self.block_number = block_number
         
