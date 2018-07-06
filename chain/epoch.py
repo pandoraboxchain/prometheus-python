@@ -257,10 +257,12 @@ class Epoch():
             self.tops_and_epochs[block_hash] = previous_top_epoch_hash
         
     # this method should be called before posibility of adding any new block, so it can recalculate epoch hashes
-    def check_if_new_epoch_and_update_hashes(self, upcoming_block_number):
+    def is_new_epoch_upcoming(self, upcoming_block_number):
         upcoming_epoch = self.get_epoch_number(upcoming_block_number)
         if upcoming_epoch > self.current_epoch:
-            self.recalculate_epoch_hashes()
+            self.current_epoch = upcoming_epoch
+            return True
+        return False
 
     def recalculate_epoch_hashes(self):
         for top, _ in self.tops_and_epochs.items():

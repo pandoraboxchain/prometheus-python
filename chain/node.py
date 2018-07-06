@@ -39,7 +39,7 @@ class Node():
         self.block_signer = block_signer
         self.network = network
         self.node_id = node_id
-        self.epoch_private_keys = []
+        self.epoch_private_keys = [] #TODO make this single element
         #self.epoch_private_keys where first element is era number, and second is key to reveal commited random
 
     def start(self):
@@ -48,8 +48,8 @@ class Node():
     async def run(self):
         while True:
             current_block_number = self.epoch.get_current_timeframe_block_number()
-            self.epoch.check_if_new_epoch_and_update_hashes(current_block_number)
-            # self.mempool.remove_all_systemic_transactions()
+            if self.epoch.is_new_epoch_upcoming(current_block_number):
+                self.epoch.recalculate_epoch_hashes()
 
             if self.epoch.get_round_by_block_number(current_block_number) == Round.PUBLIC:
                 self.try_to_publish_public_key(current_block_number)
@@ -60,6 +60,8 @@ class Node():
                 #real private key publish will happen when signing block
                 if hasattr(self, "self.last_epoch_random_published"):
                     del self.last_epoch_random_published
+                #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
+                self.mempool.remove_all_systemic_transactions()
                               
             self.try_to_sign_block(current_block_number)
 
@@ -79,6 +81,7 @@ class Node():
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if allowed_to_sign and block_has_not_been_signed_yet:
             if self.permissions.is_malicious_skip_block(self.node_id):
+                self.epoch_private_keys.clear()
                 self.logger.info("Maliciously skiped block")
             else:
                 self.sign_block(current_block_number)
@@ -207,7 +210,8 @@ class Node():
     def get_allowed_signers_for_next_block(self, block):
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        self.epoch.check_if_new_epoch_and_update_hashes(current_block_number)
+        if self.epoch.is_new_epoch_upcoming(current_block_number):
+            self.epoch.recalculate_epoch_hashes()
         epoch_hashes = self.epoch.get_epoch_hashes()
         allowed_signers = []
         for prev_hash in block.prev_hashes:

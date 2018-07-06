@@ -52,3 +52,8 @@ class Mempool():
         for tx in transactions:
             self.remove_transaction(tx)
 
+    def remove_all_systemic_transactions(self):
+        self.split_randoms.clear()
+        self.public_keys.clear()
+        self.private_keys.clear()
+
