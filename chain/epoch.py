@@ -25,7 +25,10 @@ class Epoch():
         self.current_epoch = 1
 
     def get_current_timeframe_block_number(self):
-        time_diff = int(datetime.datetime.now().timestamp()) - self.dag.genesis_block().timestamp
+        return self.get_block_number_from_timestamp(int(datetime.datetime.now().timestamp()))
+
+    def get_block_number_from_timestamp(self, timestamp):
+        time_diff = timestamp - self.dag.genesis_block().timestamp
         return int(time_diff / BLOCK_TIME)
 
     def is_current_timeframe_block_present(self):

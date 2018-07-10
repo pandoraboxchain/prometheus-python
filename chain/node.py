@@ -35,7 +35,6 @@ class Node():
         self.permissions = Permissions(self.epoch)
         self.mempool = Mempool()
 
-
         self.block_signer = block_signer
         self.network = network
         self.node_id = node_id
@@ -80,7 +79,9 @@ class Node():
 
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if allowed_to_sign and block_has_not_been_signed_yet:
-            if self.permissions.is_malicious_skip_block(self.node_id):
+            should_skip_maliciously = self.permissions.is_malicious_skip_block(self.node_id)
+            first_epoch_ever = self.epoch.get_epoch_number(current_block_number) == 1
+            if should_skip_maliciously and not first_epoch_ever:
                 self.epoch_private_keys.clear()
                 self.logger.info("Maliciously skiped block")
             else:
@@ -107,9 +108,9 @@ class Node():
             block.system_txs = transactions.copy()
             signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
             self.dag.add_signed_block(current_block_number, signed_block)
+            self.logger.info("Sending additional block")
             self.network.broadcast_block(self.node_id, signed_block.pack())
-            self.logger.info("Sent additional block")
-
+            
     def try_to_publish_public_key(self, current_block_number):
         if self.epoch_private_keys:
             return
@@ -152,9 +153,9 @@ class Node():
         if conflicts:
             for conflict in conflicts:
                 block = self.dag.blocks_by_hash[conflict]
-                self.network.broadcast_block(self.node_id, block.pack())
+                self.network.broadcast_conflicting_block(self.node_id, block.pack())
             
-            self.logger.info("found conflicting blocks")
+            self.logger.info("Forming transaction with conflicting blocks")
             self.logger.info(conflict.hex())
 
             penalty = PenaltyTransaction()
@@ -222,6 +223,7 @@ class Node():
                 epoch_hash = self.epoch.find_epoch_hash_for_block(prev_hash)
             
             if epoch_hash:
+                # self.logger.info("Calculating permissions from epoch_hash %s", epoch_hash.hex())
                 permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
                 allowed_signers.append(permission.public_key)
 
@@ -239,12 +241,12 @@ class Node():
         for allowed_signer in allowed_signers:
             if signed_block.verify_signature(allowed_signer):
                 is_block_allowed = True
+                break
         
         if is_block_allowed:
             block = signed_block.block
             if True: #TODO: add block verification
                 current_block_number = self.epoch.get_current_timeframe_block_number()
-                self.logger.debug("Adding block %s", current_block_number)
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
             else:
@@ -262,4 +264,44 @@ class Node():
         else:
             self.logger.error("Received tx is invalid")
 
+    def handle_conflicting_block_message(self, node_id, raw_signed_block):
+        signed_block = SignedBlock()
+        signed_block.parse(raw_signed_block)
 
+        block_hash = signed_block.get_hash()
+        if block_hash in self.dag.blocks_by_hash:
+            self.logger.info("Received conflicting block, but it already exists in DAG")
+            return
+
+        block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
+        
+        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
+        is_block_allowed = False
+        for allowed_signer in allowed_signers:
+            if signed_block.verify_signature(allowed_signer):
+                is_block_allowed = True
+                break
+        
+        if is_block_allowed:
+            if True: #TODO: add block verification
+                self.dag.add_signed_block(block_number, signed_block)
+                self.mempool.remove_transactions(block.system_txs)
+            else:
+                self.logger.error("Block was not added. Considered invalid")
+        else:
+            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
+        
+
+    def get_allowed_signers_for_block_number(self, block_number):
+        blocks = self.dag.blocks_by_number[block_number]
+        allowed_signers = []
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
+        for block in blocks:
+            epoch_hash = self.epoch.find_epoch_hash_for_block(block.get_hash())
+            
+            if epoch_hash:
+                permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
+                allowed_signers.append(permission.public_key)
+
+        assert len(allowed_signers) > 0, "No signers allowed to sign block"
+        return allowed_signers
