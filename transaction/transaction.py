@@ -1,13 +1,14 @@
 import struct
 from Crypto.Hash import SHA256
-from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction
+from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 
 class Type():
     PUBLIC = 0
     RANDOM = 1
     PRIVATE = 2
     STAKEHOLD = 3
-    PENALTY = 4
+    STAKERELEASE = 4
+    PENALTY = 5
 
 class TransactionParser():
     def parse(raw_data):
@@ -20,6 +21,8 @@ class TransactionParser():
             tx = PrivateKeyTransaction()
         elif tx_type == Type.STAKEHOLD:
             tx = StakeHoldTransaction()
+        elif tx_type == Type.STAKERELEASE:
+            tx = StakeReleaseTransaction()
         elif tx_type == Type.PENALTY:
             tx = PenaltyTransaction()
         else:
@@ -37,6 +40,8 @@ class TransactionParser():
             raw += struct.pack("B", Type.PRIVATE)
         elif isinstance(tx, StakeHoldTransaction):
             raw += struct.pack("B", Type.STAKEHOLD)
+        elif isinstance(tx, StakeReleaseTransaction):
+            raw += struct.pack("B", Type.STAKERELEASE)
         elif isinstance(tx, PenaltyTransaction):
             raw += struct.pack("B", Type.PENALTY)
         else:
