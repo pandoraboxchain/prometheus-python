@@ -36,6 +36,7 @@ class Node():
         self.mempool = Mempool()
 
         self.block_signer = block_signer
+        self.logger.info("Public key is %s", Keys.to_visual_string(block_signer.private_key.publickey()))
         self.network = network
         self.node_id = node_id
         self.epoch_private_keys = [] #TODO make this single element
@@ -73,7 +74,7 @@ class Node():
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
             permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
-            if permission.public_key == self.block_signer.private_key.publickey():
+            if permission == self.block_signer.private_key.publickey():
                 allowed_to_sign = True
                 break
 
@@ -99,7 +100,7 @@ class Node():
         block.system_txs = transactions
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
-        self.logger.info("Block signed by node")
+        self.logger.info("Broadcasting signed blocks")
         self.network.broadcast_block(self.node_id, signed_block.pack())
 
         if self.permissions.is_malicious_excessive_block(self.node_id):
@@ -110,7 +111,7 @@ class Node():
             self.dag.add_signed_block(current_block_number, signed_block)
             self.logger.info("Sending additional block")
             self.network.broadcast_block(self.node_id, signed_block.pack())
-            
+
     def try_to_publish_public_key(self, current_block_number):
         if self.epoch_private_keys:
             return
@@ -224,8 +225,8 @@ class Node():
             
             if epoch_hash:
                 # self.logger.info("Calculating permissions from epoch_hash %s", epoch_hash.hex())
-                permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
-                allowed_signers.append(permission.public_key)
+                allowed_pubkey = self.permissions.get_permission(epoch_hash, epoch_block_number)
+                allowed_signers.append(allowed_pubkey)
 
         assert len(allowed_signers) > 0, "No signers allowed to sign next block"
         return allowed_signers
@@ -300,8 +301,8 @@ class Node():
             epoch_hash = self.epoch.find_epoch_hash_for_block(block.get_hash())
             
             if epoch_hash:
-                permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
-                allowed_signers.append(permission.public_key)
+                allowed_pubkey = self.permissions.get_permission(epoch_hash, epoch_block_number)
+                allowed_signers.append(allowed_pubkey)
 
         assert len(allowed_signers) > 0, "No signers allowed to sign block"
         return allowed_signers

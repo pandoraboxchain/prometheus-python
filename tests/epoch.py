@@ -180,7 +180,8 @@ class TestEpoch(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        epoch.check_if_new_epoch_and_update_hashes(10)
+        if epoch.is_new_epoch_upcoming(10):
+            epoch.recalculate_epoch_hashes()
 
         top_block_hash = dag.blocks_by_number[9][0].get_hash()
         epoch_hash = dag.blocks_by_number[9][0].get_hash()
@@ -194,7 +195,8 @@ class TestEpoch(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        epoch.check_if_new_epoch_and_update_hashes(18)
+        if epoch.is_new_epoch_upcoming(19):
+            epoch.recalculate_epoch_hashes()
 
         top_block_hash = dag.blocks_by_number[18][0].get_hash()
         epoch_hash = dag.blocks_by_number[18][0].get_hash()
