@@ -1,6 +1,6 @@
 import unittest
 import os
-from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction
+from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 from crypto.enc_random import enc_part_random
 from Crypto.Hash import SHA256
 
@@ -26,6 +26,17 @@ class TestTransaction(unittest.TestCase):
 
         raw = original.pack()
         restored = PenaltyTransaction()
+        restored.parse(raw)
+
+        self.assertEqual(original.get_hash(), restored.get_hash()) 
+
+    def test_pack_parse_stakerelease_transaction(self):
+        original = StakeReleaseTransaction()
+        original.pubkey = os.urandom(216)
+        original.signature = int.from_bytes(os.urandom(128), byteorder='big')
+
+        raw = original.pack()
+        restored = StakeReleaseTransaction()
         restored.parse(raw)
 
         self.assertEqual(original.get_hash(), restored.get_hash())        

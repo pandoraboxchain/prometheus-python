@@ -48,3 +48,19 @@ class PenaltyTransaction():
 
     def get_hash(self):
         return SHA256.new(self.pack_conflicts()).digest()
+
+class StakeReleaseTransaction():
+    def get_hash(self):
+        return SHA256.new(self.pubkey).digest()
+
+    def parse(self, raw_data):
+        self.pubkey = raw_data[0:216]
+        self.signature = int.from_bytes(raw_data[216: 216 + 128], byteorder='big')
+    
+    def pack(self):
+        raw = self.pubkey
+        raw += self.signature.to_bytes(128, byteorder='big')
+        return raw
+
+    def get_len(self):
+        return 218 + 128
