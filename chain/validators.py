@@ -16,8 +16,7 @@ class Validators():
             decode = b64decode(line)
             if len(decode)!=0:
                 key = RSA.importKey(decode)
-                validator = Validator()
-                validator.set_public_key(key)
+                validator = Validator(key, 100)
                 self.validators.append(validator)
 
     def get_size(self):

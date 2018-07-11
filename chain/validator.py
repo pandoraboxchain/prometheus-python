@@ -1,4 +1,5 @@
 class Validator():
 
-    def set_public_key(self, public_key):
-        self.public_key = public_key
+    def __init__(self, pubkey, stake)
+        self.public_key = pubkey
+        self.stake = stake
