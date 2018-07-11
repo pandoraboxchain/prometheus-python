@@ -274,7 +274,7 @@ class Epoch():
 
     def get_previous_epoch_hash(self, epoch_hash):
         block = self.dag.blocks_by_hash[epoch_hash]
-        return self.find_epoch_hash_for_block(block.prev_hashes[0])
+        return self.find_epoch_hash_for_block(block.block.prev_hashes[0])
 
 
 class RoundIter:

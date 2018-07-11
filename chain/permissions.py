@@ -1,25 +1,40 @@
 import random
 
+from chain.validator import Validator
 from chain.validators import Validators
 from chain.epoch import Epoch
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
+from chain.stake_manager import StakeManager
+from crypto.keys import Keys
 
 class Permissions():
 
     def __init__(self, epoch):
         initial_validators = Validators()
         self.epoch = epoch
-        self.epoch_validators = { genesis_hash : initial_validators.validators }
+        self.stake_manager = StakeManager(epoch)
         genesis_hash = self.epoch.dag.genesis_block().get_hash()
+        initial_indexes = self.epoch.calculate_validators_indexes(genesis_hash, len(initial_validators.validators))
+
+        self.epoch_validators = { genesis_hash : initial_validators.validators }
+        self.epoch_indexes = { genesis_hash : initial_indexes}
 
     def get_permission(self, epoch_hash, block_number_in_epoch):
         validators_for_epoch = self.get_validators_for_epoch_hash(epoch_hash)
+        random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
         #cycle validators in case of exclusion
         if block_number_in_epoch >= len(validators_for_epoch):
             block_number_in_epoch = block_number_in_epoch % len(validators_for_epoch)
             print("Looping epoch validators. Next block validator is as in block number", block_number_in_epoch)
+        index = random_indexes[block_number_in_epoch]
+        return validators_for_epoch[index]
+
+    def get_indexes_for_epoch_hash(self, epoch_hash):
+        if not epoch_hash in self.epoch_indexes:
+            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, self.get_validators_count())
+            self.epoch_indexes[epoch_hash] = random_indexes
         
-        return validators_for_epoch[block_number_in_epoch]
+        return self.epoch_indexes[epoch_hash]
 
     def get_validators_for_epoch_hash(self, epoch_hash):
         if not epoch_hash in self.epoch_validators:
@@ -30,16 +45,9 @@ class Permissions():
     def calculate_validators_for_epoch(self, epoch_hash):
         prev_epoch_hash = self.epoch.get_previous_epoch_hash(epoch_hash)
         validators = self.get_validators_for_epoch_hash(prev_epoch_hash)
-        stake_actions = self.epoch.get_stake_actions(epoch_hash)
-        validators = self.apply_stake_actions(validators, actions)
-        sorted_validators = self.sort_by_stake(validators)
-        random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, self.get_validators_count())
-        epoch_validators = []
-        for index in random_indexes:
-            index = index % len(sorted_validators)
-            epoch_validators.append(sorted_validators[index])
-
-        self.epoch_validators[epoch_hash] = epoch_validators
+        stake_actions = self.stake_manager.get_stake_actions(epoch_hash)
+        validators = self.apply_stake_actions(validators, stake_actions)
+        self.epoch_validators[epoch_hash] = validators
 
     def get_validators_count(self):
         return Epoch.get_duration()
@@ -79,28 +87,20 @@ class Permissions():
  
         return validators
     
-    def get_pubkey_of_block_signer(self, block_hash)
+    def get_block_validator(self, block_hash):
         block_number = self.epoch.dag.get_block_number(block_hash)
         epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
         epoch_hash = self.epoch.find_epoch_hash_for_block(block_hash)
         assert epoch_hash, "Can't find epoch hash for block"
         return self.get_permission(epoch_hash, epoch_block_number)
-    
-    def get_penalized_pubkeys(self, penalties):
-        pubkeys = []
-        for penalty in penalties:
-            for block_hash in penalty.conflicts:
-                pubkey = self.get_pubkey_of_block_signer(block_hash)
-                pubkeys.append(pubkey)
-        return pubkey
 
     #this method modifies list, but also returns it for API consistency
     def apply_stake_actions(self, validators, actions):
-        for action in stake_actions:
-            if isinstance(action, PenalizeTransaction):
+        for action in actions:
+            if isinstance(action, PenaltyTransaction):
                 for conflict in action.conflicts:
-                    culprit = self.get_pubkey_of_block_signer(conflict)
-                    self.release_stake(validators, culprit)
+                    culprit = self.get_block_validator(conflict)
+                    self.release_stake(validators, culprit.public_key)
             elif isinstance(action, StakeHoldTransaction):
                 self.hold_stake(validators, action.pubkey, action.amount)
             elif isinstance(action, StakeReleaseTransaction):
@@ -111,11 +111,15 @@ class Permissions():
         validators.append(Validator(pubkey, stake))
 
     def release_stake(self, validators, pubkey):
+        print("Releasing stake")
+        print(Keys.to_visual_string(pubkey))
         for i in range(len(validators)):
-            if validators[i].pubkey == pubkey:
+            print(Keys.to_visual_string(validators[i].public_key))
+            if validators[i].public_key == pubkey:
                 del validators[i]
                 break
+        
     
-    def 1(self, validators):
+    def sort_by_stake(self, validators):
         return sorted(validators, key=attrgetter("stake"), reverse=True)
 

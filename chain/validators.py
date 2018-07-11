@@ -2,6 +2,8 @@ from chain.validator import Validator
 from base64 import b64decode,b64encode
 from Crypto.PublicKey import RSA
 
+from crypto.keys import Keys
+
 class Validators():
 
     def __init__(self):
@@ -16,7 +18,7 @@ class Validators():
             decode = b64decode(line)
             if len(decode)!=0:
                 key = RSA.importKey(decode)
-                validator = Validator(key, 100)
+                validator = Validator(Keys.to_bytes(key), 100)
                 self.validators.append(validator)
 
     def get_size(self):

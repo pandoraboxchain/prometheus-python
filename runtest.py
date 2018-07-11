@@ -8,5 +8,6 @@ from tests.epoch import *
 from tests.secret_sharing import *
 from tests.dag import *
 from tests.merger import *
+from tests.permissions import *
 
 unittest.main()

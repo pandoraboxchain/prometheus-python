@@ -8,12 +8,14 @@ class BlockFactory():
         block = Block()
         block.prev_hashes = prev_hashes
         block.timestamp = int(datetime.datetime.now().timestamp())
+        block.system_txs = []
         return block
 
     def create_block_with_timestamp(prev_hashes, timestamp):
         block = Block()
         block.prev_hashes = prev_hashes
         block.timestamp = timestamp
+        block.system_txs = []
         return block
     
     def sign_block(block, private):
