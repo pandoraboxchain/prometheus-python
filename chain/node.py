@@ -74,7 +74,7 @@ class Node():
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
             permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
-            if permission == self.block_signer.private_key.publickey():
+            if permission.public_key == self.block_signer.private_key.publickey():
                 allowed_to_sign = True
                 break
 
@@ -100,7 +100,7 @@ class Node():
         block.system_txs = transactions
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
-        self.logger.info("Broadcasting signed blocks")
+        self.logger.info("Broadcasting signed block")
         self.network.broadcast_block(self.node_id, signed_block.pack())
 
         if self.permissions.is_malicious_excessive_block(self.node_id):
@@ -120,10 +120,10 @@ class Node():
         
         pubkey_publishers = []
         for _, epoch_hash in self.epoch.get_epoch_hashes().items():
-            pubkey_publishers += self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash, Round.PRIVATE_DURATION)
+            pubkey_publishers += self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash)
 
         for publisher in pubkey_publishers:
-            if node_pubkey == publisher:
+            if node_pubkey == publisher.public_key:
                 node_private = self.block_signer.private_key
                 generated_private = Private.generate()
                 tx = PublicKeyTransaction()
@@ -176,13 +176,13 @@ class Node():
         epoch_hashes = self.epoch.get_epoch_hashes()
         
         for top_hash, epoch_hash in epoch_hashes.items():
-            ordered_senders_pubkeys = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash, Round.PRIVATE_DURATION)
+            ordered_senders = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash)
             published_pubkeys = self.epoch.get_public_keys_for_epoch(top_hash)
             
             self.logger.info("Ordered pubkeys for secret sharing:")
             sorted_published_pubkeys = []
-            for sender_pubkey in ordered_senders_pubkeys:
-                raw_sender_pubkey = Keys.to_bytes(sender_pubkey)
+            for sender in ordered_senders:
+                raw_sender_pubkey = Keys.to_bytes(sender.public_key)
                 if raw_sender_pubkey in published_pubkeys:
                     generated_pubkey = published_pubkeys[raw_sender_pubkey]
                     sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
@@ -240,7 +240,7 @@ class Node():
 
         is_block_allowed = False
         for allowed_signer in allowed_signers:
-            if signed_block.verify_signature(allowed_signer):
+            if signed_block.verify_signature(allowed_signer.public_key):
                 is_block_allowed = True
                 break
         

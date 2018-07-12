@@ -25,13 +25,11 @@ class TestStakeActions(unittest.TestCase):
 
         genesis_hash = dag.genesis_block().get_hash()
         prev_hash = genesis_hash
-        print("genesis hash", prev_hash.hex())
         for i in range(1, 9):
             block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
             signed_block = BlockFactory.sign_block(block, node_private)
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
-            print("prev hash", prev_hash.hex())
 
         block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * 9)
         tx = PenaltyTransaction()

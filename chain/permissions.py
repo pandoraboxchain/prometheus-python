@@ -2,7 +2,7 @@ import random
 
 from chain.validator import Validator
 from chain.validators import Validators
-from chain.epoch import Epoch
+from chain.epoch import Epoch, Round
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from chain.stake_manager import StakeManager
 from crypto.keys import Keys
@@ -54,19 +54,19 @@ class Permissions():
         #TODO proper validators count deduction 
         # return self.validators.get_size()
 
-    def get_ordered_pubkeys_for_last_round(self, epoch_hash, count):
+    def get_ordered_pubkeys_for_last_round(self, epoch_hash):
         selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
-        return selected_epoch_validators[-3:]
+        epoch_random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
+        round_start, round_end = Epoch.get_range_for_round(1, Round.PRIVATE)
+        validators = []	
+        for i in range(round_start - 1, round_end):	
+            index = epoch_random_indexes[i]
+            validators.append(selected_epoch_validators[index])	
 
-    def get_pubkeys_by_indexes_list(self, indexes_list):
-        pubkeys = []
-        for index in indexes_list:
-            validator_at_index = self.validators.get_by_i(index)
-            pubkeys.append(validator_at_index.public_key)
-        return pubkeys
+        return validators
 
     def is_malicious_excessive_block(self, node_id):
-        if node_id == 1:
+        if node_id == 15:
             return True
         return False
 
@@ -74,18 +74,6 @@ class Permissions():
         if node_id == 15:
             return True
         return False
-
-    def form_ordered_validators_list(self, epoch_hash):
-        holds, releases, penalties = self.epoch.get_stakes_and_penalties_for_epoch(epoch_hash)
-        
-        penalized = self.get_penalized_pubkeys(penalties)
-        validators = []
-        for validator in self.validators.validators:
-            pubkey = validator.public_key
-            if not pubkey in penalized:
-                validators.append(pubkey)
- 
-        return validators
     
     def get_block_validator(self, block_hash):
         block_number = self.epoch.dag.get_block_number(block_hash)
@@ -111,10 +99,7 @@ class Permissions():
         validators.append(Validator(pubkey, stake))
 
     def release_stake(self, validators, pubkey):
-        print("Releasing stake")
-        print(Keys.to_visual_string(pubkey))
         for i in range(len(validators)):
-            print(Keys.to_visual_string(validators[i].public_key))
             if validators[i].public_key == pubkey:
                 del validators[i]
                 break
