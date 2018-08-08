@@ -88,7 +88,7 @@ class Epoch():
     
     def calculate_validators_indexes(self, epoch_hash, validators_count):
         epoch_seed = self.calculate_epoch_seed(epoch_hash)
-        validators_list = calculate_validators_indexes(epoch_seed, validators_count, Epoch.get_duration())
+        validators_list = calculate_validators_indexes(epoch_seed, validators_count)
         print("calculated validators:", validators_list)
         return validators_list
 
@@ -184,17 +184,19 @@ class Epoch():
         for _, public_key in public_keys.items():
             print(Keys.to_visual_string(public_key))
         print("privkeys converted")
+        private_key_count = 0
         for key in published_private_keys:
             if not key:
                 print("None")
                 continue
             pubkey = Keys.from_bytes(key).publickey()
+            private_key_count += 1
             print(Keys.to_visual_string(pubkey))
-        assert len(public_keys) == len(published_private_keys), "Public and private keys must match"
+        assert len(public_keys) == private_key_count, "Public and private keys must match"
 
         randoms_list = []
         for random_pieces in random_pieces_list:
-            assert len(published_private_keys) == len(random_pieces), "Amount of splits must match amount of public keys"
+            assert private_key_count == len(random_pieces), "Amount of splits must match amount of public keys"
             random = decode_random(random_pieces, Keys.list_from_bytes(published_private_keys))
             randoms_list.append(random)
 

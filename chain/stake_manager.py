@@ -14,6 +14,9 @@ class StakeManager():
 
         count = 0
         for block in epoch_iter:
+            if epoch_iter.block_number == 0:
+                break
+                
             if block:
                 for tx in block.block.system_txs:
                     if isinstance(tx, StakeHoldTransaction) \

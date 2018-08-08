@@ -19,7 +19,7 @@ def sum_random(random_list):
 #         current = SHA256.new(current).digest()
 #     return res
 
-def calculate_validators_indexes(seed, validators_count, epoch_size):
+def calculate_validators_indexes(seed, validators_count):
     random.seed(seed)
     validators_list = []
     for i in range(0,validators_count):
