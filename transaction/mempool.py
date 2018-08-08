@@ -1,6 +1,6 @@
 from chain.epoch import Round
 from transaction.transaction import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
-from transaction.transaction import PenaltyTransaction
+from transaction.transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 
 class Mempool():
 
@@ -8,6 +8,7 @@ class Mempool():
         self.split_randoms = []
         self.public_keys = []
         self.private_keys = []
+        self.stake_operations = []
 
     def add_transaction(self, tx):
         if isinstance(tx, SplitRandomTransaction):
@@ -16,6 +17,9 @@ class Mempool():
             self.public_keys.append(tx)
         elif isinstance(tx, PrivateKeyTransaction):
             self.private_keys.append(tx)
+        elif isinstance(tx, StakeHoldTransaction) or\
+             isinstance(tx, StakeReleaseTransaction):
+            self.stake_operations.append(tx)
         else:
             assert False, "Can't add. Transaction type is unknown"
 
@@ -27,7 +31,10 @@ class Mempool():
             self.public_keys = [a for a in self.public_keys if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, PrivateKeyTransaction):
             self.private_keys = [a for a in self.private_keys if a.get_hash() != tx.get_hash()]
-        elif isinstance(tx, PenaltyTransaction):
+        elif isinstance(tx, StakeHoldTransaction) or\
+             isinstance(tx, StakeReleaseTransaction):
+            self.stake_operations = [a for a in self.stake_operations if a.get_hash() != tx.get_hash()]
+        elif isinstance(tx, PenaltyTransaction): # should only be as part of the block
             pass
         else:
             assert False, "Can't remove. Transaction type is unknown"
@@ -56,4 +63,5 @@ class Mempool():
         self.split_randoms.clear()
         self.public_keys.clear()
         self.private_keys.clear()
+        self.stake_operations.clear()
 

@@ -75,6 +75,7 @@ class Node():
 
             if self.wants_to_hold_stake:
                 self.broadcast_stakehold_transaction()
+                self.wants_to_hold_stake = False
 
             await asyncio.sleep(1)
     
@@ -322,6 +323,7 @@ class Node():
         tx = StakeHoldTransaction()
         tx.amount = 1000
         node_private = self.block_signer.private_key
-        tx.pubkey = node_private.publickey()
+        tx.pubkey = Keys.to_bytes(node_private.publickey())
         tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        self.logger.info("Broadcasted StakeHold transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))

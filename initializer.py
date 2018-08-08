@@ -31,7 +31,7 @@ class Initializer():
             tasks.append(node.run())
 
         for i in range(10, 11):
-            keyless_node = Node(genesis_creation_time, 10, network)
+            keyless_node = Node(genesis_creation_time, 10, network, None)
             network.register_node(keyless_node)
             tasks.append(keyless_node.run())
 
