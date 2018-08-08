@@ -8,6 +8,7 @@ from base64 import b64decode,b64encode
 from chain.node_api import NodeApi
 from chain.dag import Dag
 from chain.epoch import Round, Epoch
+from chain.block_signer import BlockSigner
 from chain.block_signers import BlockSigners
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
@@ -34,6 +35,13 @@ class Node():
         self.dag.subscribe_to_new_block_notification(self.epoch)
         self.permissions = Permissions(self.epoch)
         self.mempool = Mempool()
+
+
+        self.wants_to_hold_stake = False
+        if not block_signer:
+            block_signer = BlockSigner()
+            block_signer.set_private_key(Private.generate())
+            self.wants_to_hold_stake = True
 
         self.block_signer = block_signer
         self.logger.info("Public key is %s", Keys.to_visual_string(block_signer.private_key.publickey()))
@@ -64,6 +72,9 @@ class Node():
                 self.mempool.remove_all_systemic_transactions()
                               
             self.try_to_sign_block(current_block_number)
+
+            if self.wants_to_hold_stake:
+                self.broadcast_stakehold_transaction()
 
             await asyncio.sleep(1)
     
@@ -286,7 +297,7 @@ class Node():
         if is_block_allowed:
             if True: #TODO: add block verification
                 self.dag.add_signed_block(block_number, signed_block)
-                self.mempool.remove_transactions(block.system_txs)
+                self.mempool.remove_transactions(signed_block.block.system_txs)
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
@@ -306,3 +317,11 @@ class Node():
 
         assert len(allowed_signers) > 0, "No signers allowed to sign block"
         return allowed_signers
+
+    def broadcast_stakehold_transaction(self):
+        tx = StakeHoldTransaction()
+        tx.amount = 1000
+        node_private = self.block_signer.private_key
+        tx.pubkey = node_private.publickey()
+        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
