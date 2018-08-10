@@ -101,8 +101,6 @@ class Node():
 
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
-        if current_round_type == Round.PRIVATE:
-            self.try_to_publish_private(current_block_number) #TODO maybe should be a part of block
         
         transactions = self.mempool.get_transactions_for_round(current_round_type)
 
@@ -114,9 +112,13 @@ class Node():
             epoch_hash = epoch_hashes[top]
             split_random = self.form_split_random_transaction(top, epoch_hash)
             transactions.append(split_random)
+        elif current_round_type == Round.PRIVATE:
+            if self.epoch_private_keys:
+                key_reveal_tx = self.form_private_key_reveal_transaction()
+                transactions.append(key_reveal_tx)
 
         if conflicts:
-            penalty = self.form_penalize_violators_transaction(current_block_number)
+            penalty = self.form_penalize_violators_transaction(conflicts)
             transactions.append(penalty)
 
         current_top_blocks = [top]
@@ -162,16 +164,10 @@ class Node():
                 self.mempool.add_transaction(tx)
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
-    def try_to_publish_private(self, current_block_number):
-        epoch_number = self.epoch.get_epoch_number(current_block_number)
-        if self.epoch_private_keys:
-            tx = PrivateKeyTransaction()
-            tx.key = Keys.to_bytes(self.epoch_private_keys.pop(0))
-            self.mempool.add_transaction(tx)
-            # intentionally do not broadcast transaction since private key better be part of a block
-            # only one private key tx should be in a block
-            # self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
-            self.logger.info("Sent private key")
+    def form_private_key_reveal_transaction(self):
+        tx = PrivateKeyTransaction()
+        tx.key = Keys.to_bytes(self.epoch_private_keys.pop(0))
+        return tx
 
     def form_penalize_violators_transaction(self, conflicts):
         for conflict in conflicts:

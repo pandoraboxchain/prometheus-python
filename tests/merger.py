@@ -31,7 +31,7 @@ class TestMerger(unittest.TestCase):
         dag.add_signed_block(2, other_signed_block2)
 
         merger = Merger(dag)
-        conflicts = merger.get_conflicts()
+        top, conflicts = merger.get_top_and_conflicts()
 
         self.assertEqual(len(conflicts), 1)
         self.assertEqual(conflicts[0], other_block2.get_hash())

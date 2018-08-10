@@ -8,6 +8,7 @@ class Merger():
     def __init__(self, dag):
         self.dag = dag
 
+    # returns longest chain top hash and the rest of top block hashes
     def get_top_and_conflicts(self):
         top_blocks = list(self.dag.get_top_blocks().keys())
         conflicts = []
