@@ -8,7 +8,7 @@ class Merger():
     def __init__(self, dag):
         self.dag = dag
 
-    def get_conflicts(self):
+    def get_top_and_conflicts(self):
         top_blocks = list(self.dag.get_top_blocks().keys())
         conflicts = []
         if len(top_blocks) > 1:
@@ -28,8 +28,10 @@ class Merger():
                         chains_intesect = chains_intesect and block.block.prev_hashes == prev_hashes
 
                 number -= 1
+        else:
+            top = top_blocks[0]
 
-        return conflicts
+        return top, conflicts
 
 
             

@@ -61,8 +61,6 @@ class Node():
 
             if self.epoch.get_round_by_block_number(current_block_number) == Round.PUBLIC:
                 self.try_to_publish_public_key(current_block_number)
-            elif self.epoch.get_round_by_block_number(current_block_number) == Round.RANDOM:
-                self.try_to_send_split_random(current_block_number)
             elif self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
                 #delete random if we published it in previous round
                 #real private key publish will happen when signing block
@@ -102,12 +100,28 @@ class Node():
             
 
     def sign_block(self, current_block_number):
-        if self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
+        current_round_type = self.epoch.get_round_by_block_number(current_block_number)
+        if current_round_type == Round.PRIVATE:
             self.try_to_publish_private(current_block_number) #TODO maybe should be a part of block
-        transactions = self.mempool.get_transactions_for_round(self.epoch.get_current_round())
-        penalty = self.form_penalize_violators_transaction(current_block_number)
-        if penalty : transactions.append(penalty)
-        current_top_blocks = self.dag.get_top_blocks_hashes()
+        
+        transactions = self.mempool.get_transactions_for_round(current_round_type)
+
+        merger = Merger(self.dag)
+        top, conflicts = merger.get_top_and_conflicts()
+        
+        if current_round_type == Round.RANDOM:
+            epoch_hashes = self.epoch.get_epoch_hashes()
+            epoch_hash = epoch_hashes[top]
+            split_random = self.form_split_random_transaction(top, epoch_hash)
+            transactions.append(split_random)
+
+        if conflicts:
+            penalty = self.form_penalize_violators_transaction(current_block_number)
+            transactions.append(penalty)
+
+        current_top_blocks = [top]
+        if conflicts: current_top_blocks += conflicts
+        
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = transactions
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
@@ -159,62 +173,44 @@ class Node():
             # self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
             self.logger.info("Sent private key")
 
-    def form_penalize_violators_transaction(self, current_block_number):
-        merger = Merger(self.dag)
-        conflicts = merger.get_conflicts()
-
-        if conflicts:
-            for conflict in conflicts:
-                block = self.dag.blocks_by_hash[conflict]
-                self.network.broadcast_conflicting_block(self.node_id, block.pack())
-            
-            self.logger.info("Forming transaction with conflicting blocks")
-            self.logger.info(conflict.hex())
-
-            penalty = PenaltyTransaction()
-            penalty.conflicts = conflicts
-            penalty.signature = self.block_signer.private_key.sign(penalty.get_hash(), 0)[0]
-            return penalty
+    def form_penalize_violators_transaction(self, conflicts):
+        for conflict in conflicts:
+            block = self.dag.blocks_by_hash[conflict]
+            self.network.broadcast_conflicting_block(self.node_id, block.pack())
         
-        return None
+        self.logger.info("Forming transaction with conflicting blocks")
+        self.logger.info(conflict.hex())
 
+        penalty = PenaltyTransaction()
+        penalty.conflicts = conflicts
+        penalty.signature = self.block_signer.private_key.sign(penalty.get_hash(), 0)[0]
+        return penalty
 
-    def try_to_send_split_random(self, current_block_number):    
-        epoch_number = self.epoch.get_epoch_number(current_block_number)
-        if hasattr(self,"last_epoch_random_published"):
-            if epoch_number == self.last_epoch_random_published:
-                return
-
-        epoch_hashes = self.epoch.get_epoch_hashes()
+    def form_split_random_transaction(self, top_hash, epoch_hash):
+        ordered_senders = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash)
+        published_pubkeys = self.epoch.get_public_keys_for_epoch(top_hash)
         
-        for top_hash, epoch_hash in epoch_hashes.items():
-            ordered_senders = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash)
-            published_pubkeys = self.epoch.get_public_keys_for_epoch(top_hash)
-            
-            self.logger.info("Ordered pubkeys for secret sharing:")
-            sorted_published_pubkeys = []
-            for sender in ordered_senders:
-                raw_sender_pubkey = Keys.to_bytes(sender.public_key)
-                if raw_sender_pubkey in published_pubkeys:
-                    generated_pubkey = published_pubkeys[raw_sender_pubkey]
-                    sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
-                    self.logger.info(Keys.to_visual_string(generated_pubkey))
-                else:
-                    sorted_published_pubkeys.append(None)
-                    self.logger.info("None")
+        self.logger.info("Ordered pubkeys for secret sharing:")
+        sorted_published_pubkeys = []
+        for sender in ordered_senders:
+            raw_sender_pubkey = Keys.to_bytes(sender.public_key)
+            if raw_sender_pubkey in published_pubkeys:
+                generated_pubkey = published_pubkeys[raw_sender_pubkey]
+                sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
+                self.logger.info(Keys.to_visual_string(generated_pubkey))
+            else:
+                sorted_published_pubkeys.append(None)
+                self.logger.info("None")
 
-            tx = self.form_transaction_for_random(sorted_published_pubkeys)
+        tx = self.form_transaction_for_random(sorted_published_pubkeys)
+        return tx
 
-            self.mempool.add_transaction(tx)
-            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))  
-        
-        self.last_epoch_random_published = epoch_number    
     
     def form_transaction_for_random(self, sorted_public_keys):
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
         encoded_splits = encode_splits(splits, sorted_public_keys)
-        self.logger.info("Broadcasting random")
+        self.logger.info("Formed split random")
         
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits

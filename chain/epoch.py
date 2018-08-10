@@ -89,7 +89,7 @@ class Epoch():
     def calculate_validators_indexes(self, epoch_hash, validators_count):
         epoch_seed = self.calculate_epoch_seed(epoch_hash)
         validators_list = calculate_validators_indexes(epoch_seed, validators_count)
-        print("calculated validators:", validators_list)
+        print("calculated validators:", validators_list[0:3], validators_list[3:6], validators_list[6:9])
         return validators_list
 
     @staticmethod

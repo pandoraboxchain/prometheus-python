@@ -61,7 +61,18 @@ class Permissions():
         validators = []	
         for i in range(round_start - 1, round_end):	
             index = epoch_random_indexes[i]
-            validators.append(selected_epoch_validators[index])	
+            validators.append(selected_epoch_validators[index])
+
+        return validators
+
+    def get_random_senders_pubkeys(self, epoch_hash):
+        selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
+        epoch_random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
+        round_start, round_end = Epoch.get_range_for_round(1, Round.RANDOM)
+        validators = []	
+        for i in range(round_start - 1, round_end):	
+            index = epoch_random_indexes[i]
+            validators.append(selected_epoch_validators[index])
 
         return validators
 
