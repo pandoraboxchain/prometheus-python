@@ -75,16 +75,6 @@ class Permissions():
             validators.append(selected_epoch_validators[index])
 
         return validators
-
-    def is_malicious_excessive_block(self, node_id):
-        if node_id == 15:
-            return True
-        return False
-
-    def is_malicious_skip_block(self, node_id):
-        if node_id == 15:
-            return True
-        return False
     
     def get_block_validator(self, block_hash):
         block_number = self.epoch.dag.get_block_number(block_hash)

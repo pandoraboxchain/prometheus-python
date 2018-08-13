@@ -28,20 +28,18 @@ from crypto.secret import split_secret, encode_splits, decode_random
 
 class Node():
     
-    def __init__(self, genesis_creation_time, node_id, network, block_signer):
+    def __init__(self, genesis_creation_time, node_id, network, block_signer, behaviour):
         self.logger = logging.getLogger("Node " + str(node_id))
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
         self.dag.subscribe_to_new_block_notification(self.epoch)
         self.permissions = Permissions(self.epoch)
         self.mempool = Mempool()
+        self.behaviour = behaviour
 
-
-        self.wants_to_hold_stake = False
         if not block_signer:
             block_signer = BlockSigner()
             block_signer.set_private_key(Private.generate())
-            self.wants_to_hold_stake = True
 
         self.block_signer = block_signer
         self.logger.info("Public key is %s", Keys.to_visual_string(block_signer.private_key.publickey()))
@@ -71,9 +69,9 @@ class Node():
                               
             self.try_to_sign_block(current_block_number)
 
-            if self.wants_to_hold_stake:
+            if self.behaviour.wants_to_hold_stake:
                 self.broadcast_stakehold_transaction()
-                self.wants_to_hold_stake = False
+                self.behaviour.wants_to_hold_stake = False
 
             await asyncio.sleep(1)
     
@@ -90,7 +88,7 @@ class Node():
 
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if allowed_to_sign and block_has_not_been_signed_yet:
-            should_skip_maliciously = self.permissions.is_malicious_skip_block(self.node_id)
+            should_skip_maliciously = self.behaviour.is_malicious_skip_block()
             first_epoch_ever = self.epoch.get_epoch_number(current_block_number) == 1
             if should_skip_maliciously and not first_epoch_ever:
                 self.epoch_private_keys.clear()
@@ -131,7 +129,7 @@ class Node():
         self.logger.info("Broadcasting signed block")
         self.network.broadcast_block(self.node_id, signed_block.pack())
 
-        if self.permissions.is_malicious_excessive_block(self.node_id):
+        if self.behaviour.is_malicious_excessive_block():
             additional_block_timestamp = block.timestamp + 1
             block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
             block.system_txs = transactions.copy()

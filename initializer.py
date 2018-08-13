@@ -2,6 +2,7 @@ from chain.node import Node
 from chain.node_api import NodeApi
 from chain.block_signers import BlockSigners
 from chain.epoch import BLOCK_TIME
+from chain.behaviour import Behaviour
 
 import datetime
 import time
@@ -26,12 +27,15 @@ class Initializer():
         tasks = []
          
         for i in range(0, 9):
-            node =  Node(genesis_creation_time, i, network, private_keys.block_signers[i])
+            behaviour = Behaviour()
+            node =  Node(genesis_creation_time, i, network, private_keys.block_signers[i], behaviour)
             network.register_node(node)
             tasks.append(node.run())
 
         for i in range(9, 10):
-            keyless_node = Node(genesis_creation_time, i, network, None)
+            behaviour = Behaviour()
+            behaviour.wants_to_hold_stake = True
+            keyless_node = Node(genesis_creation_time, i, network, None, behaviour)
             network.register_node(keyless_node)
             tasks.append(keyless_node.run())
 
