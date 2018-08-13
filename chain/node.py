@@ -57,7 +57,7 @@ class Node():
         while True:
             current_block_number = self.epoch.get_current_timeframe_block_number()
             if self.epoch.is_new_epoch_upcoming(current_block_number):
-                self.epoch.recalculate_epoch_hashes()
+                self.epoch.accept_tops_as_epoch_hashes()
 
             if self.epoch.get_round_by_block_number(current_block_number) == Round.PUBLIC:
                 self.try_to_publish_public_key(current_block_number)
@@ -217,7 +217,7 @@ class Node():
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         if self.epoch.is_new_epoch_upcoming(current_block_number):
-            self.epoch.recalculate_epoch_hashes()
+            self.epoch.accept_tops_as_epoch_hashes()
         epoch_hashes = self.epoch.get_epoch_hashes()
         allowed_signers = []
         for prev_hash in block.prev_hashes:

@@ -181,7 +181,7 @@ class TestEpoch(unittest.TestCase):
             prev_hash = block.get_hash()
 
         if epoch.is_new_epoch_upcoming(10):
-            epoch.recalculate_epoch_hashes()
+            epoch.accept_tops_as_epoch_hashes()
 
         top_block_hash = dag.blocks_by_number[9][0].get_hash()
         epoch_hash = dag.blocks_by_number[9][0].get_hash()
@@ -196,7 +196,7 @@ class TestEpoch(unittest.TestCase):
             prev_hash = block.get_hash()
 
         if epoch.is_new_epoch_upcoming(19):
-            epoch.recalculate_epoch_hashes()
+            epoch.accept_tops_as_epoch_hashes()
 
         top_block_hash = dag.blocks_by_number[18][0].get_hash()
         epoch_hash = dag.blocks_by_number[18][0].get_hash()

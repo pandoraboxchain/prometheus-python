@@ -25,12 +25,12 @@ class Initializer():
 
         tasks = []
          
-        for i in range(0, 8):
+        for i in range(0, 9):
             node =  Node(genesis_creation_time, i, network, private_keys.block_signers[i])
             network.register_node(node)
             tasks.append(node.run())
 
-        for i in range(8, 9):
+        for i in range(9, 10):
             keyless_node = Node(genesis_creation_time, i, network, None)
             network.register_node(keyless_node)
             tasks.append(keyless_node.run())
