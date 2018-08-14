@@ -28,6 +28,8 @@ def calculate_validators_indexes(seed, validators_count):
     return validators_list
 
 # array shuffling method straight from the wikipedia
+# it is sufficient for now, but it always removes number from its position
+# i.e. zero never be at index 0, two won't be at index 0
 def sattolo_cycle(items):
     i = len(items)
     while i > 1:

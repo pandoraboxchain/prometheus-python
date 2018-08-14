@@ -9,5 +9,6 @@ from tests.secret_sharing import *
 from tests.dag import *
 from tests.merger import *
 from tests.permissions import *
+from tests.random import *
 
 unittest.main()
