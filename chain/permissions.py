@@ -31,7 +31,8 @@ class Permissions():
 
     def get_indexes_for_epoch_hash(self, epoch_hash):
         if not epoch_hash in self.epoch_indexes:
-            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, self.get_validators_count())
+            epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
+            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash,len(epoch_validators))
             self.epoch_indexes[epoch_hash] = random_indexes
         
         return self.epoch_indexes[epoch_hash]
@@ -48,11 +49,6 @@ class Permissions():
         stake_actions = self.stake_manager.get_stake_actions(epoch_hash)
         validators = self.apply_stake_actions(validators, stake_actions)
         self.epoch_validators[epoch_hash] = validators
-
-    def get_validators_count(self):
-        return Epoch.get_duration()
-        #TODO proper validators count deduction 
-        # return self.validators.get_size()
 
     def get_ordered_pubkeys_for_last_round(self, epoch_hash):
         selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
