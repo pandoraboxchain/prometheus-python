@@ -17,7 +17,7 @@ from chain.merger import Merger
 from transaction.mempool import Mempool
 from transaction.transaction import TransactionParser
 from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
-from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction
+from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
 from verification.transaction_verifier import TransactionVerifier
 from verification.block_verifier import BlockVerifier
 from crypto.enc_random import enc_part_random
@@ -32,6 +32,7 @@ class Node():
         self.logger = logging.getLogger("Node " + str(node_id))
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
+        self.epoch.set_logger(self.logger)
         self.dag.subscribe_to_new_block_notification(self.epoch)
         self.permissions = Permissions(self.epoch)
         self.mempool = Mempool()
@@ -56,7 +57,7 @@ class Node():
             current_block_number = self.epoch.get_current_timeframe_block_number()
             if self.epoch.is_new_epoch_upcoming(current_block_number):
                 self.epoch.accept_tops_as_epoch_hashes()
-
+            
             if self.epoch.get_round_by_block_number(current_block_number) == Round.PUBLIC:
                 self.try_to_publish_public_key(current_block_number)
             elif self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
@@ -72,6 +73,10 @@ class Node():
             if self.behaviour.wants_to_hold_stake:
                 self.broadcast_stakehold_transaction()
                 self.behaviour.wants_to_hold_stake = False
+            
+            if self.behaviour.wants_to_release_stake:
+                self.broadcast_stakerelease_transaction()
+                self.behaviour.wants_to_release_stake = False
 
             await asyncio.sleep(1)
     
@@ -317,3 +322,13 @@ class Node():
         tx.signature = node_private.sign(tx.get_hash(), 0)[0]
         self.logger.info("Broadcasted StakeHold transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+
+    def broadcast_stakerelease_transaction(self):
+        tx = StakeReleaseTransaction()
+        node_private = self.block_signer.private_key
+        tx.pubkey = Keys.to_bytes(node_private.publickey())
+        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        self.logger.info("Broadcasted release stake transaction")
+        self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+
+        

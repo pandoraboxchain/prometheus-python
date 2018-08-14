@@ -24,6 +24,9 @@ class Epoch():
         self.tops_and_epochs = { dag.genesis_block().get_hash() : dag.genesis_block().get_hash() }
         self.current_epoch = 1
 
+    def set_logger(self, logger):
+        self.logger = logger
+
     def get_current_timeframe_block_number(self):
         return self.get_block_number_from_timestamp(int(datetime.datetime.now().timestamp()))
 
@@ -89,7 +92,7 @@ class Epoch():
     def calculate_validators_indexes(self, epoch_hash, validators_count):
         epoch_seed = self.calculate_epoch_seed(epoch_hash)
         validators_list = calculate_validators_indexes(epoch_seed, validators_count)
-        print("calculated validators:", validators_list[0:3], validators_list[3:6], validators_list[6:9])
+        self.log("calculated validators:", validators_list[0:3], validators_list[3:6], validators_list[6:9])
         return validators_list
 
     @staticmethod
@@ -180,18 +183,18 @@ class Epoch():
         published_private_keys = self.filter_out_skipped_public_keys(private_keys, public_keys)
         random_pieces_list = self.get_random_splits_for_epoch(block_hash)
 
-        print("pubkeys")
+        self.log("pubkeys")
         for _, public_key in public_keys.items():
-            print(Keys.to_visual_string(public_key))
-        print("privkeys converted")
+            self.log(Keys.to_visual_string(public_key))
+        self.log("privkeys converted")
         private_key_count = 0
         for key in published_private_keys:
             if not key:
-                print("None")
+                self.log("None")
                 continue
             pubkey = Keys.from_bytes(key).publickey()
             private_key_count += 1
-            print(Keys.to_visual_string(pubkey))
+            self.log(Keys.to_visual_string(pubkey))
         assert len(public_keys) == private_key_count, "Public and private keys must match"
 
         randoms_list = []
@@ -278,6 +281,13 @@ class Epoch():
         block = self.dag.blocks_by_hash[epoch_hash]
         return self.find_epoch_hash_for_block(block.block.prev_hashes[0])
 
+    def log(self, *args):
+        if not hasattr(self, "logger"):
+            return
+        self.logger.debug(args)
+        
+
+            
 
 class RoundIter:
     def __init__(self, dag, block_hash, round_type):
