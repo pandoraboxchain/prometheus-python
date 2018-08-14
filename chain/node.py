@@ -58,6 +58,8 @@ class Node():
             if self.epoch.is_new_epoch_upcoming(current_block_number):
                 self.epoch.accept_tops_as_epoch_hashes()
             
+            self.behaviour.update(Epoch.get_epoch_number(current_block_number))
+
             if self.epoch.get_round_by_block_number(current_block_number) == Round.PUBLIC:
                 self.try_to_publish_public_key(current_block_number)
             elif self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
@@ -131,7 +133,7 @@ class Node():
         block.system_txs = transactions
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
-        self.logger.info("Broadcasting signed block")
+        self.logger.debug("Broadcasting signed block number %s", current_block_number)
         self.network.broadcast_block(self.node_id, signed_block.pack())
 
         if self.behaviour.is_malicious_excessive_block():

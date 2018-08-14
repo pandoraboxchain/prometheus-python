@@ -4,6 +4,12 @@ class Behaviour():
         self.malicious_skip_block = False
         self.wants_to_hold_stake = False
         self.wants_to_release_stake = False
+        self.epoch_to_release_stake = -1
+
+    def update(self, epoch_number):
+        if self.epoch_to_release_stake == epoch_number:
+            self.wants_to_release_stake = True
+            self.epoch_to_release_stake = -1
 
     def is_malicious_excessive_block(self):
         return self.malicious_excessive_block

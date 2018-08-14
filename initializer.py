@@ -35,6 +35,7 @@ class Initializer():
         for i in range(9, 10):
             behaviour = Behaviour()
             behaviour.wants_to_hold_stake = True
+            behaviour.epoch_to_release_stake = 2
             keyless_node = Node(genesis_creation_time, i, network, None, behaviour)
             network.register_node(keyless_node)
             tasks.append(keyless_node.run())
