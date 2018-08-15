@@ -6,9 +6,11 @@ class Type():
     PUBLIC = 0
     RANDOM = 1
     PRIVATE = 2
-    STAKEHOLD = 3
-    STAKERELEASE = 4
-    PENALTY = 5
+    COMMIT = 3
+    REVEAL = 4
+    STAKEHOLD = 5
+    STAKERELEASE = 6
+    PENALTY = 7
 
 class TransactionParser():
     def parse(raw_data):
@@ -19,6 +21,11 @@ class TransactionParser():
             tx = SplitRandomTransaction()
         elif tx_type == Type.PRIVATE:
             tx = PrivateKeyTransaction()
+        elif tx_type == Type.COMMIT:
+            tx = CommitRandomTransaction()
+        elif tx_type == Type.REVEAL:
+            tx = RevealRandomTransaction()
+
         elif tx_type == Type.STAKEHOLD:
             tx = StakeHoldTransaction()
         elif tx_type == Type.STAKERELEASE:
@@ -38,6 +45,12 @@ class TransactionParser():
             raw += struct.pack("B", Type.RANDOM)
         elif isinstance(tx, PrivateKeyTransaction):
             raw += struct.pack("B", Type.PRIVATE)
+
+        elif isinstance(tx, CommitRandomTransaction):
+            raw += struct.pack("B", Type.COMMIT)
+        elif isinstance(tx, RevealRandomTransaction):
+            raw += struct.pack("B", Type.REVEAL)
+
         elif isinstance(tx, StakeHoldTransaction):
             raw += struct.pack("B", Type.STAKEHOLD)
         elif isinstance(tx, StakeReleaseTransaction):
