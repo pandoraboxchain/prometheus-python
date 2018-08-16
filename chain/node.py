@@ -13,6 +13,7 @@ from chain.block_signers import BlockSigners
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
+from chain.params import Round, Duration
 from chain.merger import Merger
 from transaction.mempool import Mempool
 from transaction.transaction import TransactionParser
@@ -112,7 +113,7 @@ class Node():
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()
         
-        if current_round_type == Round.RANDOM:
+        if current_round_type == Round.SECRETSHARE:
             epoch_hashes = self.epoch.get_epoch_hashes()
             epoch_hash = epoch_hashes[top]
             split_random = self.form_split_random_transaction(top, epoch_hash)
@@ -209,7 +210,7 @@ class Node():
     
     def form_transaction_for_random(self, sorted_public_keys):
         random_bytes = os.urandom(32)
-        splits = split_secret(random_bytes, Round.PRIVATE_DURATION // 2 + 1, Round.PRIVATE_DURATION)
+        splits = split_secret(random_bytes, Duration.PRIVATE // 2 + 1, Duration.PRIVATE)
         encoded_splits = encode_splits(splits, sorted_public_keys)
         self.logger.info("Formed split random")
         

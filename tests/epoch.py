@@ -8,7 +8,8 @@ from base64 import b64encode
 from chain.block import Block
 from chain.signed_block import SignedBlock
 from chain.dag import Dag
-from chain.epoch import Epoch, Round, RoundIter, BLOCK_TIME
+from chain.epoch import Epoch, RoundIter, BLOCK_TIME
+from chain.params import Round, Duration
 from chain.block_factory import BlockFactory
 from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from crypto.dec_part_random import dec_part_random
@@ -43,7 +44,7 @@ class TestEpoch(unittest.TestCase):
 
         block_number = 1
 
-        for i in range(0, Round.PUBLIC_DURATION):
+        for i in range(0, Duration.PUBLIC):
             private = Private.generate()
             node_private_key = node_private_keys[block_number]
             pubkey_tx = PublicKeyTransaction()
@@ -66,7 +67,7 @@ class TestEpoch(unittest.TestCase):
 
         randoms_list = []
         expected_random_pieces = []
-        for i in range(0, Round.RANDOM_DURATION):
+        for i in range(0, Duration.SECRETSHARE):
             random_bytes = os.urandom(32)
             random_value = int.from_bytes(random_bytes, byteorder='big')
             split_random_tx = SplitRandomTransaction()
@@ -130,7 +131,7 @@ class TestEpoch(unittest.TestCase):
 
     def test_round_durations(self):
         self.assertEqual(Epoch.get_range_for_round(1, Round.PUBLIC), (1,3))
-        self.assertEqual(Epoch.get_range_for_round(1, Round.RANDOM), (4,6))
+        self.assertEqual(Epoch.get_range_for_round(1, Round.SECRETSHARE), (4,6))
         self.assertEqual(Epoch.get_range_for_round(1, Round.PRIVATE), (7,9))
 
     def test_round_iterator(self):
@@ -145,7 +146,7 @@ class TestEpoch(unittest.TestCase):
 
         off_chain_top = dag.blocks_by_number[9][1]
 
-        round_iter = RoundIter(dag, off_chain_top.get_hash(), Round.RANDOM)
+        round_iter = RoundIter(dag, off_chain_top.get_hash(), Round.SECRETSHARE)
         self.assertEqual(round_iter.next().get_hash(), dag.blocks_by_number[6][1].get_hash())
         self.assertEqual(round_iter.next().get_hash(), dag.blocks_by_number[5][1].get_hash())
         self.assertEqual(round_iter.next(), None)   #detect intentionally skipped block

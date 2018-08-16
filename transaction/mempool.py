@@ -33,7 +33,7 @@ class Mempool():
             assert False, "Can't remove. Transaction type is unknown"
 
     def get_transactions_for_round(self, round_type):
-        if  round_type == Round.RANDOM or \
+        if  round_type == Round.SECRETSHARE or \
             round_type == Round.PRIVATE:
             return []
         elif round_type == Round.PUBLIC:

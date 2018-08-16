@@ -37,7 +37,7 @@ class Dag():
         for _, signed_block in self.blocks_by_hash.items():
             links += signed_block.block.prev_hashes
         
-        top_blocks = self.blocks_by_hash.copy();
+        top_blocks = self.blocks_by_hash.copy()
         for link in links:
             if link in top_blocks:
                 del top_blocks[link]

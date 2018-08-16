@@ -2,7 +2,8 @@ import random
 
 from chain.validator import Validator
 from chain.validators import Validators
-from chain.epoch import Epoch, Round
+from chain.epoch import Epoch
+from chain.params import Round
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from chain.stake_manager import StakeManager
 from crypto.keys import Keys
@@ -32,7 +33,8 @@ class Permissions():
     def get_indexes_for_epoch_hash(self, epoch_hash):
         if not epoch_hash in self.epoch_indexes:
             epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
-            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash,len(epoch_validators))
+            print("total validators count", len(epoch_validators))
+            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, len(epoch_validators))
             self.epoch_indexes[epoch_hash] = random_indexes
         
         return self.epoch_indexes[epoch_hash]
@@ -64,7 +66,7 @@ class Permissions():
     def get_random_senders_pubkeys(self, epoch_hash):
         selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
         epoch_random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
-        round_start, round_end = Epoch.get_range_for_round(1, Round.RANDOM)
+        round_start, round_end = Epoch.get_range_for_round(1, Round.SECRETSHARE)
         validators = []	
         for i in range(round_start - 1, round_end):	
             index = epoch_random_indexes[i]

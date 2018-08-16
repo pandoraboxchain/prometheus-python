@@ -6,16 +6,8 @@ from crypto.secret import recover_splits, enc_part_secret, decode_random, encode
 from crypto.keys import Keys
 from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 from chain.dag import ChainIter
+from chain.params import Round, Duration
 BLOCK_TIME = 4
-
-class Round():
-    PUBLIC = 0
-    RANDOM = 1
-    PRIVATE = 2
-
-    PUBLIC_DURATION = 3
-    RANDOM_DURATION = 3
-    PRIVATE_DURATION = 3
 
 class Epoch():
 
@@ -52,16 +44,16 @@ class Epoch():
     def get_round_by_block_number(current_block_number):
         epoch_number = Epoch.get_epoch_number(current_block_number)
         epoch_start_block = Epoch.get_epoch_start_block_number(epoch_number)
-        if current_block_number < epoch_start_block + Round.PUBLIC_DURATION:
+        if current_block_number < epoch_start_block + Duration.PUBLIC:
             return Round.PUBLIC
-        elif current_block_number < epoch_start_block + Round.PUBLIC_DURATION + Round.RANDOM_DURATION:
-            return Round.RANDOM
+        elif current_block_number < epoch_start_block + Duration.PUBLIC + Duration.SECRETSHARE:
+            return Round.SECRETSHARE
         else:
             return Round.PRIVATE
 
     @staticmethod
     def get_duration():
-        return Round.PUBLIC_DURATION + Round.RANDOM_DURATION + Round.PRIVATE_DURATION
+        return Duration.PUBLIC + Duration.SECRETSHARE + Duration.PRIVATE
 
     @staticmethod
     def get_epoch_number(current_block_number):
@@ -100,13 +92,13 @@ class Epoch():
         round_start = Epoch.get_epoch_start_block_number(epoch_number)
         round_end = 0
         if round_type == Round.PUBLIC:
-            round_end += round_start + Round.PUBLIC_DURATION
-        elif round_type == Round.RANDOM:
-            round_start += Round.PUBLIC_DURATION
-            round_end = round_start + Round.RANDOM_DURATION
+            round_end += round_start + Duration.PUBLIC
+        elif round_type == Round.SECRETSHARE:
+            round_start += Duration.PUBLIC
+            round_end = round_start + Duration.SECRETSHARE
         elif round_type == Round.PRIVATE:
-            round_start += Round.PUBLIC_DURATION + Round.RANDOM_DURATION
-            round_end = round_start + Round.PRIVATE_DURATION
+            round_start += Duration.PUBLIC + Duration.SECRETSHARE
+            round_end = round_start + Duration.PRIVATE
         round_end -= 1
         return (round_start, round_end)
 
@@ -161,7 +153,7 @@ class Epoch():
 
     def get_random_splits_for_epoch(self, block_hash):
         random_pieces_list = []
-        round_iter = RoundIter(self.dag, block_hash, Round.RANDOM)
+        round_iter = RoundIter(self.dag, block_hash, Round.SECRETSHARE)
         for block in round_iter:
             if block:
                 for tx in block.block.system_txs:
