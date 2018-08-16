@@ -6,7 +6,7 @@ from crypto.secret import recover_splits, enc_part_secret, decode_random, encode
 from crypto.keys import Keys
 from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 from chain.dag import ChainIter
-from chain.params import Round, Duration
+from chain.params import Round, Duration, ROUND_DURATION
 BLOCK_TIME = 4
 
 class Epoch():
@@ -42,18 +42,16 @@ class Epoch():
 
     @staticmethod
     def get_round_by_block_number(current_block_number):
-        epoch_number = Epoch.get_epoch_number(current_block_number)
-        epoch_start_block = Epoch.get_epoch_start_block_number(epoch_number)
-        if current_block_number < epoch_start_block + Duration.PUBLIC:
-            return Round.PUBLIC
-        elif current_block_number < epoch_start_block + Duration.PUBLIC + Duration.SECRETSHARE:
-            return Round.SECRETSHARE
-        else:
-            return Round.PRIVATE
+        epoch_block_number = Epoch.convert_to_epoch_block_number(current_block_number)
+        round_number = int(epoch_block_number / ROUND_DURATION)
+        if round_number == Round.INVALID: return Round.FINAL   #special case for last round being +1
+        return Round(round_number)
+        # current_block_number - epoch_start_block
 
     @staticmethod
     def get_duration():
-        return Duration.PUBLIC + Duration.SECRETSHARE + Duration.PRIVATE
+        # return ROUND_DURATION * 3
+        return Duration.FINAL * ROUND_DURATION + 1
 
     @staticmethod
     def get_epoch_number(current_block_number):
@@ -89,17 +87,10 @@ class Epoch():
 
     @staticmethod
     def get_range_for_round(epoch_number, round_type):
-        round_start = Epoch.get_epoch_start_block_number(epoch_number)
-        round_end = 0
-        if round_type == Round.PUBLIC:
-            round_end += round_start + Duration.PUBLIC
-        elif round_type == Round.SECRETSHARE:
-            round_start += Duration.PUBLIC
-            round_end = round_start + Duration.SECRETSHARE
-        elif round_type == Round.PRIVATE:
-            round_start += Duration.PUBLIC + Duration.SECRETSHARE
-            round_end = round_start + Duration.PRIVATE
-        round_end -= 1
+        epoch_start = Epoch.get_epoch_start_block_number(epoch_number)
+        round_start = epoch_start + round_type * ROUND_DURATION
+        round_end = round_start + ROUND_DURATION
+        if round_type == Round.FINAL: round_end += 1
         return (round_start, round_end)
 
     def get_all_blocks_for_round(self, epoch_number, round_type):
@@ -216,10 +207,11 @@ class Epoch():
 
         epoch_number = self.get_epoch_number(block_number)        
         return block_number == Epoch.get_epoch_end_block_number(epoch_number)
-
-    def convert_to_epoch_block_number(self, global_block_number):
-        epoch_number = self.get_epoch_number(global_block_number)
-        epoch_start_block_number = self.get_epoch_start_block_number(epoch_number)
+    
+    @staticmethod
+    def convert_to_epoch_block_number(global_block_number):
+        epoch_number = Epoch.get_epoch_number(global_block_number)
+        epoch_start_block_number = Epoch.get_epoch_start_block_number(epoch_number)
         return global_block_number - epoch_start_block_number
 
     @staticmethod
@@ -235,7 +227,7 @@ class Epoch():
         just_take_next_non_skipped_block = False
         for block in chain_iter:
             if self.is_last_block_of_epoch(chain_iter.block_number) or just_take_next_non_skipped_block:
-                if block:                
+                if block:
                     return block.get_hash()
                 else:
                     just_take_next_non_skipped_block = True

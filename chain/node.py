@@ -84,7 +84,7 @@ class Node():
             await asyncio.sleep(1)
     
     def try_to_sign_block(self, current_block_number):        
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
+        epoch_block_number = Epoch.convert_to_epoch_block_number(current_block_number)
         
         allowed_to_sign = False
         epoch_hashes = self.epoch.get_epoch_hashes()
@@ -221,7 +221,7 @@ class Node():
 
     def get_allowed_signers_for_next_block(self, block):
         current_block_number = self.epoch.get_current_timeframe_block_number()
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
+        epoch_block_number = Epoch.convert_to_epoch_block_number(current_block_number)
         if self.epoch.is_new_epoch_upcoming(current_block_number):
             self.epoch.accept_tops_as_epoch_hashes()
         epoch_hashes = self.epoch.get_epoch_hashes()
