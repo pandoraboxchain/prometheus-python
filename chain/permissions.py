@@ -95,11 +95,11 @@ class Permissions():
         return validators
                 
     def hold_stake(self, validators, pubkey, stake):
-        validators.append(Validator(pubkey, stake))
+        validators.append(Validator(Keys.from_bytes(pubkey), stake))
 
     def release_stake(self, validators, pubkey):
         for i in range(len(validators)):
-            if validators[i].public_key == pubkey:
+            if validators[i].public_key == Keys.from_bytes(pubkey):
                 del validators[i]
                 break
         
