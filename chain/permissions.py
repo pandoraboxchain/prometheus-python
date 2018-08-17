@@ -87,7 +87,7 @@ class Permissions():
             if isinstance(action, PenaltyTransaction):
                 for conflict in action.conflicts:
                     culprit = self.get_block_validator(conflict)
-                    self.release_stake(validators, culprit.public_key)
+                    self.release_stake(validators, Keys.to_bytes(culprit.public_key))
             elif isinstance(action, StakeHoldTransaction):
                 self.hold_stake(validators, action.pubkey, action.amount)
             elif isinstance(action, StakeReleaseTransaction):

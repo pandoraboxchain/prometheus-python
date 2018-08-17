@@ -2,4 +2,5 @@ env/*
 *.pyc
 *.pyo
 .vscode/*
+.idea/*
 tags
