@@ -87,7 +87,7 @@ class Permissions():
             if isinstance(action, PenaltyTransaction):
                 for conflict in action.conflicts:
                     culprit = self.get_block_validator(conflict)
-                    self.release_stake(validators, culprit.public_key)
+                    self.release_stake(validators, Keys.to_bytes(culprit.public_key))
             elif isinstance(action, StakeHoldTransaction):
                 self.hold_stake(validators, action.pubkey, action.amount)
             elif isinstance(action, StakeReleaseTransaction):
@@ -95,11 +95,11 @@ class Permissions():
         return validators
                 
     def hold_stake(self, validators, pubkey, stake):
-        validators.append(Validator(pubkey, stake))
+        validators.append(Validator(Keys.from_bytes(pubkey), stake))
 
     def release_stake(self, validators, pubkey):
         for i in range(len(validators)):
-            if validators[i].public_key == pubkey:
+            if validators[i].public_key == Keys.from_bytes(pubkey):
                 del validators[i]
                 break
         
