@@ -26,6 +26,7 @@ from crypto.keys import Keys
 from crypto.private import Private
 from transaction.commits_set import CommitsSet
 from crypto.secret import split_secret, encode_splits, decode_random
+from gossip.gossip import NegativeGossip, PositiveGossip
 
 class Node():
     
@@ -301,7 +302,13 @@ class Node():
                 self.logger.error("Block was not added. Considered invalid")
         else:
             self.logger.error("Received block from %d, but it's signature is wrong", node_id)
-        
+
+    def handle_gossip_negative(self, sender_node_id, raw_gossip):
+        pass
+
+    def handle_gossip_positive(self, sender_node_id, raw_gossip):
+        pass
+
 
     def get_allowed_signers_for_block_number(self, block_number):
         blocks = self.dag.blocks_by_number[block_number]
@@ -334,4 +341,9 @@ class Node():
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
-        
+    def broadcast_gossip_negative(self):
+        pass
+
+    def broadcast_gossip_positive(self):
+        pass
+
