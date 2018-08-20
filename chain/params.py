@@ -2,10 +2,10 @@ from enum import IntEnum, auto
 
 class Round(IntEnum):
     PUBLIC = 0
-    SECRETSHARE = 1
-    PRIVATE = 2
-    COMMIT = 3
-    REVEAL = 4
+    COMMIT = 1
+    SECRETSHARE = 2
+    REVEAL = 3
+    PRIVATE = 4
     FINAL = 5
     INVALID = 6
 

@@ -5,6 +5,7 @@ from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
 from crypto.keys import Keys
 from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
+from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
 from chain.dag import ChainIter
 from chain.params import Round, Duration, ROUND_DURATION
 BLOCK_TIME = 4
@@ -46,12 +47,10 @@ class Epoch():
         round_number = int(epoch_block_number / ROUND_DURATION)
         if round_number == Round.INVALID: return Round.FINAL   #special case for last round being +1
         return Round(round_number)
-        # current_block_number - epoch_start_block
 
     @staticmethod
     def get_duration():
-        # return ROUND_DURATION * 3
-        return Duration.FINAL * ROUND_DURATION + 1
+        return (Round.FINAL + 1) * ROUND_DURATION + 1
 
     @staticmethod
     def get_epoch_number(current_block_number):
@@ -64,6 +63,7 @@ class Epoch():
         if epoch_number == 0: return 0
         return Epoch.get_duration() * (epoch_number - 1) + 1
     
+    @staticmethod
     def get_epoch_end_block_number(epoch_number):
         if epoch_number == 0: return 0
         epoch_start_block = Epoch.get_epoch_start_block_number(epoch_number)
@@ -88,34 +88,30 @@ class Epoch():
     @staticmethod
     def get_range_for_round(epoch_number, round_type):
         epoch_start = Epoch.get_epoch_start_block_number(epoch_number)
-        round_start = epoch_start + round_type * ROUND_DURATION
-        round_end = round_start + ROUND_DURATION
+        round_start, round_end = Epoch.get_round_bounds(round_type)
+        round_start += epoch_start
+        round_end += epoch_start
+        return round_start, round_end
+
+    @staticmethod
+    def get_round_bounds(round_type):
+        round_start = round_type * ROUND_DURATION
+        round_end = round_start + ROUND_DURATION - 1
         if round_type == Round.FINAL: round_end += 1
         return (round_start, round_end)
-
-    def get_all_blocks_for_round(self, epoch_number, round_type):
-        round_start, round_end = Epoch.get_range_for_round(epoch_number, round_type)
-        
-        blocks = []
-        for i in range(round_start, round_end + 1):
-            if i in self.dag.blocks_by_number:
-                blocks_at_number = self.dag.blocks_by_number[i]
-                for block in blocks_at_number:
-                    blocks.append(block.block)
-
-        return blocks
 
     def get_private_keys_for_epoch(self, block_hash):
         round_iter = RoundIter(self.dag, block_hash, Round.PRIVATE)
         
         private_keys = []
-        block_number = self.dag.get_block_number(block_hash)
-        epoch_number = self.get_epoch_number(block_number)
-        for i in range(block_number, Epoch.get_epoch_end_block_number(epoch_number)):
-            private_keys.append(None)
+        block_number = round_iter.current_block_number()
+        # epoch_number = self.get_epoch_number(block_number)
+        # _, round_end = Epoch.get_range_for_round(epoch_number, Round.PRIVATE)
+        # for i in range(block_number, round_end):
+        #     private_keys.append(None)
 
         for block in round_iter:
-            if block:
+            if block and block.block.system_txs:
                 for tx in block.block.system_txs:
                     if isinstance(tx, PrivateKeyTransaction):
                         private_keys.append(tx.key)
@@ -155,12 +151,26 @@ class Epoch():
         # unique_randoms = Epoch.make_unique_list(random_pieces_list)
         return random_pieces_list
 
+    def get_commits_for_epoch(self, block_hash):
+        random_pieces_list = []
+        round_iter = RoundIter(self.dag, block_hash, Round.COMMIT)
+        for block in round_iter:
+            if block:
+                for tx in block.block.system_txs:
+                    if isinstance(tx, CommitRandomTransaction):
+                        random_pieces_list.append(tx.pieces)
+        
+        random_pieces_list = list(reversed(random_pieces_list))
+        # unique_randoms = Epoch.make_unique_list(random_pieces_list)
+        return random_pieces_list
+
     def calculate_epoch_seed(self, block_hash):
+        return self.extract_shared_random(block_hash)
+
+    def extract_shared_random(self, block_hash):
         if block_hash == self.dag.genesis_block().get_hash():
             return 0
         
-        block_number = self.dag.get_block_number(block_hash)
-
         private_keys = self.get_private_keys_for_epoch(block_hash)
         public_keys = self.get_public_keys_for_epoch(block_hash)
         published_private_keys = self.filter_out_skipped_public_keys(private_keys, public_keys)
@@ -189,6 +199,37 @@ class Epoch():
         seed = sum_random(randoms_list)
         return seed
 
+    def extract_revealed_random(self, block_hash):
+        if block_hash == self.dag.genesis_block().get_hash():
+            return 0
+        
+        commits = self.get_commits_for_epoch(block_hash)
+        reveals = self.get_reveals_for_epoch(block_hash)
+
+        self.log("commits")
+        for _, public_key in public_keys.items():
+            self.log(Keys.to_visual_string(public_key))
+        self.log("reveals")
+        private_key_count = 0
+        for key in published_private_keys:
+            if not key:
+                self.log("None")
+                continue
+            pubkey = Keys.from_bytes(key).publickey()
+            private_key_count += 1
+            self.log(Keys.to_visual_string(pubkey))
+        assert len(public_keys) == private_key_count, "Public and private keys must match"
+
+        randoms_list = []
+        for random_pieces in random_pieces_list:
+            assert private_key_count == len(random_pieces), "Amount of splits must match amount of public keys"
+            random = decode_random(random_pieces, Keys.list_from_bytes(published_private_keys))
+            randoms_list.append(random)
+
+        seed = sum_random(randoms_list)
+        return seed
+
+
     def filter_out_skipped_public_keys(self, private_keys, public_keys):
         filtered_private_keys = []
         for private_key in private_keys:
@@ -199,7 +240,6 @@ class Epoch():
                 if Keys.to_bytes(expected_public) in public_keys.values():
                     filtered_private_keys.append(private_key)
         return private_keys
-
 
 
     def is_last_block_of_epoch(self, block_number):
@@ -271,8 +311,6 @@ class Epoch():
         self.logger.debug(args)
         
 
-            
-
 class RoundIter:
     def __init__(self, dag, block_hash, round_type):
         block_number = dag.get_block_number(block_hash)
@@ -294,6 +332,9 @@ class RoundIter:
             raise StopIteration()
         
         return block
+    
+    def current_block_number(self):
+        return self.chain_iter.block_number
     
     def next(self):
         return self.__next__()
