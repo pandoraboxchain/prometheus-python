@@ -1,8 +1,10 @@
 from chain.node import Node
 from chain.node_api import NodeApi
 from chain.block_signers import BlockSigners
+from chain.block_signer import BlockSigner
 from chain.epoch import BLOCK_TIME
 from chain.behaviour import Behaviour
+from crypto.private import Private
 
 import datetime
 import time
@@ -26,13 +28,13 @@ class Initializer():
 
         tasks = []
          
-        for i in range(0, 9):
+        for i in range(0, 19):
             behaviour = Behaviour()
             node =  Node(genesis_creation_time, i, network, private_keys.block_signers[i], behaviour)
             network.register_node(node)
             tasks.append(node.run())
 
-        for i in range(9, 10):
+        for i in range(19, 20):
             behaviour = Behaviour()
             behaviour.wants_to_hold_stake = True
             behaviour.epoch_to_release_stake = 2

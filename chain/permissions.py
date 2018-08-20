@@ -55,10 +55,9 @@ class Permissions():
     def get_ordered_pubkeys_for_last_round(self, epoch_hash):
         selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
         epoch_random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
-        round_start, round_end = Epoch.get_round_bounds(1, Round.PRIVATE)
         validators = []	
-        for i in range(round_start - 1, round_end):	
-            index = epoch_random_indexes[i]
+        for i in Epoch.get_round_range(1, Round.PRIVATE):	
+            index = epoch_random_indexes[i - 1]
             validators.append(selected_epoch_validators[index])
 
         return validators
@@ -66,10 +65,9 @@ class Permissions():
     def get_random_senders_pubkeys(self, epoch_hash):
         selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
         epoch_random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
-        round_start, round_end = Epoch.get_round_bounds(1, Round.SECRETSHARE)
         validators = []	
-        for i in range(round_start - 1, round_end):	
-            index = epoch_random_indexes[i]
+        for i in Epoch.get_round_range(1, Round.SECRETSHARE):	
+            index = epoch_random_indexes[i-1]
             validators.append(selected_epoch_validators[index])
 
         return validators
