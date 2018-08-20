@@ -68,7 +68,7 @@ class TestEpoch(unittest.TestCase):
             signer_index += 1
             prev_hash = block.get_hash()
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_round_bounds(1, Round.COMMIT))
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.COMMIT))
 
         public_keys = []
         for private in private_keys:
@@ -96,7 +96,7 @@ class TestEpoch(unittest.TestCase):
 
         expected_seed = sum_random(randoms_list)  
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_round_bounds(1, Round.REVEAL))
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.REVEAL))
 
         signer_index = 0
         private_key_index = 0
@@ -116,7 +116,7 @@ class TestEpoch(unittest.TestCase):
             private_key_index += 1
             prev_hash = block.get_hash()
         
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_round_bounds(1, Round.FINAL))
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
 
         top_block_hash = dag.get_top_blocks_hashes()[0]
 
@@ -136,13 +136,14 @@ class TestEpoch(unittest.TestCase):
     def test_epoch_number(self):
         epoch = Epoch(Dag(0))
         self.assertEqual(Epoch.get_duration(), 19)
-        self.assertEqual(epoch.get_epoch_number(6), 1)
-        self.assertEqual(epoch.get_epoch_number(19), 1)
-        self.assertEqual(epoch.get_epoch_number(20), 2)
-        self.assertEqual(epoch.get_epoch_start_block_number(2), 20)
-        self.assertEqual(epoch.convert_to_epoch_block_number(13), 12)
-        self.assertEqual(epoch.convert_to_epoch_block_number(20), 0)
-        self.assertEqual(epoch.convert_to_epoch_block_number(26), 6)
+        self.assertEqual(Epoch.get_epoch_number(6), 1)
+        self.assertEqual(Epoch.get_epoch_number(19), 1)
+        self.assertEqual(Epoch.get_epoch_number(20), 2)
+        self.assertEqual(Epoch.get_epoch_start_block_number(2), 20)
+        self.assertEqual(Epoch.get_epoch_end_block_number(1), 19)
+        self.assertEqual(Epoch.convert_to_epoch_block_number(13), 12)
+        self.assertEqual(Epoch.convert_to_epoch_block_number(20), 0)
+        self.assertEqual(Epoch.convert_to_epoch_block_number(26), 6)
         self.assertEqual(Epoch.get_round_by_block_number(1), Round.PUBLIC)
         self.assertEqual(Epoch.get_round_by_block_number(4), Round.COMMIT)
         self.assertEqual(Epoch.get_round_by_block_number(7), Round.SECRETSHARE)
@@ -258,21 +259,7 @@ class TestEpoch(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        _, epoch_end = Epoch.get_round_bounds(1, Round.FINAL)
-
-        TestChainGenerator.fill_with_dummies(dag,prev_hash,round_end, epoch_end + 1)
-
-        epoch_hash = dag.blocks_by_number[19][0].get_hash()
-
-        extracted_privates = epoch.get_private_keys_for_epoch(epoch_hash)
-
-        self.assertEqual(extracted_privates[0], generated_private_keys[0])
-        self.assertEqual(extracted_privates[1], generated_private_keys[1])
-        self.assertEqual(extracted_privates[2], None)
-
-        _, epoch_end = Epoch.get_round_bounds(1, Round.FINAL)
-
-        TestChainGenerator.fill_with_dummies(dag,prev_hash,round_end, epoch_end + 1)
+        TestChainGenerator.fill_with_dummies(dag,prev_hash, Epoch.get_round_range(1, Round.FINAL))
 
         epoch_hash = dag.blocks_by_number[19][0].get_hash()
 

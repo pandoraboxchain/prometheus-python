@@ -9,6 +9,7 @@ from crypto.private import Private
 from crypto.keys import Keys
 from chain.block_factory import BlockFactory
 from chain.validators import Validators
+from tests.test_chain_generator import TestChainGenerator
 
 from Crypto.Hash import SHA256
 
@@ -24,30 +25,33 @@ class TestStakeActions(unittest.TestCase):
         initial_validators = Validators().validators
 
         genesis_hash = dag.genesis_block().get_hash()
-        prev_hash = genesis_hash
-        for i in range(1, 9):
-            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
-            signed_block = BlockFactory.sign_block(block, node_private)
-            dag.add_signed_block(i, signed_block)
-            prev_hash = block.get_hash()
 
-        block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * 9)
+        last_block_number = Epoch.get_epoch_end_block_number(1)
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, genesis_hash, range(1, last_block_number))
+
+        block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * last_block_number)
         tx = PenaltyTransaction()
         tx.conflicts = [prev_hash]
         tx.signature = node_private.sign(tx.get_hash(), 0)[0]
-
         block.system_txs = [tx]
         signed_block = BlockFactory.sign_block(block, node_private)
-        dag.add_signed_block(i, signed_block)
+        dag.add_signed_block(last_block_number, signed_block)
 
-        initial_validators.pop(0)
+        initial_validators_order = permissions.get_indexes_for_epoch_hash(genesis_hash)
+        #we substract two here: one because it is last but one block
+        #and one, because epoch starts from 1
+        validator_index_to_penalize = initial_validators_order[last_block_number - 2]
 
         resulting_validators = permissions.get_validators_for_epoch_hash(block.get_hash())
 
-        self.assertEqual(len(initial_validators), len(resulting_validators))
-        for i in range(len(initial_validators)):
-            self.assertEqual(initial_validators[i].public_key, resulting_validators[i].public_key)
+        self.assertNotEqual(len(initial_validators), len(resulting_validators))
+        
+        initial_validators.pop(validator_index_to_penalize)
 
+        init_pubkeys = list(map(lambda validator: validator.public_key, initial_validators))
+        result_pubkeys = list(map(lambda validator: validator.public_key, resulting_validators))
+
+        self.assertEqual(init_pubkeys, result_pubkeys)
 
     def test_hold_stake(self):
         dag = Dag(0)

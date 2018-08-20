@@ -31,9 +31,9 @@ class TestChainGenerator:
         return dag
 
     @staticmethod
-    def fill_with_dummies(dag, prev_hash, start, end):
+    def fill_with_dummies(dag, prev_hash, range):
         dummy_private = Private.generate()
-        for i in range(start, end):
+        for i in range:
             block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
             signed_block = BlockFactory.sign_block(block, dummy_private)
             dag.add_signed_block(i, signed_block)
