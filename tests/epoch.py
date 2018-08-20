@@ -41,7 +41,7 @@ class TestEpoch(unittest.TestCase):
         dummy_private = Private.generate()
 
         signers = []
-        for i in range(0, ROUND_DURATION):
+        for i in range(0, ROUND_DURATION + 1):
             signers.append(Private.generate())
 
         private_keys = []
@@ -49,9 +49,7 @@ class TestEpoch(unittest.TestCase):
         block_number = 1
         prev_hash = dag.genesis_block().get_hash()
         signer_index = 0
-        pubkey_start, pubkey_end = Epoch.get_range_for_round(1, Round.PUBLIC)
-        pubkey_range = range(pubkey_start, pubkey_end + 1)
-        for i in pubkey_range:
+        for i in Epoch.get_round_range(1, Round.PUBLIC):
             private = Private.generate()
             private_keys.append(private)
 
@@ -70,7 +68,7 @@ class TestEpoch(unittest.TestCase):
             signer_index += 1
             prev_hash = block.get_hash()
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_range_for_round(1, Round.COMMIT))
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_round_bounds(1, Round.COMMIT))
 
         public_keys = []
         for private in private_keys:
@@ -78,9 +76,7 @@ class TestEpoch(unittest.TestCase):
 
         randoms_list = []
         expected_random_pieces = []
-        secrets_start, secrets_end = Epoch.get_range_for_round(1, Round.SECRETSHARE)
-        secrets_range = range(secrets_start, secrets_end + 1)
-        for i in secrets_range:
+        for i in Epoch.get_round_range(1, Round.SECRETSHARE):
             random_bytes = os.urandom(32)
             random_value = int.from_bytes(random_bytes, byteorder='big')
             split_random_tx = SplitRandomTransaction()
@@ -100,13 +96,14 @@ class TestEpoch(unittest.TestCase):
 
         expected_seed = sum_random(randoms_list)  
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_range_for_round(1, Round.REVEAL))
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_round_bounds(1, Round.REVEAL))
 
         signer_index = 0
+        private_key_index = 0
         raw_private_keys = []
-        for private in private_keys:
+        for i in Epoch.get_round_range(1, Round.PRIVATE):
             private_key_tx = PrivateKeyTransaction()
-            private_key_tx.key = Keys.to_bytes(private)
+            private_key_tx.key = Keys.to_bytes(private_keys[private_key_index])
             raw_private_keys.append(private_key_tx.key)
             signer = signers[signer_index]
             block = Block()
@@ -116,9 +113,10 @@ class TestEpoch(unittest.TestCase):
             signed_block = BlockFactory.sign_block(block, signer)
             dag.add_signed_block(i, signed_block)          
             signer_index += 1
+            private_key_index += 1
             prev_hash = block.get_hash()
         
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_range_for_round(1, Round.FINAL))
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, *Epoch.get_round_bounds(1, Round.FINAL))
 
         top_block_hash = dag.get_top_blocks_hashes()[0]
 
@@ -153,12 +151,12 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(Epoch.get_round_by_block_number(16), Round.FINAL)
 
     def test_round_durations(self):
-        self.assertEqual(Epoch.get_range_for_round(1, Round.PUBLIC), (1,3))
-        self.assertEqual(Epoch.get_range_for_round(1, Round.COMMIT), (4,6))
-        self.assertEqual(Epoch.get_range_for_round(1, Round.SECRETSHARE), (7,9))
-        self.assertEqual(Epoch.get_range_for_round(1, Round.REVEAL), (10,12))
-        self.assertEqual(Epoch.get_range_for_round(1, Round.PRIVATE), (13,15))
-        self.assertEqual(Epoch.get_range_for_round(1, Round.FINAL), (16,19))
+        self.assertEqual(Epoch.get_round_bounds(1, Round.PUBLIC), (1,3))
+        self.assertEqual(Epoch.get_round_bounds(1, Round.COMMIT), (4,6))
+        self.assertEqual(Epoch.get_round_bounds(1, Round.SECRETSHARE), (7,9))
+        self.assertEqual(Epoch.get_round_bounds(1, Round.REVEAL), (10,12))
+        self.assertEqual(Epoch.get_round_bounds(1, Round.PRIVATE), (13,15))
+        self.assertEqual(Epoch.get_round_bounds(1, Round.FINAL), (16,19))
 
     def test_round_iterator(self):
         dag = TestChainGenerator.generate_two_chains(9)
@@ -238,7 +236,7 @@ class TestEpoch(unittest.TestCase):
         node_private = Private.generate()
 
         prev_hash = dag.genesis_block().get_hash()
-        round_start, round_end = Epoch.get_range_for_round(1, Round.PRIVATE)
+        round_start, round_end = Epoch.get_round_bounds(1, Round.PRIVATE)
         for i in range(1, round_start):
             block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
             signed_block = BlockFactory.sign_block(block, node_private)
@@ -260,7 +258,7 @@ class TestEpoch(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        _, epoch_end = Epoch.get_range_for_round(1, Round.FINAL)
+        _, epoch_end = Epoch.get_round_bounds(1, Round.FINAL)
 
         TestChainGenerator.fill_with_dummies(dag,prev_hash,round_end, epoch_end + 1)
 
@@ -272,7 +270,7 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(extracted_privates[1], generated_private_keys[1])
         self.assertEqual(extracted_privates[2], None)
 
-        _, epoch_end = Epoch.get_range_for_round(1, Round.FINAL)
+        _, epoch_end = Epoch.get_round_bounds(1, Round.FINAL)
 
         TestChainGenerator.fill_with_dummies(dag,prev_hash,round_end, epoch_end + 1)
 

@@ -85,17 +85,17 @@ class Epoch():
         self.log("calculated validators:", validators_list[0:3], validators_list[3:6], validators_list[6:9])
         return validators_list
 
+    #returns traversable range
     @staticmethod
-    def get_range_for_round(epoch_number, round_type):
-        epoch_start = Epoch.get_epoch_start_block_number(epoch_number)
-        round_start, round_end = Epoch.get_round_bounds(round_type)
-        round_start += epoch_start
-        round_end += epoch_start
-        return round_start, round_end
+    def get_round_range(epoch_number, round_type):
+        round_start, round_end = Epoch.get_round_bounds(epoch_number, round_type)
+        return range(round_start, round_end + 1)
 
-    @staticmethod
-    def get_round_bounds(round_type):
-        round_start = round_type * ROUND_DURATION
+    #returns just tuple
+    @staticmethod 
+    def get_round_bounds(epoch_number, round_type):
+        epoch_start = Epoch.get_epoch_start_block_number(epoch_number)
+        round_start = epoch_start + round_type * ROUND_DURATION
         round_end = round_start + ROUND_DURATION - 1
         if round_type == Round.FINAL: round_end += 1
         return (round_start, round_end)
@@ -106,7 +106,7 @@ class Epoch():
         private_keys = []
         block_number = round_iter.current_block_number()
         # epoch_number = self.get_epoch_number(block_number)
-        # _, round_end = Epoch.get_range_for_round(epoch_number, Round.PRIVATE)
+        # _, round_end = Epoch.get_round_bounds(epoch_number, Round.PRIVATE)
         # for i in range(block_number, round_end):
         #     private_keys.append(None)
 
@@ -315,7 +315,7 @@ class RoundIter:
     def __init__(self, dag, block_hash, round_type):
         block_number = dag.get_block_number(block_hash)
         epoch_number = Epoch.get_epoch_number(block_number)
-        round_start, round_end = Epoch.get_range_for_round(epoch_number, round_type)
+        round_start, round_end = Epoch.get_round_bounds(epoch_number, round_type)
         
         self.round_end = round_start
         self.chain_iter = ChainIter(dag, block_hash)
