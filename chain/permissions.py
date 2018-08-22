@@ -7,6 +7,7 @@ from chain.params import Round
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from chain.stake_manager import StakeManager
 from crypto.keys import Keys
+from crypto.entropy import Source, Entropy
 
 class Permissions():
 
@@ -15,12 +16,25 @@ class Permissions():
         self.epoch = epoch
         self.stake_manager = StakeManager(epoch)
         genesis_hash = self.epoch.dag.genesis_block().get_hash()
-        initial_indexes = self.epoch.calculate_validators_indexes(genesis_hash, len(initial_validators.validators))
+        validator_count = len(initial_validators.validators)
+        initial_signers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.SIGNERS)
+        initial_randomizers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.RANDOMIZERS)
 
         self.epoch_validators = { genesis_hash : initial_validators.validators }
-        self.epoch_indexes = { genesis_hash : initial_indexes}
+        self.signers_indexes = { genesis_hash : initial_signers_indexes }
+        self.randomizers_indexes = { genesis_hash : initial_randomizers_indexes }
 
-    def get_permission(self, epoch_hash, block_number_in_epoch):
+    def get_sign_permission(self, epoch_hash, block_number_in_epoch):
+        validators_for_epoch = self.get_validators_for_epoch_hash(epoch_hash)
+        random_indexes = self.get_signers_indexes(epoch_hash)
+        #cycle validators in case of exclusion
+        if block_number_in_epoch >= len(validators_for_epoch):
+            block_number_in_epoch = block_number_in_epoch % len(validators_for_epoch)
+            print("Looping epoch validators. Next block validator is as in block number", block_number_in_epoch)
+        index = random_indexes[block_number_in_epoch]
+        return validators_for_epoch[index]
+
+    def get_randomize_permission(self, epoch_hash, block_number_in_epoch):
         validators_for_epoch = self.get_validators_for_epoch_hash(epoch_hash)
         random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
         #cycle validators in case of exclusion
@@ -30,14 +44,21 @@ class Permissions():
         index = random_indexes[block_number_in_epoch]
         return validators_for_epoch[index]
 
-    def get_indexes_for_epoch_hash(self, epoch_hash):
-        if not epoch_hash in self.epoch_indexes:
+    def get_signers_indexes(self, epoch_hash):
+        if not epoch_hash in self.signers_indexes:
             epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
             print("total validators count", len(epoch_validators))
-            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, len(epoch_validators))
-            self.epoch_indexes[epoch_hash] = random_indexes
+            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, len(epoch_validators), Source.SIGNERS)
+            self.signers_indexes[epoch_hash] = random_indexes
         
-        return self.epoch_indexes[epoch_hash]
+        return self.signers_indexes[epoch_hash]
+
+    def get_randomizers_indexes(self, epoch_hash):
+        if not epoch_hash in self.randomizers_indexes:
+            epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
+            print("total validators count", len(epoch_validators))
+            random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, len(epoch_validators), Source.RANDOMIZERS)
+            self.signers_indexes[epoch_hash] = random_indexes
 
     def get_validators_for_epoch_hash(self, epoch_hash):
         if not epoch_hash in self.epoch_validators:
@@ -54,7 +75,7 @@ class Permissions():
 
     def get_ordered_pubkeys_for_last_round(self, epoch_hash):
         selected_epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
-        epoch_random_indexes = self.get_indexes_for_epoch_hash(epoch_hash)
+        epoch_random_indexes = self.get_signers_indexes(epoch_hash)
         validators = []	
         for i in Epoch.get_round_range(1, Round.PRIVATE):	
             index = epoch_random_indexes[i - 1]
@@ -77,7 +98,7 @@ class Permissions():
         epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
         epoch_hash = self.epoch.find_epoch_hash_for_block(block_hash)
         assert epoch_hash, "Can't find epoch hash for block"
-        return self.get_permission(epoch_hash, epoch_block_number)
+        return self.get_sign_permission(epoch_hash, epoch_block_number)
 
     #this method modifies list, but also returns it for API consistency
     def apply_stake_actions(self, validators, actions):

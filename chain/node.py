@@ -90,7 +90,7 @@ class Node():
         allowed_to_sign = False
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
-            permission = self.permissions.get_permission(epoch_hash, epoch_block_number)
+            permission = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
             if permission.public_key == self.block_signer.private_key.publickey():
                 allowed_to_sign = True
                 break
@@ -236,7 +236,7 @@ class Node():
             
             if epoch_hash:
                 # self.logger.info("Calculating permissions from epoch_hash %s", epoch_hash.hex())
-                allowed_pubkey = self.permissions.get_permission(epoch_hash, epoch_block_number)
+                allowed_pubkey = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
                 allowed_signers.append(allowed_pubkey)
 
         assert len(allowed_signers) > 0, "No signers allowed to sign next block"
@@ -318,7 +318,7 @@ class Node():
             epoch_hash = self.epoch.find_epoch_hash_for_block(block.get_hash())
             
             if epoch_hash:
-                allowed_pubkey = self.permissions.get_permission(epoch_hash, epoch_block_number)
+                allowed_pubkey = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
                 allowed_signers.append(allowed_pubkey)
 
         assert len(allowed_signers) > 0, "No signers allowed to sign block"

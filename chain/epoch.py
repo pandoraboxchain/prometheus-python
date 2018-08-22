@@ -4,6 +4,7 @@ from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
 from crypto.keys import Keys
+from crypto.entropy import Entropy
 from transaction.transaction import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
 from chain.dag import ChainIter
@@ -79,9 +80,10 @@ class Epoch():
         era_identifier_block = self.dag.blocks_by_number[previous_era_last_block_number][0]
         return era_identifier_block.block.get_hash()
     
-    def calculate_validators_indexes(self, epoch_hash, validators_count):
+    def calculate_validators_indexes(self, epoch_hash, validators_count, entropy_source):
         epoch_seed = self.calculate_epoch_seed(epoch_hash)
-        validators_list = calculate_validators_indexes(epoch_seed, validators_count)
+        entropy = Entropy.get_nth_derivative(epoch_seed, entropy_source)
+        validators_list = calculate_validators_indexes(entropy, validators_count)
         self.log("calculated validators:", validators_list[0:3], validators_list[3:6], validators_list[6:9])
         return validators_list
 
