@@ -152,20 +152,44 @@ class Epoch():
         return random_pieces_list
 
     def get_commits_for_epoch(self, block_hash):
-        random_pieces_list = []
+        commits = {}
         round_iter = RoundIter(self.dag, block_hash, Round.COMMIT)
         for block in round_iter:
             if block:
                 for tx in block.block.system_txs:
                     if isinstance(tx, CommitRandomTransaction):
-                        random_pieces_list.append(tx.pieces)
+                        commits[tx.get_hash()] = tx
         
-        random_pieces_list = list(reversed(random_pieces_list))
-        # unique_randoms = Epoch.make_unique_list(random_pieces_list)
-        return random_pieces_list
+        return commits
+
+    def get_reveals_for_epoch(self, block_hash):
+        reveals = []
+        round_iter = RoundIter(self.dag, block_hash, Round.REVEAL)
+        for block in round_iter:
+            if block:
+                for tx in block.block.system_txs:
+                    if isinstance(tx, RevealRandomTransaction):
+                        reveals.append(tx)
+        return reveals
 
     def calculate_epoch_seed(self, block_hash):
         return self.extract_shared_random(block_hash)
+
+    def reveal_commited_random(self, block_hash):
+        if block_hash == self.dag.genesis_block().get_hash():
+            return 0
+        
+        seed = 0
+        commits = self.get_commits_for_epoch(block_hash)
+        reveals = self.get_reveals_for_epoch(block_hash)
+        randoms_list = []
+        for reveal in reveals:
+            commit = commits[reveal.commit_hash]
+            _, rand = decode_random_using_raw_key(commit.rand, reveal.key)
+            randoms_list.append(int.from_bytes(rand, byteorder='big'))
+            self.log("revealed random from", reveal.get_hash(), "is", rand)
+        seed = sum_random(randoms_list)
+        return seed
 
     def extract_shared_random(self, block_hash):
         if block_hash == self.dag.genesis_block().get_hash():
@@ -198,37 +222,6 @@ class Epoch():
 
         seed = sum_random(randoms_list)
         return seed
-
-    def extract_revealed_random(self, block_hash):
-        if block_hash == self.dag.genesis_block().get_hash():
-            return 0
-        
-        commits = self.get_commits_for_epoch(block_hash)
-        reveals = self.get_reveals_for_epoch(block_hash)
-
-        self.log("commits")
-        for _, public_key in public_keys.items():
-            self.log(Keys.to_visual_string(public_key))
-        self.log("reveals")
-        private_key_count = 0
-        for key in published_private_keys:
-            if not key:
-                self.log("None")
-                continue
-            pubkey = Keys.from_bytes(key).publickey()
-            private_key_count += 1
-            self.log(Keys.to_visual_string(pubkey))
-        assert len(public_keys) == private_key_count, "Public and private keys must match"
-
-        randoms_list = []
-        for random_pieces in random_pieces_list:
-            assert private_key_count == len(random_pieces), "Amount of splits must match amount of public keys"
-            random = decode_random(random_pieces, Keys.list_from_bytes(published_private_keys))
-            randoms_list.append(random)
-
-        seed = sum_random(randoms_list)
-        return seed
-
 
     def filter_out_skipped_public_keys(self, private_keys, public_keys):
         filtered_private_keys = []

@@ -34,7 +34,7 @@ class TestEpoch(unittest.TestCase):
 
         self.assertEqual(first_era_hash, genesis_hash)
 
-    def test_rounds(self):
+    def test_secret_sharing_rounds(self):
         dag = Dag(0)
         epoch = Epoch(dag)
 
@@ -130,7 +130,55 @@ class TestEpoch(unittest.TestCase):
 
         self.assertEqual(randoms_list, restored_randoms)
 
-        seed = epoch.calculate_epoch_seed(top_block_hash)
+        seed = epoch.extract_shared_random(top_block_hash)
+        self.assertEqual(expected_seed, seed)
+
+    def test_commit_reveal(self):
+        dag = Dag(0)
+        epoch = Epoch(dag)
+
+        private = Private.generate()
+
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, dag.genesis_block().get_hash(), Epoch.get_round_range(1, Round.PUBLIC))
+
+        randoms_list = []
+        for i in Epoch.get_round_range(1, Round.COMMIT):
+            random_value = int.from_bytes(os.urandom(32), byteorder='big')       
+            randoms_list.append(random_value)
+
+        expected_seed = sum_random(randoms_list)
+
+        reveals = []
+
+        epoch_hash = epoch.get_epoch_hash(1)
+
+        for i in Epoch.get_round_range(1, Round.COMMIT):
+            rand = randoms_list.pop()
+            commit, reveal = TestEpoch.create_dummy_commit_reveal(epoch_hash, rand)
+            commit_block = BlockFactory.create_block_with_timestamp([prev_hash], i * BLOCK_TIME)
+            commit_block.system_txs = [commit]
+            signed_block = BlockFactory.sign_block(commit_block, private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = commit_block.get_hash()
+
+            reveals.append(reveal)
+
+        # self.assertEqual(len(reveals), ROUND_DURATION)
+
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.SECRETSHARE))
+
+        for i in Epoch.get_round_range(1, Round.REVEAL):
+            reveal_block = BlockFactory.create_block_with_timestamp([prev_hash], i * BLOCK_TIME)
+            reveal_block.system_txs = [reveals.pop()]
+            signed_block = BlockFactory.sign_block(reveal_block, private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = reveal_block.get_hash()           
+
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.PRIVATE))
+
+        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
+
+        seed = epoch.reveal_commited_random(prev_hash)
         self.assertEqual(expected_seed, seed)
 
     def test_epoch_number(self):
@@ -269,10 +317,12 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(extracted_privates[1], generated_private_keys[1])
         self.assertEqual(extracted_privates[2], None)
 
-    def test_create_dummy_commit_reveal(self):
+    @staticmethod
+    def create_dummy_commit_reveal(era_hash, random_value):
         private = Private.generate()
+        encoded, key = encode_value(random_value, era_hash) #todo return random or something
+
         commit = CommitRandomTransaction()
-        encoded, key = encode_value(int.from_bytes(os.urandom(32), byteorder='big'), os.urandom(32)) #todo return random or something
         commit.rand = encoded
         commit.pubkey = Keys.to_bytes(private.publickey())
         commit.signature = private.sign(commit.get_hash(), 0)[0]
@@ -281,7 +331,8 @@ class TestEpoch(unittest.TestCase):
         reveal.commit_hash = commit.get_hash()
         reveal.key = Keys.to_bytes(key)
 
-        commit_bytes = commit.pack()
-        reveal_bytes = reveal.pack()
-        print("commit size", len(commit_bytes), "reveal size", len(reveal_bytes))
-        self.assertEqual(None, None)
+        # commit_bytes = commit.pack()
+        # reveal_bytes = reveal.pack()
+        # print("commit size", len(commit_bytes), "reveal size", len(reveal_bytes))
+
+        return (commit, reveal)

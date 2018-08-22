@@ -30,6 +30,7 @@ class TestChainGenerator:
 
         return dag
 
+    #TODO creater similar but simpler method not using prev_hash and just taking top hash as prev hash
     @staticmethod
     def fill_with_dummies(dag, prev_hash, range):
         dummy_private = Private.generate()
