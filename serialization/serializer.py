@@ -1,17 +1,26 @@
 import struct
 
+
 class Serializer:
     def __init__(self):
         self.data = bytearray()
 
-    def write_signature(self):
-        return self.signature.to_bytes(128, byteorder='big')
-    
-    def write_timestamp(self, timestamp):
-        return self.write_u32(timestamp)
+    @staticmethod
+    def write_signature(signature):
+        return signature.to_bytes(128, byteorder='big')
 
-    def write_u32(self, u32):
+    @staticmethod
+    def write_timestamp(timestamp):
+        return Serializer.write_u32(timestamp)
+
+    @staticmethod
+    def write_u32(u32):
         return struct.pack("I", u32)
+
+    @staticmethod
+    def write_i32(i32):
+        return int.to_bytes(i32, length=4, byteorder='big')
+
 
 class Deserializer:
     def __init__(self, data):
@@ -31,17 +40,17 @@ class Deserializer:
     def parse_timestamp(self):
         return self.parse_u32()
 
-    def parse_u8(self)
+    def parse_u8(self):
         parsed = struct.unpack_from("B", self.data)[0]
         self.data = self.data[1:]
         return parsed
 
-    def parse_u16(self)
+    def parse_u16(self):
         parsed = struct.unpack_from("H", self.data)[0]
         self.data = self.data[2:]
         return parsed
 
-    def parse_u32(self)
+    def parse_u32(self):
         parsed = struct.unpack_from("I", self.data)[0]
         self.data = self.data[4:]
         return parsed

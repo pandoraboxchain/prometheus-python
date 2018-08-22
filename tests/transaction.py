@@ -42,4 +42,6 @@ class TestTransaction(unittest.TestCase):
         restored.parse(raw)
 
         self.assertEqual(original.get_hash(), restored.get_hash())        
-        
+
+
+

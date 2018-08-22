@@ -163,7 +163,6 @@ class TestStakeActions(unittest.TestCase):
             pub_keys.append(validator.public_key)
         self.assertNotIn(new_node_public, pub_keys)
 
-
     def test_stake_release_by_genesis_validator(self):
         # base initialization
         dag = Dag(0)

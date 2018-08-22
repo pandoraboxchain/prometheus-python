@@ -1,5 +1,7 @@
 import struct
+from Crypto.Hash import SHA256
 from chain.signed_block import SignedBlock
+from serialization.serializer import Serializer, Deserializer
 
 """
 Gossip message used for off chain data transfer.
@@ -33,7 +35,7 @@ send positive gossip+ rule
 class NegativeGossip:
     def __init__(self):
         # node signature
-        self.node_signature = None
+        self.signature = None
         # node public key (gossip request sender address)
         self.node_public_key = None
         # current timestamp
@@ -42,23 +44,29 @@ class NegativeGossip:
         self.number_of_block = None
 
     def parse(self, raw_data):
-        self.node_signature = int.from_bytes(raw_data[:128], byteorder='big')
-        self.node_public_key = raw_data[128:344]
-        self.timestamp = struct.unpack_from("I", raw_data[344:348])[0]
-        self.number_of_block = int.from_bytes(raw_data[348:352], byteorder='big')
+        deserializer = Deserializer(raw_data)
+        self.signature = deserializer.parse_signature()
+        self.node_public_key = deserializer.parse_pubkey()
+        self.timestamp = deserializer.parse_timestamp()
+        self.number_of_block = deserializer.parse_u32()
 
     def pack(self):
-        return self.node_signature + \
+        return Serializer.write_signature(self.signature) + \
                self.node_public_key + \
-               self.timestamp + \
-               self.number_of_block
+               Serializer.write_timestamp(self.timestamp) + \
+               Serializer.write_u32(self.number_of_block)
+
+    def get_hash(self):
+        return SHA256.new(self.node_public_key +
+                          Serializer.write_timestamp(self.timestamp) +
+                          Serializer.write_u32(self.number_of_block)).digest()
 
 
 # positive gossip base class
 class PositiveGossip:
     def __init__(self):
         # node signature
-        self.node_signature = None
+        self.signature = None
         # node public key (gossip request sender address)
         self.node_public_key = None
         # current timestamp
@@ -67,14 +75,19 @@ class PositiveGossip:
         self.block = None
 
     def parse(self, raw_data):
-        self.node_signature = int.from_bytes(raw_data[:128], byteorder='big')
-        self.node_public_key = raw_data[128:344]
-        self.timestamp = struct.unpack_from("I", raw_data[344:348])[0]
+        deserializer = Deserializer(raw_data)
+        self.signature = deserializer.parse_signature()
+        self.node_public_key = deserializer.parse_pubkey()
+        self.timestamp = deserializer.parse_timestamp()
         self.block = SignedBlock().parse(raw_data=raw_data[348:])
 
     def pack(self):
-        return self.node_signature + \
+        return Serializer.write_signature(self.signature) + \
                self.node_public_key + \
-               self.timestamp + \
-               self.block
+               Serializer.write_timestamp(self.timestamp) + \
+               self.block.pack()
 
+    def get_hash(self):
+        return SHA256.new(self.node_public_key +
+                          Serializer.write_timestamp(self.timestamp) +
+                          self.block.pack()).digest()

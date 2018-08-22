@@ -13,6 +13,7 @@ class SignedBlock():
         raw_block = raw_data[132:132+block_length]
         self.block = Block()
         self.block.parse(raw_block)
+        return self
 
     def pack(self):
         raw_block = self.block.pack()

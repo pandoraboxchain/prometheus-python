@@ -160,3 +160,5 @@ class SplitRandomTransaction():
 
     def get_hash(self):
         return SHA256.new(self.pack_pieces()).digest()
+
+
