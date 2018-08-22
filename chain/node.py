@@ -30,8 +30,8 @@ from gossip.gossip import NegativeGossip, PositiveGossip
 
 class Node():
     
-    def __init__(self, genesis_creation_time, node_id, network, block_signer, behaviour):
-        self.logger = logging.getLogger("Node " + str(node_id))
+    def __init__(self, genesis_creation_time, node_id, network, logger, block_signer, behaviour):
+        self.logger = logger
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
         self.epoch.set_logger(self.logger)

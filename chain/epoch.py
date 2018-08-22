@@ -84,7 +84,6 @@ class Epoch():
         epoch_seed = self.calculate_epoch_seed(epoch_hash)
         entropy = Entropy.get_nth_derivative(epoch_seed, entropy_source)
         validators_list = calculate_validators_indexes(entropy, validators_count)
-        self.log("calculated validators:", validators_list[0:3], validators_list[3:6], validators_list[6:9])
         return validators_list
 
     #returns traversable range

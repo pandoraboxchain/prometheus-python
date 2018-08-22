@@ -20,6 +20,10 @@ class Permissions():
         initial_signers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.SIGNERS)
         initial_randomizers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.RANDOMIZERS)
 
+        self.log("Initial signers:", initial_signers_indexes[0:3], initial_signers_indexes[3:6], initial_signers_indexes[6:9], initial_signers_indexes[9:12], initial_signers_indexes[12:15], initial_signers_indexes[15:19])
+        self.log("Initial randomizers:", initial_randomizers_indexes)
+
+        #init validators list and indexes, so we can build list of future validators based on this
         self.epoch_validators = { genesis_hash : initial_validators.validators }
         self.signers_indexes = { genesis_hash : initial_signers_indexes }
         self.randomizers_indexes = { genesis_hash : initial_randomizers_indexes }
@@ -47,8 +51,9 @@ class Permissions():
     def get_signers_indexes(self, epoch_hash):
         if not epoch_hash in self.signers_indexes:
             epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
-            print("total validators count", len(epoch_validators))
+            self.log("Total signers count", len(epoch_validators))
             random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, len(epoch_validators), Source.SIGNERS)
+            self.log("Calculated signers:", random_indexes[0:3], random_indexes[3:6], random_indexes[6:9], random_indexes[9:12], random_indexes[12:15], random_indexes[15:19])
             self.signers_indexes[epoch_hash] = random_indexes
         
         return self.signers_indexes[epoch_hash]
@@ -56,8 +61,9 @@ class Permissions():
     def get_randomizers_indexes(self, epoch_hash):
         if not epoch_hash in self.randomizers_indexes:
             epoch_validators = self.get_validators_for_epoch_hash(epoch_hash)
-            print("total validators count", len(epoch_validators))
+            self.log("Total randomizers count", len(epoch_validators))
             random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, len(epoch_validators), Source.RANDOMIZERS)
+            self.log("Calculated randomizers:", random_indexes)
             self.signers_indexes[epoch_hash] = random_indexes
 
     def get_validators_for_epoch_hash(self, epoch_hash):
@@ -125,4 +131,8 @@ class Permissions():
     
     def sort_by_stake(self, validators):
         return sorted(validators, key=attrgetter("stake"), reverse=True)
+
+    # ¯\_( )_/¯
+    def log(self, *args):
+        self.epoch.log(args)
 

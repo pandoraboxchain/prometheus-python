@@ -30,7 +30,11 @@ class Initializer():
          
         for i in range(0, 19):
             behaviour = Behaviour()
-            node =  Node(genesis_creation_time, i, network, private_keys.block_signers[i], behaviour)
+            logger = logging.getLogger("Node " + str(i))
+            # uncomment the following line to enable logging only on specific node
+            # if i != 13: logger.setLevel(logging.CRITICAL)
+            node = Node(genesis_creation_time, i, network, logger, private_keys.block_signers[i], behaviour)
+
             network.register_node(node)
             tasks.append(node.run())
 
@@ -38,7 +42,8 @@ class Initializer():
             behaviour = Behaviour()
             behaviour.wants_to_hold_stake = True
             behaviour.epoch_to_release_stake = 2
-            keyless_node = Node(genesis_creation_time, i, network, None, behaviour)
+            logger = logging.getLogger("Node " + str(i))
+            keyless_node = Node(genesis_creation_time, i, network, logger, None, behaviour)
             network.register_node(keyless_node)
             tasks.append(keyless_node.run())
 
