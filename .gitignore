@@ -4,3 +4,6 @@ env/*
 .vscode/*
 .idea/*
 tags
+visualization/*.dot
+visualization/*.pdf
+visualization/*.png

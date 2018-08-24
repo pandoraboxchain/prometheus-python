@@ -10,9 +10,21 @@ import datetime
 import time
 import asyncio
 import logging
+import signal
 import sys
+import importlib
 
-class Initializer():  
+#you can set node to visualize its DAG as soon as Ctrl-C pressed
+node_to_visualize = None
+def signal_handler(sig, frame):
+    graphviz_import = importlib.util.find_spec("graphviz")
+    graphviz_lib_installed = graphviz_import is not None
+    if node_to_visualize and graphviz_lib_installed:
+        from visualization.dag_visualizer import DagVisualizer
+        DagVisualizer.visualize(node_to_visualize.dag)
+    sys.exit(0)
+
+class Initializer(): 
 
     def __init__(self):
         
@@ -35,6 +47,9 @@ class Initializer():
             # if i != 13: logger.setLevel(logging.CRITICAL)
             node = Node(genesis_creation_time, i, network, logger, private_keys.block_signers[i], behaviour)
 
+            if i == 0:
+                global node_to_visualize
+                node_to_visualize = node
             network.register_node(node)
             tasks.append(node.run())
 
@@ -46,6 +61,8 @@ class Initializer():
             keyless_node = Node(genesis_creation_time, i, network, logger, None, behaviour)
             network.register_node(keyless_node)
             tasks.append(keyless_node.run())
+
+        signal.signal(signal.SIGINT, signal_handler)
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(asyncio.gather(*tasks))       
