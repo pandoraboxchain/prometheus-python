@@ -37,7 +37,7 @@ class TestStakeActions(unittest.TestCase):
         signed_block = BlockFactory.sign_block(block, node_private)
         dag.add_signed_block(last_block_number, signed_block)
 
-        initial_validators_order = permissions.get_indexes_for_epoch_hash(genesis_hash)
+        initial_validators_order = permissions.get_signers_indexes(genesis_hash)
         #we substract two here: one because it is last but one block
         #and one, because epoch starts from 1
         validator_index_to_penalize = initial_validators_order[last_block_number - 2]
