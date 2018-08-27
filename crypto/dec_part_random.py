@@ -12,6 +12,5 @@ def dec_part_random(enc_data, key):
     return (era_hash, rand)
 
 def decode_random_using_raw_key(enc_data, key_bytes):
-    decoded_bytes = b64decode(key_bytes)
-    key = RSA.importKey(decoded_bytes)
+    key = Keys.from_bytes(key_bytes)
     return dec_part_random(enc_data, key)

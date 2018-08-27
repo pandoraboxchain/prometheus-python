@@ -159,7 +159,7 @@ class Epoch():
             if block:
                 for tx in block.block.system_txs:
                     if isinstance(tx, CommitRandomTransaction):
-                        commits[tx.get_hash()] = tx
+                        commits[tx.get_reference_hash()] = tx
         
         return commits
 
@@ -174,7 +174,9 @@ class Epoch():
         return reveals
 
     def calculate_epoch_seed(self, block_hash):
-        return self.extract_shared_random(block_hash)
+        secret_shared_random = self.extract_shared_random(block_hash)
+        commited_random = self.reveal_commited_random(block_hash)
+        return sum_random([secret_shared_random, commited_random])
 
     def reveal_commited_random(self, block_hash):
         if block_hash == self.dag.genesis_block().get_hash():
@@ -184,11 +186,13 @@ class Epoch():
         commits = self.get_commits_for_epoch(block_hash)
         reveals = self.get_reveals_for_epoch(block_hash)
         randoms_list = []
+        
         for reveal in reveals:
-            commit = commits[reveal.commit_hash]
-            _, rand = decode_random_using_raw_key(commit.rand, reveal.key)
-            randoms_list.append(int.from_bytes(rand, byteorder='big'))
-            self.log("revealed random from", reveal.get_hash(), "is", rand)
+            if reveal.commit_hash in commits:
+                commit = commits[reveal.commit_hash]
+                key = Keys.from_bytes(reveal.key)
+                revealed_data = key.decrypt(commit.rand)
+                randoms_list.append(int.from_bytes(revealed_data, byteorder='big'))
         seed = sum_random(randoms_list)
         return seed
 

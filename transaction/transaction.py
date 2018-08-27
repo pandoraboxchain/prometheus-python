@@ -1,6 +1,8 @@
 import struct
 from Crypto.Hash import SHA256
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
+from serialization.serializer import Serializer, Deserializer
+
 
 class Type():
     PUBLIC = 0
@@ -63,31 +65,39 @@ class TransactionParser():
         return raw
 
 class CommitRandomTransaction():
-    def get_hash(self):
-        return SHA256.new(self.rand + self.pubkey).digest()
-
     def parse(self, raw_data):
-        self.rand = raw_data[:128]
-        self.pubkey = raw_data[128:344]
-        self.signature = int.from_bytes(raw_data[344:472], byteorder='big')
+        deserializer = Deserializer(raw_data)
+        self.rand = deserializer.parse_encrypted_data()
+        self.pubkey = deserializer.parse_pubkey()
+        self.signature = deserializer.parse_signature()
+        self.len = deserializer.get_len()
     
     def pack(self):
-        return self.rand + self.pubkey + self.signature.to_bytes(128, byteorder='big')
+        return  Serializer.write_encrypted_data(self.rand) + \
+                self.pubkey + \
+                Serializer.write_signature(self.signature)
     
     def get_len(self):
-        return 472
+        return self.len
+
+    #this hash includes epoch_hash for checking if random wasn't reused
+    def get_signing_hash(self, epoch_hash):
+        return SHA256.new(self.rand + self.pubkey + epoch_hash).digest()
+    
+    #this hash is for linking this transaction from reveal
+    def get_reference_hash(self):
+        return SHA256.new(self.pack()).digest()
 
 class RevealRandomTransaction():
     def parse(self, raw_data):
-        self.commit_hash = raw_data[:32]
-        key_length = struct.unpack_from("H", raw_data, 32)[0]
-        self.len = 34 + key_length
-        self.key = raw_data[34:self.len]
+        deserializer = Deserializer(raw_data)
+        self.commit_hash = deserializer.parse_hash()
+        self.key = deserializer.parse_private_key()
+        self.len = deserializer.get_len()
     
     def pack(self):
         raw = self.commit_hash
-        raw += struct.pack("H", len(self.key))
-        raw += self.key
+        raw += Serializer.write_private_key(self.key)
         return raw
     
     def get_len(self):

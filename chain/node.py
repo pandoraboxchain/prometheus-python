@@ -19,6 +19,7 @@ from transaction.mempool import Mempool
 from transaction.transaction import TransactionParser
 from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
+from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
 from verification.transaction_verifier import TransactionVerifier
 from verification.block_verifier import BlockVerifier
 from crypto.enc_random import enc_part_random
@@ -50,6 +51,7 @@ class Node():
         self.node_id = node_id
         self.epoch_private_keys = [] #TODO make this single element
         #self.epoch_private_keys where first element is era number, and second is key to reveal commited random
+        self.reveals_to_send = {}
 
     def start(self):
         pass
@@ -61,16 +63,21 @@ class Node():
                 self.epoch.accept_tops_as_epoch_hashes()
             
             self.behaviour.update(Epoch.get_epoch_number(current_block_number))
-
-            if self.epoch.get_round_by_block_number(current_block_number) == Round.PUBLIC:
+            current_round = self.epoch.get_round_by_block_number(current_block_number)
+            if current_round == Round.PUBLIC:
                 self.try_to_publish_public_key(current_block_number)
-            elif self.epoch.get_round_by_block_number(current_block_number) == Round.PRIVATE:
+            elif current_round == Round.PRIVATE:
                 #delete random if we published it in previous round
                 #real private key publish will happen when signing block
                 if hasattr(self, "self.last_epoch_random_published"):
                     del self.last_epoch_random_published
                 #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
                 self.mempool.remove_all_systemic_transactions()
+            elif current_round == Round.COMMIT:
+                # check perms
+                self.try_to_commit_random()
+            elif current_round == Round.REVEAL:
+                self.try_to_reveal_random()
                               
             self.try_to_sign_block(current_block_number)
 
@@ -170,6 +177,23 @@ class Node():
                 self.logger.debug(Keys.to_visual_string(tx.generated_pubkey))
                 self.mempool.add_transaction(tx)
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+
+    def try_to_commit_random(self):
+        epoch_hashes = self.epoch.get_epoch_hashes().values()
+        for epoch_hash in epoch_hashes:
+            if not epoch_hash in self.reveals_to_send:
+                commit, reveal = self.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), epoch_hash)
+                self.logger.debug("Reveal commit hash %s", reveal.commit_hash.hex())
+                self.reveals_to_send[epoch_hash] = reveal
+                self.logger.info("Broadcasting commit")
+                self.network.broadcast_transaction(self.node_id, TransactionParser.pack(commit))
+    
+    def try_to_reveal_random(self):
+        for epoch_hash in list(self.reveals_to_send.keys()):
+            reveal = self.reveals_to_send[epoch_hash]
+            self.logger.info("Broadcasting reveal")
+            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(reveal))
+            del self.reveals_to_send[epoch_hash]
 
     def form_private_key_reveal_transaction(self):
         tx = PrivateKeyTransaction()
@@ -347,3 +371,19 @@ class Node():
     def broadcast_gossip_positive(self):
         pass
 
+    @staticmethod
+    def create_commit_reveal_pair(node_private, random_bytes, epoch_hash):
+        private = Private.generate()
+        public = node_private.publickey()
+        encoded = public.encrypt(random_bytes, 32)[0]
+
+        commit = CommitRandomTransaction()
+        commit.rand = encoded
+        commit.pubkey = Keys.to_bytes(public)
+        commit.signature = node_private.sign(commit.get_signing_hash(epoch_hash), 0)[0]
+
+        reveal = RevealRandomTransaction()
+        reveal.commit_hash = commit.get_reference_hash()
+        reveal.key = Keys.to_bytes(private)
+
+        return (commit, reveal)

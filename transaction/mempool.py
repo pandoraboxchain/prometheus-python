@@ -36,7 +36,7 @@ class Mempool():
              isinstance(tx, StakeReleaseTransaction):
             self.stake_operations = [a for a in self.stake_operations if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, CommitRandomTransaction):
-            self.commits = [a for a in self.commits if a.get_hash() != tx.get_hash()]
+            self.commits = [a for a in self.commits if a.get_reference_hash() != tx.get_reference_hash()]
         elif isinstance(tx, RevealRandomTransaction):
             self.reveals = [a for a in self.reveals if a.get_hash() != tx.get_hash()]
         else:
@@ -45,14 +45,20 @@ class Mempool():
     def get_transactions_for_round(self, round_type):
         if  round_type == Round.SECRETSHARE or \
             round_type == Round.PRIVATE or \
-            round_type == Round.COMMIT or \
-            round_type == Round.REVEAL or \
             round_type == Round.FINAL:
             return []
         elif round_type == Round.PUBLIC:
             public_keys = self.public_keys.copy()
             self.public_keys.clear()
             return public_keys
+        elif round_type == Round.COMMIT:
+            commits = self.commits.copy()
+            self.commits.clear()
+            return commits
+        elif round_type == Round.REVEAL:
+            reveals = self.reveals.copy()
+            self.reveals.clear()
+            return reveals
         else:
             assert False, "No known transactions for round"
 
