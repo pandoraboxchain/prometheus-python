@@ -21,7 +21,7 @@ class TestChainGenerator:
             prev_hash = block.get_hash()
 
         prev_hash = dag.blocks_by_number[1][0].get_hash()
-        for i in range(1, length + 1):  #intentionally one block less
+        for i in range(2, length + 1):  #intentionally one block less
             if i == 4: continue #intentionally skipped block
             block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i + 1)
             signed_block = BlockFactory.sign_block(block, private)
