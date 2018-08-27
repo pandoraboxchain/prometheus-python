@@ -12,7 +12,7 @@ from crypto.keys import Keys
 class TestTransaction(unittest.TestCase):
 
     def test_pack_parse_commit_transaction(self):
-        for _ in range(1000):
+        for _ in range(10):
             dummy_private = Private.generate()
             original = CommitRandomTransaction()
             original.rand = dummy_private.encrypt(os.urandom(32), 0)[0]

@@ -14,7 +14,7 @@ from chain.block_factory import BlockFactory
 from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
 from crypto.dec_part_random import dec_part_random
-from crypto.enc_random import enc_part_random, encode_value
+from crypto.enc_random import enc_part_random
 from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits, decode_random
@@ -143,7 +143,7 @@ class TestEpoch(unittest.TestCase):
 
         randoms_list = []
         for i in Epoch.get_round_range(1, Round.COMMIT):
-            random_value = int.from_bytes(os.urandom(32), byteorder='big')       
+            random_value = int.from_bytes(os.urandom(32), byteorder='big')
             randoms_list.append(random_value)
 
         expected_seed = sum_random(randoms_list)
@@ -154,14 +154,22 @@ class TestEpoch(unittest.TestCase):
 
         for i in Epoch.get_round_range(1, Round.COMMIT):
             rand = randoms_list.pop()
-            commit, reveal = TestEpoch.create_dummy_commit_reveal(epoch_hash, rand)
+            random_bytes = rand.to_bytes(32, byteorder='big')
+            commit, reveal = TestEpoch.create_dummy_commit_reveal(random_bytes, epoch_hash)
             commit_block = BlockFactory.create_block_with_timestamp([prev_hash], i * BLOCK_TIME)
             commit_block.system_txs = [commit]
             signed_block = BlockFactory.sign_block(commit_block, private)
             dag.add_signed_block(i, signed_block)
             prev_hash = commit_block.get_hash()
-
             reveals.append(reveal)
+
+            revealing_key = Keys.from_bytes(reveal.key)
+            encrypted_bytes = revealing_key.publickey().encrypt(random_bytes, 32)[0]
+            decrypted_bytes = revealing_key.decrypt(encrypted_bytes)
+            self.assertEqual(decrypted_bytes, random_bytes)
+
+            revealed_value = revealing_key.decrypt(commit.rand)
+            self.assertEqual(revealed_value, random_bytes)
 
         # self.assertEqual(len(reveals), ROUND_DURATION)
 
@@ -320,22 +328,24 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(extracted_privates[1], generated_private_keys[1])
         self.assertEqual(extracted_privates[2], None)
 
+    #TODO use method for creating commit-reveal pair from Node.py
     @staticmethod
-    def create_dummy_commit_reveal(era_hash, random_value):
+    def create_dummy_commit_reveal(random_bytes, epoch_hash):
+        node_private = Private.generate()
+        node_public = node_private.publickey()
+        
         private = Private.generate()
-        encoded, key = encode_value(random_value, era_hash) #todo return random or something
+        public = private.publickey()
+
+        encoded = public.encrypt(random_bytes, 32)[0]
 
         commit = CommitRandomTransaction()
         commit.rand = encoded
-        commit.pubkey = Keys.to_bytes(private.publickey())
-        commit.signature = private.sign(commit.get_hash(), 0)[0]
+        commit.pubkey = Keys.to_bytes(node_public)
+        commit.signature = node_private.sign(commit.get_signing_hash(epoch_hash), 0)[0]
 
         reveal = RevealRandomTransaction()
-        reveal.commit_hash = commit.get_hash()
-        reveal.key = Keys.to_bytes(key)
-
-        # commit_bytes = commit.pack()
-        # reveal_bytes = reveal.pack()
-        # print("commit size", len(commit_bytes), "reveal size", len(reveal_bytes))
+        reveal.commit_hash = commit.get_reference_hash()
+        reveal.key = Keys.to_bytes(private)
 
         return (commit, reveal)
