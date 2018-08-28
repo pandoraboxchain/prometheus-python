@@ -27,20 +27,19 @@ class TestTransaction(unittest.TestCase):
             self.assertEqual(original.get_reference_hash(), restored.get_reference_hash())
 
     def test_pack_parse_reveal_transaction(self):
+        for _ in range(10):
+            dummy_private = Private.generate()
 
-        dummy_private = Private.generate()
+            original = RevealRandomTransaction()
+            original.commit_hash = SHA256.new(b"previous_transaction").digest()
+            original.key = Keys.to_bytes(dummy_private)
 
-        original = RevealRandomTransaction()
-        original.commit_hash = SHA256.new(b"previous_transaction").digest()
-        original.key = Keys.to_bytes(dummy_private)
+            raw = original.pack()
+            restored = RevealRandomTransaction()
+            restored.parse(raw)
 
-        raw = original.pack()
-        restored = RevealRandomTransaction()
-        restored.parse(raw)
-
-        self.assertEqual(TransactionParser.pack(original), TransactionParser.pack(restored))        
-
-        self.assertEqual(original.get_hash(), restored.get_hash())        
+            self.assertEqual(TransactionParser.pack(original), TransactionParser.pack(restored))        
+            self.assertEqual(original.get_hash(), restored.get_hash())        
 
     def test_split_pack_unpack(self):
         original = SplitRandomTransaction()

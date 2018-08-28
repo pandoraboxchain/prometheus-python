@@ -335,9 +335,8 @@ class TestEpoch(unittest.TestCase):
         node_public = node_private.publickey()
         
         private = Private.generate()
-        public = private.publickey()
 
-        encoded = public.encrypt(random_bytes, 32)[0]
+        encoded = private.encrypt(random_bytes, 32)[0]
 
         commit = CommitRandomTransaction()
         commit.rand = encoded

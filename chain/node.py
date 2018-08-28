@@ -183,15 +183,16 @@ class Node():
         for epoch_hash in epoch_hashes:
             if not epoch_hash in self.reveals_to_send:
                 commit, reveal = self.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), epoch_hash)
-                self.logger.debug("Reveal commit hash %s", reveal.commit_hash.hex())
                 self.reveals_to_send[epoch_hash] = reveal
                 self.logger.info("Broadcasting commit")
+                self.mempool.add_transaction(commit)
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(commit))
     
     def try_to_reveal_random(self):
         for epoch_hash in list(self.reveals_to_send.keys()):
             reveal = self.reveals_to_send[epoch_hash]
             self.logger.info("Broadcasting reveal")
+            self.mempool.add_transaction(reveal)
             self.network.broadcast_transaction(self.node_id, TransactionParser.pack(reveal))
             del self.reveals_to_send[epoch_hash]
 
@@ -375,7 +376,7 @@ class Node():
     def create_commit_reveal_pair(node_private, random_bytes, epoch_hash):
         private = Private.generate()
         public = node_private.publickey()
-        encoded = public.encrypt(random_bytes, 32)[0]
+        encoded = private.encrypt(random_bytes, 32)[0]
 
         commit = CommitRandomTransaction()
         commit.rand = encoded
