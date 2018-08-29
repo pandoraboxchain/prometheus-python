@@ -5,7 +5,7 @@ from chain.dag import Dag
 from chain.epoch import Epoch
 from chain.params import Round
 
-#independent Node-like object which sole task is to announce different  
+#independent node-like object with sole task to make announcements about start of new rounds and epochs
 class AnnouncerNode():
     
     def __init__(self, genesis_creation_time, logger):
