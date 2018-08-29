@@ -9,15 +9,20 @@ class DagVisualizer:
         dot.attr(rankdir = 'RL')
         links = []
 
-        for number, block_list_by_number in dag.blocks_by_number.items():
-            if not block_list_by_number:
-                    dot.node("skipped" + str(number), style="dotted")
-                    continue
-
+        max_block_number = max(dag.blocks_by_number.keys())
+        for number in range(max_block_number+1):
+            block_list_by_number = dag.blocks_by_number.get(number, [])
+    
             with dot.subgraph() as sub:
                 sub.attr(rank = 'same')
+                
+                #place number
+                sub.node(str(number), shape="plain")
+                if number != 0: 
+                    dot.edge(str(number), str(number-1), style="invis")
+                
+                #add blocks on this level if any
                 for block in block_list_by_number:
-
                     links += block.block.prev_hashes
                     blockhash = block.get_hash()
                     color = 'black'
