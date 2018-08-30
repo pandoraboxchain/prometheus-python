@@ -112,7 +112,25 @@ class Dag():
             if block_hash in block.block.prev_hashes:
                 next_blocks.append(block.get_hash())
         return next_blocks
-                
+
+    def get_branches_for_timeslot_range(self, start, end):
+        all_blocks_in_range = {}
+        for i in range(start,end):
+            block_list = self.blocks_by_number.get(i,[])
+            for block in block_list:
+                all_blocks_in_range[block.block.get_hash()] = block.block
+
+        links = []
+        for block in all_blocks_in_range.values():
+            links += block.prev_hashes
+        
+        for link in links:
+            if link in all_blocks_in_range:
+                del all_blocks_in_range[link]
+
+        top_hashes = list(all_blocks_in_range.keys())
+
+        return top_hashes
     
 class ChainIter:
     def __init__(self, dag, block_hash):

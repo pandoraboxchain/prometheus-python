@@ -7,6 +7,7 @@ from chain.dag import Dag
 from crypto.private import Private
 from chain.epoch import BLOCK_TIME
 from chain.dag import ChainIter
+from tests.test_chain_generator import TestChainGenerator
 
 class TestDag(unittest.TestCase):
 
@@ -119,3 +120,32 @@ class TestDag(unittest.TestCase):
         self.assertEqual(chain_iter.next(), None)   #detect intentionally skipped block
         self.assertEqual(chain_iter.next().block.get_hash(), other_block2.get_hash())
         self.assertEqual(chain_iter.next().block.get_hash(), block1.get_hash())
+
+    def test_top_blocks_in_range(self):
+        dag = Dag(0)
+
+        prev_hash = dag.genesis_block().get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,8), [3,5])
+        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,8), [4])
+        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,7), [4,5])
+
+        # from visualization.dag_visualizer import DagVisualizer
+        # DagVisualizer.visualize(dag)
+
+        tops = dag.get_branches_for_timeslot_range(3,6)
+
+        self.assertEqual(len(tops), 3)
+        self.assertIn(dag.blocks_by_number[4][0].get_hash(), tops)
+        self.assertIn(dag.blocks_by_number[5][0].get_hash(), tops)
+        self.assertIn(dag.blocks_by_number[3][1].get_hash(), tops)
+
+        tops = dag.get_branches_for_timeslot_range(4,5)
+
+        self.assertEqual(len(tops), 1)
+        self.assertIn(dag.blocks_by_number[4][0].get_hash(), tops)
+
+        tops = dag.get_branches_for_timeslot_range(3,5)
+        self.assertEqual(len(tops), 3)
+        self.assertIn(dag.blocks_by_number[4][0].get_hash(), tops)
+        self.assertIn(dag.blocks_by_number[3][0].get_hash(), tops)
+        self.assertIn(dag.blocks_by_number[3][1].get_hash(), tops)
