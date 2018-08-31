@@ -29,14 +29,6 @@ class Immutability:
                 if block:
                     branch_confirmations += 1
 
-        # blocks_at_number = self.dag.blocks_by_number.get(ZETA)
-        # if blocks_at_number:
-        #     for block in blocks_at_number:
-        #         future_block_hash = block.get_hash()
-        #         if self.dag.is_ancestor(future_block_hash, block_hash):
-        #             # print("ancestor ", future_block_hash.hex())
-        #             confirmations += 1
-
         return max(confirmations)
 
     def calculate_skipped_block_confirmations(self, skipped_block):

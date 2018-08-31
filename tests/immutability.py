@@ -54,7 +54,6 @@ class TestImmutability(unittest.TestCase):
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[4][0].get_hash())
         self.assertEqual(confirmations, 2)
 
-        print("calculate confirmations second branch")
         #second branch check
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[4][1].get_hash())
         self.assertEqual(confirmations, 0)

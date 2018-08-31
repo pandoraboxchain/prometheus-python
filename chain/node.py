@@ -74,7 +74,6 @@ class Node():
                 #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
                 self.mempool.remove_all_systemic_transactions()
             elif current_round == Round.COMMIT:
-                # check perms
                 self.try_to_commit_random()
             elif current_round == Round.REVEAL:
                 self.try_to_reveal_random()
@@ -179,9 +178,12 @@ class Node():
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def try_to_commit_random(self):
+        pubkey = self.block_signer.private_key.publickey()
         epoch_hashes = self.epoch.get_epoch_hashes().values()
         for epoch_hash in epoch_hashes:
             if not epoch_hash in self.reveals_to_send:
+                allowed_to_commit_list = self.permissions.get_commiters(epoch_hash)
+                if not pubkey in allowed_to_commit_list: continue
                 commit, reveal = self.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), epoch_hash)
                 self.reveals_to_send[epoch_hash] = reveal
                 self.logger.info("Broadcasting commit")

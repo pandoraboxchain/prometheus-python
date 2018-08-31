@@ -42,7 +42,7 @@ class TestStakeActions(unittest.TestCase):
         #and one, because epoch starts from 1
         validator_index_to_penalize = initial_validators_order[last_block_number - 2]
 
-        resulting_validators = permissions.get_validators_for_epoch_hash(block.get_hash())
+        resulting_validators = permissions.get_validators(block.get_hash())
 
         self.assertNotEqual(len(initial_validators), len(resulting_validators))
         
@@ -83,7 +83,7 @@ class TestStakeActions(unittest.TestCase):
         signed_block = BlockFactory.sign_block(block, node_private)
         dag.add_signed_block(9, signed_block)
 
-        resulting_validators = permissions.get_validators_for_epoch_hash(block.get_hash())
+        resulting_validators = permissions.get_validators(block.get_hash())
         pub_keys = []
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
@@ -130,7 +130,7 @@ class TestStakeActions(unittest.TestCase):
         dag.add_signed_block(9, signed_block)
 
         # verify that new stake holder now is in validators list
-        resulting_validators = permissions.get_validators_for_epoch_hash(block.get_hash())
+        resulting_validators = permissions.get_validators(block.get_hash())
         pub_keys = []
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
@@ -157,7 +157,7 @@ class TestStakeActions(unittest.TestCase):
         dag.add_signed_block(19, signed_block)
 
         # verify that new stake holder now is NOT in validators list (after stake release transaction signed by holder)
-        resulting_validators = permissions.get_validators_for_epoch_hash(block.get_hash())
+        resulting_validators = permissions.get_validators(block.get_hash())
         pub_keys = []
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
@@ -198,7 +198,7 @@ class TestStakeActions(unittest.TestCase):
         dag.add_signed_block(19, signed_block)
 
         # verify that validator release stake
-        resulting_validators = permissions.get_validators_for_epoch_hash(block.get_hash())
+        resulting_validators = permissions.get_validators(block.get_hash())
         pub_keys = []
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
