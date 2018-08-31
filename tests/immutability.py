@@ -35,7 +35,6 @@ class TestImmutability(unittest.TestCase):
         DagVisualizer.visualize(dag)
 
         immutability = Immutability(dag)
-        block_hash = dag.blocks_by_number[4][0].get_hash()
 
         #first branch check
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[8][0].get_hash())

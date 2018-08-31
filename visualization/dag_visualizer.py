@@ -2,7 +2,7 @@ from graphviz import Digraph
 
 class DagVisualizer:
     @staticmethod
-    def visualize(dag):
+    def visualize(dag, view_immediately=False):
         dot = Digraph(name='DAG', node_attr={
             'shape':'box',\
             'style': "rounded"})
@@ -36,4 +36,4 @@ class DagVisualizer:
                 dot.edge(block_hash.hex()[0:6], prev_hash.hex()[0:6], constraint='true')
         #set view to True to instantly render and open pdf
         #Note, that you will need 'graphviz' package installed
-        dot.render('visualization/dag.dot', view=False) 
+        dot.render('visualization/dag.dot', view=view_immediately) 
