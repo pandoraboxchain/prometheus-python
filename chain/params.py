@@ -20,3 +20,6 @@ class Duration():
 
 BLOCK_TIME = 4
 ROUND_DURATION = 3
+
+ZETA = 5
+ZETA_MIN = 3

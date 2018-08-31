@@ -11,5 +11,6 @@ from tests.merger import *
 from tests.permissions import *
 from tests.test_gossip import *
 from tests.random import *
+from tests.immutability import *
 
 unittest.main()
