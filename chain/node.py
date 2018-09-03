@@ -52,6 +52,7 @@ class Node():
         self.epoch_private_keys = [] #TODO make this single element
         #self.epoch_private_keys where first element is era number, and second is key to reveal commited random
         self.reveals_to_send = {}
+        self.sent_shares_epochs = [] #epoch hashes of secret shares 
 
     def start(self):
         pass
@@ -66,6 +67,8 @@ class Node():
             current_round = self.epoch.get_round_by_block_number(current_block_number)
             if current_round == Round.PUBLIC:
                 self.try_to_publish_public_key(current_block_number)
+            elif current_round == Round.SECRETSHARE:
+                self.try_to_share_random()
             elif current_round == Round.PRIVATE:
                 #delete random if we published it in previous round
                 #real private key publish will happen when signing block
@@ -120,12 +123,7 @@ class Node():
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()
         
-        if current_round_type == Round.SECRETSHARE:
-            epoch_hashes = self.epoch.get_epoch_hashes()
-            epoch_hash = epoch_hashes[top]
-            split_random = self.form_split_random_transaction(top, epoch_hash)
-            transactions.append(split_random)
-        elif current_round_type == Round.PRIVATE:
+        if current_round_type == Round.PRIVATE:
             if self.epoch_private_keys:
                 key_reveal_tx = self.form_private_key_reveal_transaction()
                 transactions.append(key_reveal_tx)
@@ -176,6 +174,18 @@ class Node():
                 self.logger.debug(Keys.to_visual_string(tx.generated_pubkey))
                 self.mempool.add_transaction(tx)
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+    
+    def try_to_share_random(self):
+        pubkey = self.block_signer.private_key.publickey()
+        epoch_hashes = self.epoch.get_epoch_hashes()
+        for top, epoch_hash in epoch_hashes.items():
+            if epoch_hash in self.sent_shares_epochs: continue
+            allowed_to_share_random = self.permissions.get_secret_sharers(epoch_hash)
+            if not pubkey in allowed_to_share_random: continue
+            split_random = self.form_split_random_transaction(top, epoch_hash)
+            self.sent_shares_epochs.append(epoch_hash)
+            self.mempool.add_transaction(split_random)
+            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(split_random))
 
     def try_to_commit_random(self):
         pubkey = self.block_signer.private_key.publickey()

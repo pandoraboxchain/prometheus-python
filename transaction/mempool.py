@@ -10,6 +10,7 @@ class Mempool():
         self.stake_operations = []
         self.commits = []
         self.reveals = []
+        self.shares = []
 
     def add_transaction(self, tx):
         if isinstance(tx, PublicKeyTransaction):
@@ -21,13 +22,14 @@ class Mempool():
             self.commits.append(tx)
         elif isinstance(tx, RevealRandomTransaction):
             self.reveals.append(tx)
+        elif isinstance(tx, SplitRandomTransaction):
+            self.shares.append(tx)
         else:
             assert False, "Can't add. Transaction type is unknown or should not be added to mempool"
 
     # remove all occurences of given transaction
     def remove_transaction(self, tx):
-        if  isinstance(tx, SplitRandomTransaction) or \
-            isinstance(tx, PrivateKeyTransaction) or \
+        if  isinstance(tx, PrivateKeyTransaction) or \
             isinstance(tx, PenaltyTransaction): # should only be as part of the block
             pass
         elif isinstance(tx, PublicKeyTransaction):
@@ -39,12 +41,13 @@ class Mempool():
             self.commits = [a for a in self.commits if a.get_reference_hash() != tx.get_reference_hash()]
         elif isinstance(tx, RevealRandomTransaction):
             self.reveals = [a for a in self.reveals if a.get_hash() != tx.get_hash()]
+        elif isinstance(tx, SplitRandomTransaction):
+            self.shares = [a for a in self.shares if a.get_hash() != tx.get_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"
 
     def get_transactions_for_round(self, round_type):
-        if  round_type == Round.SECRETSHARE or \
-            round_type == Round.PRIVATE or \
+        if  round_type == Round.PRIVATE or \
             round_type == Round.FINAL:
             return []
         elif round_type == Round.PUBLIC:
@@ -59,6 +62,10 @@ class Mempool():
             reveals = self.reveals.copy()
             self.reveals.clear()
             return reveals
+        elif round_type == Round.SECRETSHARE:
+            shares = self.shares.copy()
+            self.shares.clear()
+            return shares
         else:
             assert False, "No known transactions for round"
 
@@ -68,6 +75,7 @@ class Mempool():
 
     def remove_all_systemic_transactions(self):
         self.public_keys.clear()
+        self.shares.clear()
         self.stake_operations.clear()
         self.commits.clear()
         self.reveals.clear()
