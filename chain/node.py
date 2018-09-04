@@ -167,7 +167,7 @@ class Node():
                 generated_private = Private.generate()
                 tx = PublicKeyTransaction()
                 tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
-                tx.sender_pubkey = Keys.to_bytes(node_private.publickey())
+                tx.pubkey = Keys.to_bytes(node_private.publickey())
                 tx.signature = node_private.sign(tx.get_hash(), 0)[0]
                 self.epoch_private_keys.append(generated_private)
                 self.logger.debug("Broadcasted public key")
@@ -233,9 +233,9 @@ class Node():
         self.logger.info("Ordered pubkeys for secret sharing:")
         sorted_published_pubkeys = []
         for sender in ordered_senders:
-            raw_sender_pubkey = Keys.to_bytes(sender.public_key)
-            if raw_sender_pubkey in published_pubkeys:
-                generated_pubkey = published_pubkeys[raw_sender_pubkey]
+            raw_pubkey = Keys.to_bytes(sender.public_key)
+            if raw_pubkey in published_pubkeys:
+                generated_pubkey = published_pubkeys[raw_pubkey]
                 sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
                 self.logger.info(Keys.to_visual_string(generated_pubkey))
             else:
@@ -305,7 +305,7 @@ class Node():
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
-        verifier = TransactionVerifier(self.dag)
+        verifier = TransactionVerifier(self.epoch)
         #print("Node ", self.node_id, "received transaction with hash", transaction.get_hash().hexdigest(), " from node ", node_id)
         if verifier.check_if_valid(transaction):
            # print("It is valid. Adding to mempool")

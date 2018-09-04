@@ -108,15 +108,15 @@ class RevealRandomTransaction():
 
 class PublicKeyTransaction():
     def get_hash(self):
-        return SHA256.new(self.generated_pubkey + self.sender_pubkey).digest()
+        return SHA256.new(self.generated_pubkey + self.pubkey).digest()
 
     def parse(self, raw_data):
         self.generated_pubkey = raw_data[:216]
-        self.sender_pubkey = raw_data[216:432]
+        self.pubkey = raw_data[216:432]
         self.signature = int.from_bytes(raw_data[432:560], byteorder='big')
     
     def pack(self):
-        return self.generated_pubkey + self.sender_pubkey + self.signature.to_bytes(128, byteorder='big')
+        return self.generated_pubkey + self.pubkey + self.signature.to_bytes(128, byteorder='big')
     
     def get_len(self):
         return 560
@@ -160,7 +160,6 @@ class SplitRandomTransaction():
     def pack_pieces(self):
         raw = struct.pack("H", len(self.pieces))
         for piece in self.pieces:
-            piece_len = len(piece)
             raw += struct.pack("B", len(piece))
             raw += piece
         return raw

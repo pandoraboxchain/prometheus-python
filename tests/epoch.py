@@ -56,7 +56,7 @@ class TestEpoch(unittest.TestCase):
             signer = signers[signer_index]
             pubkey_tx = PublicKeyTransaction()
             pubkey_tx.generated_pubkey = Keys.to_bytes(private.publickey())
-            pubkey_tx.sender_pubkey = Keys.to_bytes(signer.publickey())
+            pubkey_tx.pubkey = Keys.to_bytes(signer.publickey())
             pubkey_tx.signature = signer.sign(pubkey_tx.get_hash(), 0)[0]
 
             block = Block()
