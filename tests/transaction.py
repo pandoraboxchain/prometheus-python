@@ -50,7 +50,8 @@ class TestTransaction(unittest.TestCase):
         restored = SplitRandomTransaction()
         restored.parse(raw)
 
-        self.assertEqual(original.get_hash(), restored.get_hash())        
+        self.assertEqual(original.get_reference_hash(), restored.get_reference_hash())        
+        self.assertEqual(original.get_signing_hash(b"epoch_hash"), restored.get_signing_hash(b"epoch_hash"))        
 
 
 

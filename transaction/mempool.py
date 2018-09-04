@@ -42,7 +42,7 @@ class Mempool():
         elif isinstance(tx, RevealRandomTransaction):
             self.reveals = [a for a in self.reveals if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, SplitRandomTransaction):
-            self.shares = [a for a in self.shares if a.get_hash() != tx.get_hash()]
+            self.shares = [a for a in self.shares if a.get_reference_hash() != tx.get_reference_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"
 

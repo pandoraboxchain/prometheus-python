@@ -168,7 +168,10 @@ class SplitRandomTransaction():
     def get_len(self):
         return self.len
 
-    def get_hash(self):
-        return SHA256.new(self.pack_pieces()).digest()
+    def get_signing_hash(self, epoch_hash):
+        return SHA256.new(self.pack_pieces() + epoch_hash).digest()
+
+    def get_reference_hash(self):
+        return SHA256.new(self.pack()).digest()
 
 

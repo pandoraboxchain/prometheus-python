@@ -242,11 +242,11 @@ class Node():
                 sorted_published_pubkeys.append(None)
                 self.logger.info("None")
 
-        tx = self.form_transaction_for_random(sorted_published_pubkeys)
+        tx = self.form_secret_sharing_transaction(sorted_published_pubkeys, epoch_hash)
         return tx
 
     
-    def form_transaction_for_random(self, sorted_public_keys):
+    def form_secret_sharing_transaction(self, sorted_public_keys, epoch_hash):
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Duration.PRIVATE // 2 + 1, Duration.PRIVATE)
         encoded_splits = encode_splits(splits, sorted_public_keys)
@@ -254,7 +254,7 @@ class Node():
         
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
-        tx.signature = self.block_signer.private_key.sign(tx.get_hash(), 0)[0]
+        tx.signature = self.block_signer.private_key.sign(tx.get_signing_hash(epoch_hash), 0)[0]
         return tx
 
     def get_allowed_signers_for_next_block(self, block):
