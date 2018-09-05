@@ -86,7 +86,7 @@ class CommitRandomTransaction():
     
     #this hash is for linking this transaction from reveal
     def get_reference_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return SHA256.new(self.pack() + Serializer.write_signature(self.signature)).digest()
 
 class RevealRandomTransaction():
     def parse(self, raw_data):
@@ -171,6 +171,6 @@ class SplitRandomTransaction():
         return SHA256.new(self.pack_pieces() + epoch_hash).digest()
 
     def get_reference_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return SHA256.new(self.pack() + self.signature.to_bytes(128, byteorder='big')).digest()
 
 

@@ -217,11 +217,11 @@ class Epoch():
             pubkey = Keys.from_bytes(key).publickey()
             private_key_count += 1
             self.log(Keys.to_visual_string(pubkey))
-        assert len(public_keys) == private_key_count, "Public and private keys must match"
+        assert len(public_keys) <= private_key_count, "Public and private keys must match"
 
         randoms_list = []
         for random_pieces in random_pieces_list:
-            assert private_key_count == len(random_pieces), "Amount of splits must match amount of public keys"
+            assert private_key_count >= len(random_pieces), "Amount of splits must match amount of public keys"
             random = decode_random(random_pieces, Keys.list_from_bytes(published_private_keys))
             randoms_list.append(random)
 
