@@ -11,6 +11,43 @@ from chain.immutability import Immutability
 from chain.skipped_block import SkippedBlock
 
 class TestImmutability(unittest.TestCase):
+    def test_zeta_calculation(self):
+        dag = Dag(0)
+        private = Private.generate()
+        prev_hash = dag.genesis_block().get_hash()
+        for i in range(1, 3):
+            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
+            signed_block = BlockFactory.sign_block(block, private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = block.get_hash()
+
+        #skip 3 blocks
+
+        for i in range(6, 8):
+            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
+            signed_block = BlockFactory.sign_block(block, private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = block.get_hash()
+
+        prev_hash = dag.blocks_by_number[1][0].get_hash()
+        for i in range(2, 10):
+            if i == 3: continue
+            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i + 1)
+            signed_block = BlockFactory.sign_block(block, private)
+            dag.add_signed_block(i, signed_block)
+            prev_hash = block.get_hash()
+
+        from visualization.dag_visualizer import DagVisualizer
+        DagVisualizer.visualize(dag, True)
+
+        immutability = Immutability(dag)
+        
+        zeta = immutability.calculate_zeta(dag.blocks_by_number[2][0].get_hash())
+        self.assertEqual(zeta, -1)
+
+        zeta = immutability.calculate_zeta(dag.blocks_by_number[6][1].get_hash())
+        self.assertEqual(zeta, 1)
+
 
     def test_confirmations_calculation(self):
         dag = Dag(0)
@@ -30,9 +67,6 @@ class TestImmutability(unittest.TestCase):
             signed_block = BlockFactory.sign_block(block, private)
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
-
-        from visualization.dag_visualizer import DagVisualizer
-        DagVisualizer.visualize(dag)
 
         immutability = Immutability(dag)
 
