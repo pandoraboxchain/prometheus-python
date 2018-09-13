@@ -8,9 +8,12 @@ class Validators():
 
     def __init__(self):
         self.validators = []
-        self.get_from_file()
+        self.signers_order = []
+        self.randomizers_order = []
 
-    def get_from_file(self):
+    @staticmethod #reads only pubkeys
+    def read_genesis_validators_from_file():
+        validators = []
         with open('validators') as f:
             lines = f.readlines()
 
@@ -19,12 +22,5 @@ class Validators():
             if len(decode)!=0:
                 key = RSA.importKey(decode)
                 validator = Validator(key, 100)
-                self.validators.append(validator)
-
-    def get_size(self):
-        return len(self.validators)
-
-    def get_by_i(self, i):
-        return self.validators[i]
-
-v = Validators()
+                validators.append(validator)
+        return validators

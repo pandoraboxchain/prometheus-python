@@ -12,20 +12,27 @@ from chain.params import SECRET_SHARE_PARTICIPANTS_COUNT
 
 class Permissions():
 
-    def __init__(self, epoch):
-        initial_validators = Validators()
+    def __init__(self, epoch, validators=Validators()):
+        initial_validators = validators.validators
+        if not initial_validators:
+            initial_validators = Validators.read_genesis_validators_from_file()
         self.epoch = epoch
         self.stake_manager = StakeManager(epoch)
         genesis_hash = self.epoch.dag.genesis_block().get_hash()
-        validator_count = len(initial_validators.validators)
-        initial_signers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.SIGNERS)
-        initial_randomizers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.RANDOMIZERS)
+        validator_count = len(initial_validators)
+        initial_signers_indexes = validators.signers_order
+        if not initial_signers_indexes:
+            initial_signers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.SIGNERS)
+
+        initial_randomizers_indexes = validators.randomizers_order
+        if not initial_randomizers_indexes:
+            initial_randomizers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.RANDOMIZERS)
 
         self.log("Initial signers:", initial_signers_indexes[0:3], initial_signers_indexes[3:6], initial_signers_indexes[6:9], initial_signers_indexes[9:12], initial_signers_indexes[12:15], initial_signers_indexes[15:19])
         self.log("Initial randomizers:", initial_randomizers_indexes)
 
         #init validators list and indexes, so we can build list of future validators based on this
-        self.epoch_validators = { genesis_hash : initial_validators.validators }
+        self.epoch_validators = { genesis_hash : initial_validators }
         self.signers_indexes = { genesis_hash : initial_signers_indexes }
         self.randomizers_indexes = { genesis_hash : initial_randomizers_indexes }
 

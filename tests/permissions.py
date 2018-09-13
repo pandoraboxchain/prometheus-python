@@ -22,7 +22,7 @@ class TestStakeActions(unittest.TestCase):
         dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
-        initial_validators = Validators().validators
+        initial_validators = Validators.read_genesis_validators_from_file()
 
         genesis_hash = dag.genesis_block().get_hash()
 
@@ -60,7 +60,7 @@ class TestStakeActions(unittest.TestCase):
         dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
-        initial_validators = Validators().validators
+        initial_validators = Validators.read_genesis_validators_from_file()
 
         genesis_hash = dag.genesis_block().get_hash()
         prev_hash = genesis_hash
@@ -99,7 +99,7 @@ class TestStakeActions(unittest.TestCase):
         dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
-        initial_validators = Validators().validators
+        initial_validators = Validators.read_genesis_validators_from_file()
 
         genesis_hash = dag.genesis_block().get_hash()
         prev_hash = genesis_hash
@@ -171,7 +171,7 @@ class TestStakeActions(unittest.TestCase):
         dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
-        initial_validators = Validators().validators
+        initial_validators = Validators.read_genesis_validators_from_file()
 
         genesis_hash = dag.genesis_block().get_hash()
         prev_hash = genesis_hash
