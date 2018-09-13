@@ -1,6 +1,6 @@
 from Crypto.Hash import SHA256
 import struct
-from transaction.transaction import TransactionParser
+from transaction.transaction_parser import TransactionParser
 
 class Block():
 

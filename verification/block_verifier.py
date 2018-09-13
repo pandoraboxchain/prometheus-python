@@ -1,6 +1,6 @@
 from Crypto.Hash import SHA256
 import struct
-from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
+from transaction.transaction_parser import CommitRandomTransaction, RevealRandomTransaction
 from crypto.dec_part_random import decode_random_using_raw_key
 
 class BlockVerifier():

@@ -18,7 +18,7 @@ from chain.merger import Merger
 from chain.behaviour import Behaviour
 from chain.validators import Validators
 from transaction.mempool import Mempool
-from transaction.transaction import TransactionParser
+from transaction.transaction_parser import TransactionParser
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
