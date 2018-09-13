@@ -57,40 +57,42 @@ class Node():
     def start(self):
         pass
 
+    def step(self):
+        current_block_number = self.epoch.get_current_timeframe_block_number()
+        if self.epoch.is_new_epoch_upcoming(current_block_number):
+            self.epoch.accept_tops_as_epoch_hashes()
+        
+        self.behaviour.update(Epoch.get_epoch_number(current_block_number))
+        current_round = self.epoch.get_round_by_block_number(current_block_number)
+        if current_round == Round.PUBLIC:
+            self.try_to_publish_public_key(current_block_number)
+        elif current_round == Round.SECRETSHARE:
+            self.try_to_share_random()
+        elif current_round == Round.PRIVATE:
+            #delete random if we published it in previous round
+            #real private key publish will happen when signing block
+            if hasattr(self, "self.last_epoch_random_published"):
+                del self.last_epoch_random_published
+            #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
+            self.mempool.remove_all_systemic_transactions()
+        elif current_round == Round.COMMIT:
+            self.try_to_commit_random()
+        elif current_round == Round.REVEAL:
+            self.try_to_reveal_random()
+                            
+        self.try_to_sign_block(current_block_number)
+
+        if self.behaviour.wants_to_hold_stake:
+            self.broadcast_stakehold_transaction()
+            self.behaviour.wants_to_hold_stake = False
+        
+        if self.behaviour.wants_to_release_stake:
+            self.broadcast_stakerelease_transaction()
+            self.behaviour.wants_to_release_stake = False
+
     async def run(self):
         while True:
-            current_block_number = self.epoch.get_current_timeframe_block_number()
-            if self.epoch.is_new_epoch_upcoming(current_block_number):
-                self.epoch.accept_tops_as_epoch_hashes()
-            
-            self.behaviour.update(Epoch.get_epoch_number(current_block_number))
-            current_round = self.epoch.get_round_by_block_number(current_block_number)
-            if current_round == Round.PUBLIC:
-                self.try_to_publish_public_key(current_block_number)
-            elif current_round == Round.SECRETSHARE:
-                self.try_to_share_random()
-            elif current_round == Round.PRIVATE:
-                #delete random if we published it in previous round
-                #real private key publish will happen when signing block
-                if hasattr(self, "self.last_epoch_random_published"):
-                    del self.last_epoch_random_published
-                #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
-                self.mempool.remove_all_systemic_transactions()
-            elif current_round == Round.COMMIT:
-                self.try_to_commit_random()
-            elif current_round == Round.REVEAL:
-                self.try_to_reveal_random()
-                              
-            self.try_to_sign_block(current_block_number)
-
-            if self.behaviour.wants_to_hold_stake:
-                self.broadcast_stakehold_transaction()
-                self.behaviour.wants_to_hold_stake = False
-            
-            if self.behaviour.wants_to_release_stake:
-                self.broadcast_stakerelease_transaction()
-                self.behaviour.wants_to_release_stake = False
-
+            self.step()
             await asyncio.sleep(1)
     
     def try_to_sign_block(self, current_block_number):        
