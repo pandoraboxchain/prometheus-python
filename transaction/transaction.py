@@ -1,6 +1,7 @@
-import struct
-from Crypto.Hash import SHA256
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
+from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
+
 from serialization.serializer import Serializer, Deserializer
 
 
@@ -16,7 +17,8 @@ class Type():
 
 class TransactionParser():
     def parse(raw_data):
-        tx_type = struct.unpack_from("B", raw_data)[0]
+        deserializer = Deserializer(raw_data)
+        tx_type = deserializer.parse_u8()
         if tx_type == Type.PUBLIC:
             tx = PublicKeyTransaction()
         elif tx_type == Type.RANDOM:
@@ -36,141 +38,32 @@ class TransactionParser():
             tx = PenaltyTransaction()
         else:
             assert False, "Cannot parse unknown transaction type"
-        tx.parse(raw_data[1:])
+        tx.parse(deserializer.data)
         return tx
 
     def pack(tx):
         raw = b''
         if isinstance(tx, PublicKeyTransaction):
-            raw += struct.pack("B", Type.PUBLIC)
+            raw += Serializer.write_u8(Type.PUBLIC)
         elif isinstance(tx, SplitRandomTransaction):
-            raw += struct.pack("B", Type.RANDOM)
+            raw += Serializer.write_u8(Type.RANDOM)
         elif isinstance(tx, PrivateKeyTransaction):
-            raw += struct.pack("B", Type.PRIVATE)
+            raw += Serializer.write_u8(Type.PRIVATE)
 
         elif isinstance(tx, CommitRandomTransaction):
-            raw += struct.pack("B", Type.COMMIT)
+            raw += Serializer.write_u8(Type.COMMIT)
         elif isinstance(tx, RevealRandomTransaction):
-            raw += struct.pack("B", Type.REVEAL)
+            raw += Serializer.write_u8(Type.REVEAL)
 
         elif isinstance(tx, StakeHoldTransaction):
-            raw += struct.pack("B", Type.STAKEHOLD)
+            raw += Serializer.write_u8(Type.STAKEHOLD)
         elif isinstance(tx, StakeReleaseTransaction):
-            raw += struct.pack("B", Type.STAKERELEASE)
+            raw += Serializer.write_u8(Type.STAKERELEASE)
         elif isinstance(tx, PenaltyTransaction):
-            raw += struct.pack("B", Type.PENALTY)
+            raw += Serializer.write_u8(Type.PENALTY)
         else:
             assert False, "Cannot pack unknown transaction type"
         raw += tx.pack()
         return raw
-
-class CommitRandomTransaction():
-    def parse(self, raw_data):
-        deserializer = Deserializer(raw_data)
-        self.rand = deserializer.parse_encrypted_data()
-        self.pubkey = deserializer.parse_pubkey()
-        self.signature = deserializer.parse_signature()
-        self.len = deserializer.get_len()
-    
-    def pack(self):
-        return  Serializer.write_encrypted_data(self.rand) + \
-                self.pubkey + \
-                Serializer.write_signature(self.signature)
-    
-    def get_len(self):
-        return self.len
-
-    #this hash includes epoch_hash for checking if random wasn't reused
-    def get_signing_hash(self, epoch_hash):
-        return SHA256.new(self.rand + self.pubkey + epoch_hash).digest()
-    
-    #this hash is for linking this transaction from reveal
-    def get_reference_hash(self):
-        return SHA256.new(self.pack() + Serializer.write_signature(self.signature)).digest()
-
-class RevealRandomTransaction():
-    def parse(self, raw_data):
-        deserializer = Deserializer(raw_data)
-        self.commit_hash = deserializer.parse_hash()
-        self.key = deserializer.parse_private_key()
-        self.len = deserializer.get_len()
-    
-    def pack(self):
-        raw = self.commit_hash
-        raw += Serializer.write_private_key(self.key)
-        return raw
-    
-    def get_len(self):
-        return self.len
-
-    def get_hash(self):
-        return SHA256.new(self.pack()).digest()
-
-class PublicKeyTransaction():
-    def get_hash(self):
-        return SHA256.new(self.generated_pubkey + self.pubkey).digest()
-
-    def parse(self, raw_data):
-        self.generated_pubkey = raw_data[:216]
-        self.pubkey = raw_data[216:432]
-        self.signature = int.from_bytes(raw_data[432:560], byteorder='big')
-    
-    def pack(self):
-        return self.generated_pubkey + self.pubkey + self.signature.to_bytes(128, byteorder='big')
-    
-    def get_len(self):
-        return 560
-
-class PrivateKeyTransaction():
-    def parse(self, raw_data):
-        key_length = struct.unpack_from("H", raw_data)[0]
-        self.len = 2 + key_length
-        self.key = raw_data[2:self.len]
-    
-    def pack(self):
-        raw = struct.pack("H", len(self.key))
-        raw += self.key
-        return raw
-    
-    def get_len(self):
-        return self.len
-
-    def get_hash(self):
-        return SHA256.new(self.pack()).digest()
-
-class SplitRandomTransaction():
-    def parse(self, raw_data):
-        self.signature = int.from_bytes(raw_data[0:128], byteorder='big')
-        self.pieces = []
-        pieces_len = struct.unpack_from("H", raw_data, 128)[0]
-        pieces_bytes = raw_data[130:]
-        self.len = 130
-        for i in range(0, pieces_len):
-            piece_size = struct.unpack_from("B", pieces_bytes)[0]
-            piece = pieces_bytes[1:piece_size + 1]
-            self.pieces.append(piece)
-            pieces_bytes = pieces_bytes[1 + piece_size:]
-            self.len += 1 + piece_size
-            
-    def pack(self):
-        raw = self.signature.to_bytes(128, byteorder='big')
-        raw += self.pack_pieces()
-        return raw
-    
-    def pack_pieces(self):
-        raw = struct.pack("H", len(self.pieces))
-        for piece in self.pieces:
-            raw += struct.pack("B", len(piece))
-            raw += piece
-        return raw
-    
-    def get_len(self):
-        return self.len
-
-    def get_signing_hash(self, epoch_hash):
-        return SHA256.new(self.pack_pieces() + epoch_hash).digest()
-
-    def get_reference_hash(self):
-        return SHA256.new(self.pack() + self.signature.to_bytes(128, byteorder='big')).digest()
 
 

@@ -1,7 +1,8 @@
 import unittest
 import os
 from chain.block import Block
-from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction, SplitRandomTransaction
+from transaction.secret_sharing_transactions import SplitRandomTransaction
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from transaction.transaction import TransactionParser
 
 from crypto.enc_random import enc_part_random

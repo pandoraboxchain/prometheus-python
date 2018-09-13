@@ -19,15 +19,14 @@ from chain.behaviour import Behaviour
 from chain.validators import Validators
 from transaction.mempool import Mempool
 from transaction.transaction import TransactionParser
-from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
+from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
-from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from verification.transaction_verifier import TransactionVerifier
 from verification.block_verifier import BlockVerifier
 from crypto.enc_random import enc_part_random
 from crypto.keys import Keys
 from crypto.private import Private
-from transaction.commits_set import CommitsSet
 from crypto.secret import split_secret, encode_splits, decode_random
 from gossip.gossip import NegativeGossip, PositiveGossip
 

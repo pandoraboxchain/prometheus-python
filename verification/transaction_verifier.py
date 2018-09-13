@@ -1,6 +1,7 @@
-import struct
 from Crypto.Hash import SHA256
-from transaction.transaction import PrivateKeyTransaction, PenaltyTransaction, PublicKeyTransaction
+from transaction.secret_sharing_transactions import PrivateKeyTransaction,  PublicKeyTransaction
+from transaction.stake_transaction import PenaltyTransaction
+
 from crypto.keys import Keys
 from chain.epoch import Epoch
 

@@ -1,7 +1,8 @@
 import unittest
 import os
 from chain.block import Block
-from transaction.transaction import SplitRandomTransaction, PrivateKeyTransaction, Type
+from transaction.secret_sharing_transactions import SplitRandomTransaction, PrivateKeyTransaction
+from transaction.transaction import Type
 from crypto.enc_random import enc_part_random
 from crypto.private import Private
 from crypto.keys import Keys

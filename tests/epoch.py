@@ -11,8 +11,8 @@ from chain.dag import Dag
 from chain.epoch import Epoch, RoundIter, BLOCK_TIME
 from chain.params import Round, Duration
 from chain.block_factory import BlockFactory
-from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
-from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
+from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from crypto.dec_part_random import dec_part_random
 from crypto.enc_random import enc_part_random
 from crypto.sum_random import sum_random, calculate_validators_indexes

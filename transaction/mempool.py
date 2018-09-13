@@ -1,7 +1,7 @@
-from chain.epoch import Round
-from transaction.transaction import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
+from chain.params import Round
+from transaction.secret_sharing_transactions import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
-from transaction.transaction import CommitRandomTransaction, RevealRandomTransaction
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 
 class Mempool():
 
