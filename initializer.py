@@ -54,7 +54,7 @@ class Initializer():
 
                 logger = logging.getLogger("Node " + str(i))
                 # uncomment the following line to enable logging only on specific node
-                if i != 13: logger.setLevel(logging.CRITICAL)
+                #if i != 13: logger.setLevel(logging.CRITICAL)
                 node = Node(genesis_creation_time=genesis_creation_time,
                             node_id=i,
                             network=network,

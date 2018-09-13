@@ -73,17 +73,15 @@ class Node():
             self.try_to_publish_public_key(current_block_number)
         elif current_round == Round.SECRETSHARE:
             self.try_to_share_random()
-        elif current_round == Round.PRIVATE:
-            #delete random if we published it in previous round
-            #real private key publish will happen when signing block
-            if hasattr(self, "self.last_epoch_random_published"):
-                del self.last_epoch_random_published
-            #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
-            self.mempool.remove_all_systemic_transactions()
+        #elif current_round == Round.PRIVATE:
+            #do nothing as private key should be included to block by block signer
         elif current_round == Round.COMMIT:
             self.try_to_commit_random()
         elif current_round == Round.REVEAL:
             self.try_to_reveal_random()
+        elif current_round == Round.FINAL:
+            #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
+            self.mempool.remove_all_systemic_transactions()
                             
         self.try_to_sign_block(current_block_number)
 

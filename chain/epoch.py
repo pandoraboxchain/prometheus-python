@@ -204,19 +204,30 @@ class Epoch():
         published_private_keys = self.filter_out_skipped_public_keys(private_keys, public_keys)
         random_pieces_list = self.get_random_splits_for_epoch(block_hash)
 
-        self.log("pubkeys")
-        for _, public_key in public_keys.items():
-            self.log(Keys.to_visual_string(public_key))
-        self.log("privkeys converted")
+        # self.log("pubkeys")
+        # for _, public_key in public_keys.items():
+            # self.log(Keys.to_visual_string(public_key))
+        # self.log("privkeys converted")
         private_key_count = 0
+        matching_keys_count = 0
         for key in published_private_keys:
             if not key:
-                self.log("None")
+                # self.log("None")
                 continue
             pubkey = Keys.from_bytes(key).publickey()
+            # self.log(Keys.to_visual_string(pubkey))
             private_key_count += 1
-            self.log(Keys.to_visual_string(pubkey))
-        assert len(public_keys) <= private_key_count, "Public and private keys must match"
+            if Keys.to_bytes(pubkey) in public_keys.values():
+                matching_keys_count += 1
+
+        pubkey_count = len(public_keys)
+        self.log("pubkey count", pubkey_count, "privkey count", private_key_count, "of them matching", matching_keys_count)
+        
+        #TODO we should have a special handling for when not enough keys was sent for each round
+        assert pubkey_count > 1, "Not enough public keys to decrypt random"
+        assert private_key_count > 1, "Not enough private keys to decrypt random"
+        assert pubkey_count >= int(private_key_count / 2) + 1, "Not enough public keys to decrypt random"
+        assert private_key_count >= int(pubkey_count / 2) + 1, "Not enough private keys to decrypt random"
 
         randoms_list = []
         for random_pieces in random_pieces_list:

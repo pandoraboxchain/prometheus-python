@@ -190,7 +190,6 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(expected_seed, seed)
 
     def test_epoch_number(self):
-        epoch = Epoch(Dag(0))
         self.assertEqual(Epoch.get_duration(), 19)
         self.assertEqual(Epoch.get_epoch_number(6), 1)
         self.assertEqual(Epoch.get_epoch_number(19), 1)
