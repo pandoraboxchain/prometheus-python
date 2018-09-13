@@ -4,7 +4,7 @@ from chain.block import Block
 from transaction.secret_sharing_transactions import SplitRandomTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from transaction.transaction_parser import TransactionParser
-
+from transaction.payment_transaction import PaymentTransaction
 from crypto.enc_random import enc_part_random
 from Crypto.Hash import SHA256
 from crypto.private import Private
@@ -52,7 +52,23 @@ class TestTransaction(unittest.TestCase):
         restored.parse(raw)
 
         self.assertEqual(original.get_reference_hash(), restored.get_reference_hash())        
-        self.assertEqual(original.get_signing_hash(b"epoch_hash"), restored.get_signing_hash(b"epoch_hash"))        
+        self.assertEqual(original.get_signing_hash(b"epoch_hash"), restored.get_signing_hash(b"epoch_hash"))
+
+    def test_payment_pack_unpack(self):
+        dummy_private = Private.generate()
+        original = PaymentTransaction()
+        original.from_tx = os.urandom(32)
+        original.amount = 123
+        original.to = os.urandom(32)
+        original.pubkey = Keys.to_bytes(dummy_private.publickey())
+        original.signature = Private.sign(original.get_hash(), dummy_private)
+
+        raw = original.pack()
+        restored = PaymentTransaction()
+        restored.parse(raw)
+
+        self.assertEqual(original.get_hash(), restored.get_hash())       
+     
 
 
 

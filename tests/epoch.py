@@ -166,7 +166,7 @@ class TestEpoch(unittest.TestCase):
             revealing_key = Keys.from_bytes(reveal.key)
             encrypted_bytes = revealing_key.publickey().encrypt(random_bytes, 32)[0]
             decrypted_bytes = revealing_key.decrypt(encrypted_bytes)
-            self.assertEqual(decrypted_bytes, random_bytes)
+            self.assertEqual(decrypted_bytes, random_bytes) #TODO check if encryption decryption can work million times in a row
 
             revealed_value = revealing_key.decrypt(commit.rand)
             self.assertEqual(revealed_value, random_bytes)
