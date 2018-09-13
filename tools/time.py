@@ -22,7 +22,7 @@ class Time:
         current_test_time += seconds
 
     @staticmethod
-    def advance_block_time():
+    def advance_to_next_timeslot():
         global current_test_time
         current_test_time += BLOCK_TIME
      

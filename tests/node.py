@@ -19,7 +19,7 @@ class TestNode(unittest.TestCase):
         Time.set_current_time(7)
         self.assertEqual(Time.get_current_time(), 7)
         
-        Time.advance_block_time()
+        Time.advance_to_next_timeslot()
         self.assertEqual(Time.get_current_time(), 11)
 
     def test_block_sign(self):
@@ -40,7 +40,7 @@ class TestNode(unittest.TestCase):
         dag = node.dag
 
         node.step()
-        Time.advance_block_time()
+        Time.advance_to_next_timeslot()
         self.assertEqual(len(dag.blocks_by_hash), 1)
 
         node.step()
@@ -73,14 +73,14 @@ class TestNode(unittest.TestCase):
                     validators=validators)
         network.register_node(node1)
 
-        Time.advance_block_time()
+        Time.advance_to_next_timeslot()
         node0.step()
 
         tops = node1.dag.get_top_blocks_hashes()
         pubkeys = node1.epoch.get_public_keys_for_epoch(tops[0])
         self.assertEqual(len(pubkeys), 0)
 
-        Time.advance_block_time()
+        Time.advance_to_next_timeslot()
         node1.step()
 
         tops = node1.dag.get_top_blocks_hashes()
