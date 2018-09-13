@@ -12,5 +12,6 @@ from tests.permissions import *
 from tests.test_gossip import *
 from tests.random import *
 from tests.immutability import *
+from tests.node import *
 
 unittest.main()
