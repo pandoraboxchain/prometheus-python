@@ -45,9 +45,13 @@ class Initializer():
             
             for i in range(0, 19):
                 behaviour = Behaviour()
+
+                if i==7:
+                    behaviour.malicious_wrong_signature = True
+
                 logger = logging.getLogger("Node " + str(i))
                 # uncomment the following line to enable logging only on specific node
-                # if i != 13: logger.setLevel(logging.CRITICAL)
+                if i != 13: logger.setLevel(logging.CRITICAL)
                 node = Node(genesis_creation_time, i, network, logger, private_keys.block_signers[i], behaviour)
 
                 if i == 0: node_to_visualize_after_exit = node

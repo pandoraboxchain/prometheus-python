@@ -1,18 +1,32 @@
 import struct
 from Crypto.Hash import SHA256
-from transaction.transaction import PrivateKeyTransaction, PenaltyTransaction
+from transaction.transaction import PrivateKeyTransaction, PenaltyTransaction, PublicKeyTransaction
 from crypto.keys import Keys
 from chain.epoch import Epoch
 
 class TransactionVerifier():
-    def __init__(self, epoch):
+    def __init__(self, epoch, permissions, epoch_block_number):
         self.epoch = epoch
+        self.permissions = permissions
+        self.epoch_block_number = epoch_block_number
 
     def check_if_valid(self, transaction):
         if isinstance(transaction, PrivateKeyTransaction): #do not accept to mempool, because its block only tx
             return False
         elif isinstance(transaction, PenaltyTransaction): #do not accept to mempool, because its block only tx
             return False
+
+        elif isinstance(transaction, PublicKeyTransaction):
+            epoch_hashes = self.epoch.get_epoch_hashes()
+            for _top, epoch_hash in epoch_hashes.items():
+                pubkey_publishers = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash)
+                allowed_pubkey = False
+                for pubkey_publisher in pubkey_publishers:
+                    if pubkey_publisher.public_key == Keys.from_bytes(transaction.pubkey):
+                        allowed_pubkey = True
+                
+                if allowed_pubkey == False:
+                    return False
         
         if hasattr(transaction, "pubkey"):
             public_key = Keys.from_bytes(transaction.pubkey)

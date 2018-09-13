@@ -169,6 +169,9 @@ class Node():
                 tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
                 tx.pubkey = Keys.to_bytes(node_private.publickey())
                 tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+                if self.behaviour.malicious_wrong_signature:
+                    tx.signature+=1
+                    
                 self.epoch_private_keys.append(generated_private)
                 self.logger.debug("Broadcasted public key")
                 self.logger.debug(Keys.to_visual_string(tx.generated_pubkey))
@@ -305,7 +308,9 @@ class Node():
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
-        verifier = TransactionVerifier(self.epoch)
+        current_block_number = self.epoch.get_current_timeframe_block_number()
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
+        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number) #TODO: add public key knowledge (permission )
         #print("Node ", self.node_id, "received transaction with hash", transaction.get_hash().hexdigest(), " from node ", node_id)
         if verifier.check_if_valid(transaction):
            # print("It is valid. Adding to mempool")
