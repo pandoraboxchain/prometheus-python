@@ -55,7 +55,7 @@ class Dag():
             for block_by_number in block_list_by_number:
                 if block_by_number.block.get_hash() == block_hash:
                     return number
-        assert False, "Cannot find block number"
+        assert False, "Cannot find block number for hash %r" % block_hash.hex()
         return -1
     
     def calculate_chain_length(self, top_block_hash):
