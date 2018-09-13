@@ -348,3 +348,18 @@ class TestEpoch(unittest.TestCase):
         reveal.key = Keys.to_bytes(private)
 
         return (commit, reveal)
+    
+    def test_find_epoch_hash_for_block(self):
+        dag = Dag(0)
+        epoch = Epoch(dag)
+        genesis_hash = dag.genesis_block().get_hash()
+        genesis_epoch_hash = epoch.find_epoch_hash_for_block(genesis_hash)
+        self.assertEqual(genesis_hash, genesis_epoch_hash)
+
+        block = BlockFactory.create_block_with_timestamp([genesis_hash], BLOCK_TIME)
+        signed_block = BlockFactory.sign_block(block, Private.generate())
+        dag.add_signed_block(1, signed_block)
+        first_block_hash = block.get_hash()
+
+        first_epoch_hash = epoch.find_epoch_hash_for_block(first_block_hash)
+        self.assertEqual(genesis_hash, first_epoch_hash)
