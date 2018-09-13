@@ -55,7 +55,11 @@ class Initializer():
                 logger = logging.getLogger("Node " + str(i))
                 # uncomment the following line to enable logging only on specific node
                 if i != 13: logger.setLevel(logging.CRITICAL)
-                node = Node(genesis_creation_time, i, network, logger, private_keys.block_signers[i], behaviour)
+                node = Node(genesis_creation_time=genesis_creation_time,
+                            node_id=i,
+                            network=network,
+                            block_signer=private_keys.block_signers[i],
+                            logger=logger)
 
                 if i == 0: node_to_visualize_after_exit = node
                 network.register_node(node)
@@ -66,7 +70,11 @@ class Initializer():
                 behaviour.wants_to_hold_stake = True
                 behaviour.epoch_to_release_stake = 2
                 logger = logging.getLogger("Node " + str(i))
-                keyless_node = Node(genesis_creation_time, i, network, logger, None, behaviour)
+                keyless_node = Node(genesis_creation_time=genesis_creation_time,
+                    node_id=i,
+                    network=network,
+                    block_signer=private_keys.block_signers[i],
+                    logger=logger)
                 network.register_node(keyless_node)
                 tasks.append(keyless_node.run())
 

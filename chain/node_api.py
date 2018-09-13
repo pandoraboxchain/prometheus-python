@@ -1,6 +1,8 @@
 class NodeApi():
 
-    nodes = []
+    def __init__(self):
+        self.nodes = []
+        
     def register_node(self, node):
         self.nodes.append(node)
 

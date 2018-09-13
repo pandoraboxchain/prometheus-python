@@ -132,8 +132,8 @@ class Epoch():
             if block:
                 for tx in block.block.system_txs:
                     if isinstance(tx, PublicKeyTransaction):
-                        if tx.pubkey in public_keys:
-                            assert False, "One sender published more than one public key. Aborting"
+                        # if tx.pubkey in public_keys: #TODO move this thing into BlockVerifier
+                        #     assert False, "One sender published more than one public key. Aborting"
                         public_keys[tx.pubkey] = tx.generated_pubkey
                         
         return public_keys

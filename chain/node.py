@@ -15,6 +15,8 @@ from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, Duration
 from chain.merger import Merger
+from chain.behaviour import Behaviour
+from chain.validators import Validators
 from transaction.mempool import Mempool
 from transaction.transaction import TransactionParser
 from transaction.transaction import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
@@ -29,20 +31,25 @@ from transaction.commits_set import CommitsSet
 from crypto.secret import split_secret, encode_splits, decode_random
 from gossip.gossip import NegativeGossip, PositiveGossip
 
+class DummyLogger(object):
+    def __getattr__(self, name):
+        return lambda *x: None
+
 class Node():
     
-    def __init__(self, genesis_creation_time, node_id, network, logger, block_signer, behaviour):
+    def __init__(self, genesis_creation_time, node_id, network,
+                block_signer=BlockSigner(Private.generate()),
+                validators=Validators(),
+                behaviour=Behaviour(),
+                logger=DummyLogger()):
         self.logger = logger
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
         self.epoch.set_logger(self.logger)
         self.dag.subscribe_to_new_block_notification(self.epoch)
-        self.permissions = Permissions(self.epoch)
+        self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
         self.behaviour = behaviour
-
-        if not block_signer:
-            block_signer = BlockSigner(Private.generate())
 
         self.block_signer = block_signer
         self.logger.info("Public key is %s", Keys.to_visual_string(block_signer.private_key.publickey()))
