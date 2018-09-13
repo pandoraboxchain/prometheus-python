@@ -6,13 +6,15 @@ from chain.epoch import BLOCK_TIME
 from chain.behaviour import Behaviour
 from crypto.private import Private
 from tools.announcer_node import AnnouncerNode
+from tools.time import Time
 
-import datetime
+from tools.time import Time
 import time
 import asyncio
 import logging
 import sys
 import importlib
+import datetime
 
 #you can set node to visualize its DAG as soon as Ctrl-C pressed
 def save_dag_to_graphviz(dag_to_visualize):
@@ -31,7 +33,8 @@ class Initializer():
             logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
 
-            genesis_creation_time = int(datetime.datetime.now().timestamp() - BLOCK_TIME) #so we start right from the first block
+            Time.set_current_time(int(datetime.datetime.now().timestamp()))
+            genesis_creation_time = Time.get_current_time() - BLOCK_TIME #so we start right from the first block
 
             private_keys = BlockSigners()
 

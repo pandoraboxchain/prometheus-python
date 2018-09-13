@@ -1,4 +1,4 @@
-import datetime
+from tools.time import Time
 import operator
 from crypto.keys import Keys
 from chain.dag import Dag

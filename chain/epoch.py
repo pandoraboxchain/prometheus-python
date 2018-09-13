@@ -1,4 +1,4 @@
-import datetime
+from tools.time import Time
 from transaction.commits_set import CommitsSet
 from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_indexes
@@ -22,7 +22,7 @@ class Epoch():
         self.logger = logger
 
     def get_current_timeframe_block_number(self):
-        return self.get_block_number_from_timestamp(int(datetime.datetime.now().timestamp()))
+        return self.get_block_number_from_timestamp(Time.get_current_time())
 
     def get_block_number_from_timestamp(self, timestamp):
         time_diff = timestamp - self.dag.genesis_block().timestamp

@@ -1,13 +1,13 @@
 from chain.block import Block
 from chain.signed_block import SignedBlock
-import datetime
+from tools.time import Time
 
 class BlockFactory():
 
     def create_block_dummy(prev_hashes):
         block = Block()
         block.prev_hashes = prev_hashes
-        block.timestamp = int(datetime.datetime.now().timestamp())
+        block.timestamp = Time.get_current_time()
         block.system_txs = []
         return block
 

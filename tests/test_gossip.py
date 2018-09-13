@@ -1,6 +1,6 @@
 import unittest
 import os
-import datetime
+from tools.time import Time
 from crypto.private import Private
 from crypto.keys import Keys
 from gossip.gossip import PositiveGossip, NegativeGossip
@@ -13,7 +13,7 @@ class TestGossip(unittest.TestCase):
         private = Private.generate()
         original = PositiveGossip()
         original.node_public_key = Keys.to_bytes(private.publickey())
-        original.timestamp = int(datetime.datetime.now().timestamp())
+        original.timestamp = Time.get_current_time()
 
         block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
         original.block = BlockFactory.sign_block(block, private)
@@ -29,7 +29,7 @@ class TestGossip(unittest.TestCase):
         private = Private.generate()
         original = NegativeGossip()
         original.node_public_key = Keys.to_bytes(private.publickey())
-        original.timestamp = int(datetime.datetime.now().timestamp())
+        original.timestamp = Time.get_current_time()
         original.number_of_block = 47
         original.signature = private.sign(original.get_hash(), 0)[0]
 
