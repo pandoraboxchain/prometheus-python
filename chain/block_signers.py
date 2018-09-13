@@ -16,6 +16,5 @@ class BlockSigners():
             decode = b64decode(line)
             if len(decode)!=0:
                 key = RSA.importKey(decode)
-                block_signer = BlockSigner()
-                block_signer.set_private_key(key)
+                block_signer = BlockSigner(key)
                 self.block_signers.append(block_signer)

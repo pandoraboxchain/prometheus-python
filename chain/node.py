@@ -42,8 +42,7 @@ class Node():
         self.behaviour = behaviour
 
         if not block_signer:
-            block_signer = BlockSigner()
-            block_signer.set_private_key(Private.generate())
+            block_signer = BlockSigner(Private.generate())
 
         self.block_signer = block_signer
         self.logger.info("Public key is %s", Keys.to_visual_string(block_signer.private_key.publickey()))

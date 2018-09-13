@@ -3,8 +3,8 @@ from Crypto.PublicKey import RSA
 
 class BlockSigner():
 
-    def __init__(self):
-        self.validators = []
+    def __init__(self, private_key):
+        self.private_key = private_key
 
     def set_private_key(self, private_key):
         self.private_key = private_key
