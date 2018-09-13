@@ -18,15 +18,12 @@ class Immutability:
         import sys
         max_zeta = -sys.maxsize - 1  #TODO replace with reasonable number
 
-        print("block hash", block_hash.hex()[0:6])
-
         tops = self.dag.get_top_blocks_hashes()
         for top in tops:
             zeta = 0
             iterator = ChainIter(self.dag, top)
             consecutive_skips = 0
             consecutive_blocks = 0
-            print("top", top.hex()[0:6])
             for block in iterator:
                 if block:
                     if block.get_hash() == block_hash:
@@ -48,9 +45,6 @@ class Immutability:
                     zeta += 1
                     consecutive_blocks = 0
 
-            print("zeta is", zeta)
-
-        print("max zeta is", max_zeta)
         return max_zeta
 
     def calculate_confirmations(self, block_hash):

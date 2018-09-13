@@ -94,15 +94,6 @@ class Dag():
 
         return top_blocks[max_length_index]
 
-    def pretty_print(self):
-        count = max(self.blocks_by_number.keys())
-        for i in range(0, count):
-            if i in self.blocks_by_number:
-                for block in self.blocks_by_number[i]:
-                    print("|", block.block.get_hash().hex()[:5])
-            else:
-                print("None")
-
     def subscribe_to_new_block_notification(self, listener):
         self.new_block_listeners.append(listener)
 
