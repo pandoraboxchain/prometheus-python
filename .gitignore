@@ -1,0 +1,9 @@
+env/*
+*.pyc
+*.pyo
+.vscode/*
+.idea/*
+tags
+src/core/visualization/*.dot
+src/core/visualization/*.pdf
+src/core/visualization/*.png
