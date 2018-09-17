@@ -1,0 +1,38 @@
+digraph DAG {
+	node [shape=box style=rounded]
+	rankdir=RL
+	{
+		rank=same
+		a0ed11 [color=blue]
+	}
+	{
+		rank=same
+		b877ef [color=black]
+	}
+	{
+		rank=same
+		"7a1516" [color=black]
+	}
+	{
+		rank=same
+		"8d7b49" [color=black]
+	}
+	{
+		rank=same
+		"3e058e" [color=black]
+	}
+	{
+		rank=same
+		459775 [color=black]
+	}
+	{
+		rank=same
+		c95109 [color=black]
+	}
+	b877ef -> a0ed11 [constraint=true]
+	"7a1516" -> b877ef [constraint=true]
+	"8d7b49" -> "7a1516" [constraint=true]
+	"3e058e" -> "8d7b49" [constraint=true]
+	459775 -> "3e058e" [constraint=true]
+	c95109 -> 459775 [constraint=true]
+}
