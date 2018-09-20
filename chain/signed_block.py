@@ -4,6 +4,10 @@ import chain
 
 class SignedBlock:
 
+    def __init__(self):
+        self.signature = None
+        self.block = None
+
     def get_hash(self):
         return self.block.get_hash()
 

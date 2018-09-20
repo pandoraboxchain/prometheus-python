@@ -1,22 +1,18 @@
-from chain.node import Node
-from chain.node_api import NodeApi
-from chain.block_signers import BlockSigners
-from chain.block_signer import BlockSigner
-from chain.epoch import BLOCK_TIME
-from chain.behaviour import Behaviour
-from crypto.private import Private
-from tools.announcer_node import AnnouncerNode
-from tools.time import Time
-
-from tools.time import Time
-import time
 import asyncio
 import logging
-import sys
 import importlib
 import datetime
 
-#you can set node to visualize its DAG as soon as Ctrl-C pressed
+from chain.node import Node
+from chain.node_api import NodeApi
+from chain.block_signers import BlockSigners
+from chain.epoch import BLOCK_TIME
+from chain.behaviour import Behaviour
+from tools.announcer_node import AnnouncerNode
+from tools.time import Time
+
+
+# you can set node to visualize its DAG as soon as Ctrl-C pressed
 def save_dag_to_graphviz(dag_to_visualize):
     graphviz_import = importlib.util.find_spec("graphviz")
     graphviz_lib_installed = graphviz_import is not None
@@ -24,17 +20,18 @@ def save_dag_to_graphviz(dag_to_visualize):
         from visualization.dag_visualizer import DagVisualizer
         DagVisualizer.visualize(dag_to_visualize)
 
-class Initializer(): 
+
+class Initializer:
 
     def __init__(self):
         node_to_visualize_after_exit = None
         try:
             # set up logging to file - see previous section for more details
             logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
+                                format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
 
             Time.set_current_time(int(datetime.datetime.now().timestamp()))
-            genesis_creation_time = Time.get_current_time() - BLOCK_TIME #so we start right from the first block
+            genesis_creation_time = Time.get_current_time() - BLOCK_TIME  # so we start right from the first block
 
             private_keys = BlockSigners()
 
@@ -54,7 +51,7 @@ class Initializer():
 
                 logger = logging.getLogger("Node " + str(i))
                 # uncomment the following line to enable logging only on specific node
-                #if i != 13: logger.setLevel(logging.CRITICAL)
+                # if i != 13: logger.setLevel(logging.CRITICAL)
                 node = Node(genesis_creation_time=genesis_creation_time,
                             node_id=i,
                             network=network,
@@ -71,10 +68,10 @@ class Initializer():
                 behaviour.epoch_to_release_stake = 2
                 logger = logging.getLogger("Node " + str(i))
                 keyless_node = Node(genesis_creation_time=genesis_creation_time,
-                    node_id=i,
-                    network=network,
-                    block_signer=private_keys.block_signers[i],
-                    logger=logger)
+                                    node_id=i,
+                                    network=network,
+                                    block_signer=private_keys.block_signers[i],
+                                    logger=logger)
                 network.register_node(keyless_node)
                 tasks.append(keyless_node.run())
 

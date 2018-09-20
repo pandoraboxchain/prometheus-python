@@ -1,14 +1,11 @@
 import unittest
-import os
-from chain.block import Block
-from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.dag import Dag
 from crypto.private import Private
 from chain.epoch import BLOCK_TIME
-from chain.merger import Merger
 from chain.immutability import Immutability
 from chain.skipped_block import SkippedBlock
+
 
 class TestImmutability(unittest.TestCase):
     def test_zeta_calculation(self):
@@ -74,7 +71,7 @@ class TestImmutability(unittest.TestCase):
 
         immutability = Immutability(dag)
 
-        #first branch check
+        # first branch check
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[8][0].get_hash())
         self.assertEqual(confirmations, 0)
 
@@ -92,7 +89,7 @@ class TestImmutability(unittest.TestCase):
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[4][0].get_hash())
         self.assertEqual(confirmations, 2)
 
-        #second branch check
+        # second branch check
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[4][1].get_hash())
         self.assertEqual(confirmations, 0)
         
@@ -103,16 +100,10 @@ class TestImmutability(unittest.TestCase):
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[2][1].get_hash())
         self.assertEqual(confirmations, 1)
 
-        #common ancestor
-        #four existing blocks in the following five slots
+        # common ancestor
+        # four existing blocks in the following five slots
         confirmations = immutability.calculate_confirmations(dag.blocks_by_number[1][0].get_hash())
         self.assertEqual(confirmations, 4)
 
         # self.assertEqual(conflicts[0], other_block2.get_hash())
 
-
-
-        
-
-
-        

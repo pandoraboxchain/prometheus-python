@@ -1,6 +1,5 @@
 import unittest
-import os
-from chain.block import Block
+
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 from chain.epoch import Epoch, BLOCK_TIME
 from chain.dag import Dag
@@ -11,7 +10,6 @@ from chain.block_factory import BlockFactory
 from chain.validators import Validators
 from tests.test_chain_generator import TestChainGenerator
 
-from Crypto.Hash import SHA256
 
 class TestStakeActions(unittest.TestCase):
 
@@ -38,8 +36,8 @@ class TestStakeActions(unittest.TestCase):
         dag.add_signed_block(last_block_number, signed_block)
 
         initial_validators_order = permissions.get_signers_indexes(genesis_hash)
-        #we substract two here: one because it is last but one block
-        #and one, because epoch starts from 1
+        # we substract two here: one because it is last but one block
+        # and one, because epoch starts from 1
         validator_index_to_penalize = initial_validators_order[last_block_number - 2]
 
         resulting_validators = permissions.get_validators(block.get_hash())
@@ -89,7 +87,6 @@ class TestStakeActions(unittest.TestCase):
             pub_keys.append(validator.public_key)
 
         self.assertIn(node_new_private.publickey(), pub_keys)
-
 
     def test_release_stake(self):
         # base initialization

@@ -4,6 +4,7 @@ from crypto.secret import split_secret, recover_splits, encode_splits, decode_ra
 from crypto.private import Private
 from crypto.keys import Keys
 
+
 class TestSecretSharing(unittest.TestCase):
 
     def test_sharing(self):
@@ -41,4 +42,4 @@ class TestSecretSharing(unittest.TestCase):
         decoded_random = decode_random(encoded_splits, decoded_private_keys)
 
         self.assertEqual(random_value, decoded_random)
-        
+

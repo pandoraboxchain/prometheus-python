@@ -1,8 +1,9 @@
 from chain.block_signer import BlockSigner
-from base64 import b64decode,b64encode
+from base64 import b64decode
 from Crypto.PublicKey import RSA
 
-class BlockSigners():
+
+class BlockSigners:
 
     def __init__(self):
         self.block_signers = []
@@ -14,7 +15,7 @@ class BlockSigners():
 
         for line in lines:
             decode = b64decode(line)
-            if len(decode)!=0:
+            if len(decode) != 0:
                 key = RSA.importKey(decode)
                 block_signer = BlockSigner(key)
                 self.block_signers.append(block_signer)

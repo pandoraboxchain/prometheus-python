@@ -1,19 +1,14 @@
 import unittest
-import random
 import os
 
-from Crypto.Hash import SHA256
-from base64 import b64encode
-
 from chain.block import Block
-from chain.signed_block import SignedBlock
 from chain.dag import Dag
 from chain.epoch import Epoch, RoundIter, BLOCK_TIME
-from chain.params import Round, Duration
+from chain.params import Round
 from chain.block_factory import BlockFactory
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
-from crypto.sum_random import sum_random, calculate_validators_indexes
+from crypto.sum_random import sum_random
 from crypto.private import Private
 from crypto.public import Public
 from crypto.secret import split_secret, encode_splits, decode_random
@@ -21,6 +16,7 @@ from crypto.keys import Keys
 from chain.params import ROUND_DURATION
 
 from tests.test_chain_generator import TestChainGenerator
+
 
 class TestEpoch(unittest.TestCase):
 
@@ -165,7 +161,8 @@ class TestEpoch(unittest.TestCase):
             revealing_key = Keys.from_bytes(reveal.key)
             encrypted_bytes = Public.encrypt(random_bytes, revealing_key.publickey())
             decrypted_bytes = Private.decrypt(encrypted_bytes, revealing_key)
-            self.assertEqual(decrypted_bytes, random_bytes) #TODO check if encryption decryption can work million times in a row
+            # TODO check if encryption decryption can work million times in a row
+            self.assertEqual(decrypted_bytes, random_bytes)
 
             revealed_value = Private.decrypt(commit.rand, revealing_key)
             self.assertEqual(revealed_value, random_bytes)
@@ -302,7 +299,7 @@ class TestEpoch(unittest.TestCase):
             prev_hash = block.get_hash()
 
         generated_private_keys = []
-        for i in range(round_start, round_end): #intentionally skip last block of round
+        for i in range(round_start, round_end):  # intentionally skip last block of round
             generated_private = Private.generate()
             generated_private_keys.append(Keys.to_bytes(generated_private))
 
@@ -326,7 +323,7 @@ class TestEpoch(unittest.TestCase):
         self.assertEqual(extracted_privates[1], generated_private_keys[1])
         self.assertEqual(extracted_privates[2], None)
 
-    #TODO use method for creating commit-reveal pair from Node.py
+    # TODO use method for creating commit-reveal pair from Node.py
     @staticmethod
     def create_dummy_commit_reveal(random_bytes, epoch_hash):
         node_private = Private.generate()
@@ -345,7 +342,7 @@ class TestEpoch(unittest.TestCase):
         reveal.commit_hash = commit.get_reference_hash()
         reveal.key = Keys.to_bytes(private)
 
-        return (commit, reveal)
+        return commit, reveal
     
     def test_find_epoch_hash_for_block(self):
         dag = Dag(0)

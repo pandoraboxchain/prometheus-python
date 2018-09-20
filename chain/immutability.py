@@ -1,22 +1,24 @@
 from chain.dag import Dag, ChainIter
-from chain.params import ZETA, ZETA_MAX, ZETA_MIN
-from chain.skipped_block import SkippedBlock
+from chain.params import ZETA
 
 CONSECUTIVE_CONST = 3
+
 
 class Immutability:
     def __init__(self, dag: Dag):
         self.dag = dag
 
-    def is_block_immutable(self, block_hash):
+    @staticmethod
+    def is_block_immutable():
         return False
 
-    def is_skip_immutable(self, skipped_block: SkippedBlock):
+    @staticmethod
+    def is_skip_immutable():
         return False
 
     def calculate_zeta(self, block_hash):
         import sys
-        max_zeta = -sys.maxsize - 1  #TODO replace with reasonable number
+        max_zeta = -sys.maxsize - 1  # TODO replace with reasonable number
 
         tops = self.dag.get_top_blocks_hashes()
         for top in tops:
@@ -57,8 +59,8 @@ class Immutability:
             branch_confirmations = 0
             chain_iter = ChainIter(self.dag, top)
             for block in chain_iter:
-                if chain_iter.block_number == block_number: #if we counted enough
-                    if block.get_hash() == block_hash: #if we counted on the branch including target block
+                if chain_iter.block_number == block_number:  # if we counted enough
+                    if block.get_hash() == block_hash:  # if we counted on the branch including target block
                         confirmations.append(branch_confirmations)
                     break
                 if block:
@@ -68,7 +70,7 @@ class Immutability:
 
     def calculate_skipped_block_confirmations(self, skipped_block):
         confirmations = self.calculate_confirmations(skipped_block.anchor_block_hash)
-        #because anchor block is not counted in calculate_zeta we increase this value by one
+        # because anchor block is not counted in calculate_zeta we increase this value by one
         return confirmations + 1
 
 

@@ -1,4 +1,4 @@
-class HardPenalty():
+class HardPenalty:
 
     def __init__(self, size):
         self.type = "hard"

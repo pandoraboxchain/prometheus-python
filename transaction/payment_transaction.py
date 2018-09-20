@@ -1,16 +1,18 @@
 from Crypto.Hash import SHA256
 from serialization.serializer import Serializer, Deserializer
 
-class PaymentTransaction():
+
+class PaymentTransaction:
     def __init__(self):
-        self.from_tx = None #transaction hash
+        self.from_tx = None  # transaction hash
         self.amount = None
-        self.to = None #public key hash
+        self.to = None  # public key hash
         self.pubkey = None
         self.signature = None
+        self.len = None
 
     def get_hash(self):
-        #TODO find out if it is safe to use unsigned here
+        # TODO find out if it is safe to use unsigned here
         return SHA256.new(self.pack_unsigned()).digest()
 
     def parse(self, raw_data):

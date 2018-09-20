@@ -1,15 +1,10 @@
 import time
 import asyncio
 import os
-import logging
 
-from base64 import b64decode,b64encode
-
-from chain.node_api import NodeApi
 from chain.dag import Dag
 from chain.epoch import Round, Epoch
 from chain.block_signer import BlockSigner
-from chain.block_signers import BlockSigners
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
@@ -17,18 +12,17 @@ from chain.params import Round, Duration
 from chain.merger import Merger
 from chain.behaviour import Behaviour
 from chain.validators import Validators
+from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from verification.transaction_verifier import TransactionVerifier
-from verification.block_verifier import BlockVerifier
-from crypto.enc_random import enc_part_random
 from crypto.keys import Keys
 from crypto.private import Private
-from crypto.secret import split_secret, encode_splits, decode_random
-from gossip.gossip import NegativeGossip, PositiveGossip
+from crypto.secret import split_secret, encode_splits
+
 
 class DummyLogger(object):
     def __getattr__(self, name):
@@ -72,6 +66,7 @@ class Node:
         self.behaviour.update(Epoch.get_epoch_number(current_block_number))
 
         # check current block number by local dag length
+        # TODO refactor send negative gossip condition
         if current_block_number > len(self.dag.blocks_by_number):
             self.broadcast_gossip_negative(current_block_number)
 
@@ -436,4 +431,6 @@ class Node:
         reveal.commit_hash = commit.get_reference_hash()
         reveal.key = Keys.to_bytes(private)
 
-        return (commit, reveal)
+        return commit, reveal
+
+

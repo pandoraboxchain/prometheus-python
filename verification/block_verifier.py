@@ -1,6 +1,6 @@
-from Crypto.Hash import SHA256
-from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 
-class BlockVerifier():
+
+class BlockVerifier:
+    @staticmethod
     def check_if_valid(block, commits_set):
         return True

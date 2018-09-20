@@ -1,5 +1,6 @@
 from enum import IntEnum
 
+
 class Round(IntEnum):
     PUBLIC = 0
     COMMIT = 1
@@ -9,8 +10,9 @@ class Round(IntEnum):
     FINAL = 5
     INVALID = 6
 
-#in blocks
-class Duration():
+
+# in blocks
+class Duration:
     PUBLIC = 3
     COMMIT = 3
     SECRETSHARE = 3

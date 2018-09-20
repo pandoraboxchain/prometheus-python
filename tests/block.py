@@ -2,11 +2,11 @@ import unittest
 import os
 from chain.block import Block
 from transaction.secret_sharing_transactions import SplitRandomTransaction, PrivateKeyTransaction
-from transaction.transaction_parser import Type
 from crypto.private import Private
 from crypto.keys import Keys
 
 from Crypto.Hash import SHA256
+
 
 class TestBlock(unittest.TestCase):
 
@@ -31,4 +31,4 @@ class TestBlock(unittest.TestCase):
         self.assertEqual(original_block.get_hash(), restored.get_hash())
         self.assertEqual(tx.get_reference_hash(), restored.system_txs[0].get_reference_hash())
         self.assertEqual(pktx.get_hash(), restored.system_txs[1].get_hash())
-        
+

@@ -10,7 +10,8 @@ from crypto.keys import Keys
 from crypto.entropy import Source, Entropy
 from chain.params import SECRET_SHARE_PARTICIPANTS_COUNT
 
-class Permissions():
+
+class Permissions:
 
     def __init__(self, epoch, validators=Validators()):
         initial_validators = validators.validators
@@ -31,7 +32,7 @@ class Permissions():
         self.log("Initial signers:", initial_signers_indexes[0:3], initial_signers_indexes[3:6], initial_signers_indexes[6:9], initial_signers_indexes[9:12], initial_signers_indexes[12:15], initial_signers_indexes[15:19])
         self.log("Initial randomizers:", initial_randomizers_indexes)
 
-        #init validators list and indexes, so we can build list of future validators based on this
+        # init validators list and indexes, so we can build list of future validators based on this
         self.epoch_validators = { genesis_hash : initial_validators }
         self.signers_indexes = { genesis_hash : initial_signers_indexes }
         self.randomizers_indexes = { genesis_hash : initial_randomizers_indexes }
@@ -39,7 +40,7 @@ class Permissions():
     def get_sign_permission(self, epoch_hash, block_number_in_epoch):
         validators_for_epoch = self.get_validators(epoch_hash)
         random_indexes = self.get_signers_indexes(epoch_hash)
-        #cycle validators in case of exclusion
+        # cycle validators in case of exclusion
         if block_number_in_epoch >= len(validators_for_epoch):
             block_number_in_epoch = block_number_in_epoch % len(validators_for_epoch)
             print("Looping epoch validators. Next block validator is as in block number", block_number_in_epoch)
@@ -120,7 +121,7 @@ class Permissions():
         assert epoch_hash, "Can't find epoch hash for block"
         return self.get_sign_permission(epoch_hash, epoch_block_number)
 
-    #this method modifies list, but also returns it for API consistency
+    # this method modifies list, but also returns it for API consistency
     def apply_stake_actions(self, validators, actions):
         for action in actions:
             if isinstance(action, PenaltyTransaction):
@@ -141,8 +142,7 @@ class Permissions():
             if validators[i].public_key == Keys.from_bytes(pubkey):
                 del validators[i]
                 break
-        
-    
+
     def sort_by_stake(self, validators):
         return sorted(validators, key=attrgetter("stake"), reverse=True)
 

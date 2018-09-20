@@ -1,20 +1,19 @@
-from Crypto.Hash import SHA256
 from transaction.secret_sharing_transactions import PrivateKeyTransaction,  PublicKeyTransaction
 from transaction.stake_transaction import PenaltyTransaction
 
 from crypto.keys import Keys
-from chain.epoch import Epoch
 
-class TransactionVerifier():
+
+class TransactionVerifier:
     def __init__(self, epoch, permissions, epoch_block_number):
         self.epoch = epoch
         self.permissions = permissions
         self.epoch_block_number = epoch_block_number
 
     def check_if_valid(self, transaction):
-        if isinstance(transaction, PrivateKeyTransaction): #do not accept to mempool, because its block only tx
+        if isinstance(transaction, PrivateKeyTransaction):  # do not accept to mempool, because its block only tx
             return False
-        elif isinstance(transaction, PenaltyTransaction): #do not accept to mempool, because its block only tx
+        elif isinstance(transaction, PenaltyTransaction):  # do not accept to mempool, because its block only tx
             return False
 
         elif isinstance(transaction, PublicKeyTransaction):
@@ -41,8 +40,9 @@ class TransactionVerifier():
             return signature_valid_for_at_least_one_epoch
         else:
             return True
-    
-    def check_signature(self, tx, pubkey, epoch_hash):
+
+    @staticmethod
+    def check_signature(tx, pubkey, epoch_hash):
         tx_hash = None
         if hasattr(tx, 'get_signing_hash') and callable(getattr(tx, 'get_signing_hash')):
             tx_hash = tx.get_signing_hash(epoch_hash)

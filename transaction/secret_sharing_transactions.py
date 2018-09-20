@@ -1,7 +1,8 @@
 from serialization.serializer import Serializer, Deserializer
 from Crypto.Hash import SHA256
 
-class PublicKeyTransaction():
+
+class PublicKeyTransaction:
     def __init__(self):
         self.generated_pubkey = None
         self.pubkey = None
@@ -24,7 +25,13 @@ class PublicKeyTransaction():
     def get_len(self):
         return self.len
 
-class PrivateKeyTransaction():
+
+class PrivateKeyTransaction:
+
+    def __init__(self):
+        self.key = None
+        self.len = None
+
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.key = deserializer.parse_private_key()
@@ -40,7 +47,14 @@ class PrivateKeyTransaction():
     def get_hash(self):
         return SHA256.new(self.pack()).digest()
 
-class SplitRandomTransaction():
+
+class SplitRandomTransaction:
+
+    def __init__(self):
+        self.signature = None
+        self.pieces = []
+        self.len = None
+
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.signature = deserializer.parse_signature()

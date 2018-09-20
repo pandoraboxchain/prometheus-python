@@ -66,7 +66,7 @@ class Dag:
         return length[0]
 
     def recursive_previous_block_count(self, block, count):
-        count[0] += 1   #trick to emulate pass by reference 
+        count[0] += 1   # trick to emulate pass by reference
         for prev_hash in block.block.prev_hashes:
             block = self.blocks_by_hash[prev_hash]
             self.recursive_previous_block_count(block, count)

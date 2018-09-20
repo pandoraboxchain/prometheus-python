@@ -5,6 +5,7 @@ from chain.params import BLOCK_TIME
 current_test_time = 0
 is_test_time = False
 
+
 class Time:
     @staticmethod
     def set_current_time(time):

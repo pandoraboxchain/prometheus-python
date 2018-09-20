@@ -1,7 +1,8 @@
 from Crypto.PublicKey import RSA
 from base64 import b64decode,b64encode
 
-class Keys():
+
+class Keys:
     @staticmethod
     def from_bytes(key_bytes):
         if not key_bytes: return None

@@ -1,7 +1,15 @@
 from serialization.serializer import Serializer, Deserializer
 from Crypto.Hash import SHA256
 
-class CommitRandomTransaction():
+
+class CommitRandomTransaction:
+
+    def __init__(self):
+        self.rand = None
+        self.pubkey = None
+        self.signature = None
+        self.len = None
+
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.rand = deserializer.parse_encrypted_data()
@@ -10,22 +18,29 @@ class CommitRandomTransaction():
         self.len = deserializer.get_len()
     
     def pack(self):
-        return  Serializer.write_encrypted_data(self.rand) + \
-                self.pubkey + \
-                Serializer.write_signature(self.signature)
+        return Serializer.write_encrypted_data(self.rand) + \
+               self.pubkey + \
+               Serializer.write_signature(self.signature)
     
     def get_len(self):
         return self.len
 
-    #this hash includes epoch_hash for checking if random wasn't reused
+    # this hash includes epoch_hash for checking if random wasn't reused
     def get_signing_hash(self, epoch_hash):
         return SHA256.new(self.rand + self.pubkey + epoch_hash).digest()
     
-    #this hash is for linking this transaction from reveal
+    # this hash is for linking this transaction from reveal
     def get_reference_hash(self):
         return SHA256.new(self.pack() + Serializer.write_signature(self.signature)).digest()
 
-class RevealRandomTransaction():
+
+class RevealRandomTransaction:
+
+    def __init__(self):
+        self.commit_hash = None
+        self.key = None
+        self.len = None
+
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.commit_hash = deserializer.parse_hash()

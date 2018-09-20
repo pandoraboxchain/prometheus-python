@@ -1,7 +1,7 @@
 import unittest
 import os
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
-from Crypto.Hash import SHA256
+
 
 class TestTransaction(unittest.TestCase):
 
@@ -39,4 +39,3 @@ class TestTransaction(unittest.TestCase):
         restored.parse(raw)
 
         self.assertEqual(original.get_hash(), restored.get_hash())        
-        

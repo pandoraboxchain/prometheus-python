@@ -10,7 +10,8 @@ from chain.dag import ChainIter
 from chain.params import Round, Duration, ROUND_DURATION
 BLOCK_TIME = 4
 
-class Epoch():
+
+class Epoch:
 
     def __init__(self, dag):
         self.dag = dag
@@ -45,7 +46,7 @@ class Epoch():
     def get_round_by_block_number(current_block_number):
         epoch_block_number = Epoch.convert_to_epoch_block_number(current_block_number)
         round_number = int(epoch_block_number / ROUND_DURATION)
-        if round_number == Round.INVALID: return Round.FINAL   #special case for last round being +1
+        if round_number == Round.INVALID: return Round.FINAL   # special case for last round being +1
         return Round(round_number)
 
     @staticmethod
@@ -56,7 +57,7 @@ class Epoch():
     def get_epoch_number(current_block_number):
         if current_block_number == 0:
             return 0 
-        return (current_block_number - 1) // Epoch.get_duration() + 1 #because genesis block is last block of era zero
+        return (current_block_number - 1) // Epoch.get_duration() + 1  # because genesis block is last block of era zero
 
     @staticmethod
     def get_epoch_start_block_number(epoch_number):
@@ -85,13 +86,13 @@ class Epoch():
         validators_list = calculate_validators_indexes(entropy, validators_count)
         return validators_list
 
-    #returns traversable range
+    # returns traversable range
     @staticmethod
     def get_round_range(epoch_number, round_type):
         round_start, round_end = Epoch.get_round_bounds(epoch_number, round_type)
         return range(round_start, round_end + 1)
 
-    #returns just tuple
+    # returns just tuple
     @staticmethod 
     def get_round_bounds(epoch_number, round_type):
         epoch_start = Epoch.get_epoch_start_block_number(epoch_number)
@@ -115,7 +116,7 @@ class Epoch():
                 for tx in block.block.system_txs:
                     if isinstance(tx, PrivateKeyTransaction):
                         private_keys.append(tx.key)
-                        break #only one private key transaction can exist and it should be signed by block signer
+                        break  # only one private key transaction can exist and it should be signed by block signer
             else:
                 private_keys.append(None)
                 
@@ -136,7 +137,6 @@ class Epoch():
                         public_keys[tx.pubkey] = tx.generated_pubkey
                         
         return public_keys
-    
 
     def get_random_splits_for_epoch(self, block_hash):
         random_pieces_list = []
@@ -221,9 +221,14 @@ class Epoch():
                 matching_keys_count += 1
 
         pubkey_count = len(public_keys)
-        self.log("pubkey count", pubkey_count, "privkey count", private_key_count, "of them matching", matching_keys_count)
+        self.log("pubkey count",
+                 pubkey_count,
+                 "privkey count",
+                 private_key_count,
+                 "of them matching",
+                 matching_keys_count)
         
-        #TODO we should have a special handling for when not enough keys was sent for each round
+        # TODO we should have a special handling for when not enough keys was sent for each round
         assert pubkey_count > 1, "Not enough public keys to decrypt random"
         assert private_key_count > 1, "Not enough private keys to decrypt random"
         assert pubkey_count >= int(private_key_count / 2) + 1, "Not enough public keys to decrypt random"
@@ -238,7 +243,8 @@ class Epoch():
         seed = sum_random(randoms_list)
         return seed
 
-    def filter_out_skipped_public_keys(self, private_keys, public_keys):
+    @staticmethod
+    def filter_out_skipped_public_keys(private_keys, public_keys):
         filtered_private_keys = []
         for private_key in private_keys:
             if private_key == None:
@@ -249,9 +255,9 @@ class Epoch():
                     filtered_private_keys.append(private_key)
         return private_keys
 
-
     def is_last_block_of_epoch(self, block_number):
-        if block_number == 0: return True
+        if block_number == 0:
+            return True
 
         epoch_number = self.get_epoch_number(block_number)        
         return block_number == Epoch.get_epoch_end_block_number(epoch_number)
@@ -263,7 +269,7 @@ class Epoch():
         return global_block_number - epoch_start_block_number
 
     @staticmethod
-    def make_unique_list(list): #TODO move into separate file
+    def make_unique_list(list):  # TODO move into separate file
         unique_list = [] 
         for item in list:       
             if not item in unique_list:
@@ -306,7 +312,7 @@ class Epoch():
 
     def accept_tops_as_epoch_hashes(self):
         for top, _ in self.tops_and_epochs.items():
-            #this could be optimized to just taking previous hahash as 
+            # this could be optimized to just taking previous hahash as
             self.tops_and_epochs[top] = top
 
     def get_previous_epoch_hash(self, epoch_hash):

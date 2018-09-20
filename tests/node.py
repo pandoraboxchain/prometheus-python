@@ -11,7 +11,9 @@ from tests.test_chain_generator import TestChainGenerator
 from tools.time import Time
 from crypto.private import Private
 
+
 class TestNode(unittest.TestCase):
+
     def test_time_advancer(self):
 
         Time.use_test_time()
@@ -32,9 +34,9 @@ class TestNode(unittest.TestCase):
         network = NodeApi()
         node_id = 14
         node = Node(genesis_creation_time=1,
-                node_id=node_id,
-                network=network,
-                block_signer=private_keys[node_id])
+                    node_id=node_id,
+                    network=network,
+                    block_signer=private_keys[node_id])
         network.register_node(node)
 
         dag = node.dag
@@ -60,17 +62,17 @@ class TestNode(unittest.TestCase):
 
         network = NodeApi()
         node0 = Node(genesis_creation_time=1,
-                    node_id=0,
-                    network=network,
-                    block_signer=private_keys[0],
-                    validators=validators)
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators)
         network.register_node(node0)
 
         node1 = Node(genesis_creation_time=1,
-                    node_id=1,
-                    network=network,
-                    block_signer=private_keys[1],
-                    validators=validators)
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators)
         network.register_node(node1)
 
         Time.advance_to_next_timeslot()

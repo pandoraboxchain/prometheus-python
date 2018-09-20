@@ -3,6 +3,7 @@ import os
 
 from crypto.sum_random import *
 
+
 class Randomness(unittest.TestCase):
 
     def test_uniform_distribution(self):
@@ -19,4 +20,4 @@ class Randomness(unittest.TestCase):
 
         # print("validatori indexes distribution")
         # print(index_counts)
-        #self.assertEqual(era_hash, res_era_hash)
+        # self.assertEqual(era_hash, res_era_hash)

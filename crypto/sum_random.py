@@ -1,5 +1,5 @@
-from Crypto.Hash import SHA256
 import random
+
 
 def sum_random(random_list):
     res = random_list[0]
@@ -8,7 +8,7 @@ def sum_random(random_list):
         res = num ^ res
     return res
 
-#sum_random([SHA256.new(b"324a"),SHA256.new(b"3s24a"), SHA256.new(b"3s24a")])
+# sum_random([SHA256.new(b"324a"),SHA256.new(b"3s24a"), SHA256.new(b"3s24a")])
 
 # def calculate_validators_indexes(seed, validators_count, epoch_size):
 #     current = seed.to_bytes(32, byteorder='big')
@@ -19,6 +19,7 @@ def sum_random(random_list):
 #         current = SHA256.new(current).digest()
 #     return res
 
+
 def calculate_validators_indexes(seed, validators_count):
     random.seed(seed)
     validators_list = []
@@ -26,6 +27,7 @@ def calculate_validators_indexes(seed, validators_count):
         validators_list.append(i)
     sattolo_cycle(validators_list)
     return validators_list
+
 
 # array shuffling method straight from the wikipedia
 # it is sufficient for now, but it always removes number from its position

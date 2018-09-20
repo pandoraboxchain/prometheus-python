@@ -3,7 +3,8 @@ class Penalty():
 
 PENALTY_PREV_BLOCK_CONST = 2
 
-class PenaltyPrevBlock():
+
+class PenaltyPrevBlock:
 
     def get_penalty(self, dag, block_obj, block_sub):
         if block_obj==None:
@@ -13,7 +14,8 @@ class PenaltyPrevBlock():
 
 PENALTY_GOSSIP_ABOUT_ME_CONTST = 1
 
-class PenaltyGossipAboutMe():
+
+class PenaltyGossipAboutMe:
 
     def get_penalty(self, dag, block_obj, block_sub):
         if block_obj==None:
@@ -23,7 +25,8 @@ class PenaltyGossipAboutMe():
 
 PENALTY_NOT_INCLUDING_GOSSIP = 4
 
-class PenaltyNotIncludingGossip():
+
+class PenaltyNotIncludingGossip:
 
     def get_penalty(self, dag, block_obj, block_sub):
         if block_obj==None:
@@ -38,7 +41,8 @@ class PenaltyNotIncludingGossip():
 
 PENALTY_GOSSIP_POSITION = 3
 
-class PenaltyGossipPosition():
+
+class PenaltyGossipPosition:
 
     def get_penalty(self, dag, block_obj, block_sub):
         if block_obj==None:
@@ -48,17 +52,19 @@ class PenaltyGossipPosition():
         else:
             return 0
 
-if PENALTY_PREV_BLOCK_CONST>=PENALTY_GOSSIP_POSITION:
+if PENALTY_PREV_BLOCK_CONST >= PENALTY_GOSSIP_POSITION:
     print("HALT!")
 
-if PENALTY_NOT_INCLUDING_GOSSIP<=PENALTY_GOSSIP_POSITION:
+if PENALTY_NOT_INCLUDING_GOSSIP <= PENALTY_GOSSIP_POSITION:
     print("HALT!")
 
-if PENALTY_GOSSIP_ABOUT_ME_CONTST>=PENALTY_PREV_BLOCK_CONST:
+if PENALTY_GOSSIP_ABOUT_ME_CONTST >= PENALTY_PREV_BLOCK_CONST:
     print("HALT")
 
-class PanaltyByBlock():
+
+class PenaltyByBlock:
     pass
 
-class PenaltyBlockList():
+
+class PenaltyBlockList:
     pass

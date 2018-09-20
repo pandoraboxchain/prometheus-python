@@ -5,6 +5,11 @@ from transaction.transaction_parser import TransactionParser
 
 class Block:
 
+    def __init__(self):
+        self.timestamp = None
+        self.prev_hashes = []
+        self.system_txs = []
+
     def get_hash(self):
         return SHA256.new(self.pack()).digest()
 

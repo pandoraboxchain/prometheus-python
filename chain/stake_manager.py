@@ -2,7 +2,8 @@ from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransacti
 from chain.dag import Dag, ChainIter
 from chain.epoch import Epoch
 
-class StakeManager():
+
+class StakeManager:
 
     def __init__(self, epoch):
         self.epoch = epoch
@@ -31,4 +32,3 @@ class StakeManager():
         stake_actions = list(reversed(stake_actions))        
 
         return stake_actions
-        

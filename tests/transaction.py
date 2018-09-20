@@ -1,6 +1,5 @@
 import unittest
 import os
-from chain.block import Block
 from transaction.secret_sharing_transactions import SplitRandomTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from transaction.transaction_parser import TransactionParser
@@ -8,6 +7,7 @@ from transaction.payment_transaction import PaymentTransaction
 from Crypto.Hash import SHA256
 from crypto.private import Private
 from crypto.keys import Keys
+
 
 class TestTransaction(unittest.TestCase):
 
