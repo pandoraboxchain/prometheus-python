@@ -24,7 +24,6 @@ from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTran
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from verification.transaction_verifier import TransactionVerifier
 from verification.block_verifier import BlockVerifier
-from crypto.enc_random import enc_part_random
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits, decode_random
