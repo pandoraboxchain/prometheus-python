@@ -15,6 +15,7 @@ from transaction.secret_sharing_transactions import PublicKeyTransaction, Privat
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.private import Private
+from crypto.public import Public
 from crypto.secret import split_secret, encode_splits, decode_random
 from crypto.keys import Keys
 from chain.params import ROUND_DURATION
@@ -162,11 +163,11 @@ class TestEpoch(unittest.TestCase):
             reveals.append(reveal)
 
             revealing_key = Keys.from_bytes(reveal.key)
-            encrypted_bytes = revealing_key.publickey().encrypt(random_bytes, 32)[0]
-            decrypted_bytes = revealing_key.decrypt(encrypted_bytes)
+            encrypted_bytes = Public.encrypt(random_bytes, revealing_key.publickey())
+            decrypted_bytes = Private.decrypt(encrypted_bytes, revealing_key)
             self.assertEqual(decrypted_bytes, random_bytes) #TODO check if encryption decryption can work million times in a row
 
-            revealed_value = revealing_key.decrypt(commit.rand)
+            revealed_value = Private.decrypt(commit.rand, revealing_key)
             self.assertEqual(revealed_value, random_bytes)
 
         # self.assertEqual(len(reveals), ROUND_DURATION)
@@ -333,7 +334,7 @@ class TestEpoch(unittest.TestCase):
         
         private = Private.generate()
 
-        encoded = private.encrypt(random_bytes, 32)[0]
+        encoded = Private.encrypt(random_bytes, private)
 
         commit = CommitRandomTransaction()
         commit.rand = encoded

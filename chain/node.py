@@ -397,7 +397,7 @@ class Node():
     def create_commit_reveal_pair(node_private, random_bytes, epoch_hash):
         private = Private.generate()
         public = node_private.publickey()
-        encoded = private.encrypt(random_bytes, 32)[0]
+        encoded = Private.encrypt(random_bytes, private)
 
         commit = CommitRandomTransaction()
         commit.rand = encoded

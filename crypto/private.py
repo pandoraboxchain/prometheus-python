@@ -13,3 +13,12 @@ class Private():
     @staticmethod
     def sign(message, key):
         return key.sign(message, 0)[0]
+
+    @staticmethod
+    def encrypt(message, key):
+        return key.encrypt(message, 32)[0]
+
+    @staticmethod
+    def decrypt(message, key):
+        return key.decrypt(message)
+

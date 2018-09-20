@@ -15,7 +15,7 @@ class TestTransaction(unittest.TestCase):
         for _ in range(10):
             dummy_private = Private.generate()
             original = CommitRandomTransaction()
-            original.rand = dummy_private.encrypt(os.urandom(32), 0)[0]
+            original.rand = Private.encrypt(os.urandom(32), dummy_private)
             original.pubkey = Keys.to_bytes(dummy_private.publickey())
             original.signature = int.from_bytes(os.urandom(128), byteorder='big')
 
