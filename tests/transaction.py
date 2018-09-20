@@ -5,7 +5,6 @@ from transaction.secret_sharing_transactions import SplitRandomTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from transaction.transaction_parser import TransactionParser
 from transaction.payment_transaction import PaymentTransaction
-from crypto.enc_random import enc_part_random
 from Crypto.Hash import SHA256
 from crypto.private import Private
 from crypto.keys import Keys
@@ -16,7 +15,7 @@ class TestTransaction(unittest.TestCase):
         for _ in range(10):
             dummy_private = Private.generate()
             original = CommitRandomTransaction()
-            original.rand = dummy_private.encrypt(os.urandom(32), 0)[0]
+            original.rand = Private.encrypt(os.urandom(32), dummy_private)
             original.pubkey = Keys.to_bytes(dummy_private.publickey())
             original.signature = int.from_bytes(os.urandom(128), byteorder='big')
 

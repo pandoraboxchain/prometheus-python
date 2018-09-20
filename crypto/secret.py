@@ -9,6 +9,8 @@ from secretsharing import PlaintextToHexSecretSharer
 from secretsharing import secret_int_to_points, points_to_secret_int
 from base64 import b64decode
 from crypto.keys import Keys
+from crypto.public import Public
+from crypto.private import Private
 
 def split_secret(data, threshold, num_points):
     splits = []
@@ -27,11 +29,11 @@ def recover_splits(splits):
     return points_to_secret_int(splits)
 
 def enc_part_secret(publickey, split):
-    enc_data = publickey.encrypt(split, 32)[0]
+    enc_data = Public.encrypt(split, publickey)
     return enc_data
 
 def dec_part_secret(privatekey, enc_data, number):
-    split = privatekey.decrypt(enc_data) #TODO check if this returns bytearray, those decryption success
+    split = Private.decrypt(enc_data, privatekey) #TODO check if this returns bytearray, those decryption success
     return (number + 1, int.from_bytes(split, byteorder="big"))
 
 def decode_random(encoded_splits, private_keys):

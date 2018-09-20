@@ -1,7 +1,6 @@
 import unittest
 import os
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
-from crypto.enc_random import enc_part_random
 from Crypto.Hash import SHA256
 
 class TestTransaction(unittest.TestCase):

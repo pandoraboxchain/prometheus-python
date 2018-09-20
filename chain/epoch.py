@@ -1,9 +1,9 @@
 from tools.time import Time
-from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
 from crypto.keys import Keys
 from crypto.entropy import Entropy
+from crypto.private import Private
 from transaction.secret_sharing_transactions import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from chain.dag import ChainIter
@@ -190,7 +190,7 @@ class Epoch():
             if reveal.commit_hash in commits:
                 commit = commits[reveal.commit_hash]
                 key = Keys.from_bytes(reveal.key)
-                revealed_data = key.decrypt(commit.rand)
+                revealed_data = Private.decrypt(commit.rand, key)
                 randoms_list.append(int.from_bytes(revealed_data, byteorder='big'))
         seed = sum_random(randoms_list)
         return seed

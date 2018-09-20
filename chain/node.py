@@ -1,29 +1,34 @@
+import time
 import asyncio
 import os
+import logging
 
-import time
+from base64 import b64decode,b64encode
 
-from chain.behaviour import Behaviour
-from chain.block_factory import BlockFactory
-from chain.block_signer import BlockSigner
+from chain.node_api import NodeApi
 from chain.dag import Dag
-from chain.epoch import Epoch
-from chain.merger import Merger
-from chain.params import Round, Duration
+from chain.epoch import Round, Epoch
+from chain.block_signer import BlockSigner
+from chain.block_signers import BlockSigners
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
+from chain.block_factory import BlockFactory
+from chain.params import Round, Duration
+from chain.merger import Merger
+from chain.behaviour import Behaviour
 from chain.validators import Validators
-from crypto.keys import Keys
-from crypto.private import Private
-from crypto.secret import split_secret, encode_splits
-from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
-from transaction.gossip_transaction import NegativeGossipTransaction
 from transaction.mempool import Mempool
+from transaction.transaction_parser import TransactionParser
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
-from transaction.transaction_parser import TransactionParser
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from verification.transaction_verifier import TransactionVerifier
-
+from verification.block_verifier import BlockVerifier
+from crypto.enc_random import enc_part_random
+from crypto.keys import Keys
+from crypto.private import Private
+from crypto.secret import split_secret, encode_splits, decode_random
+from gossip.gossip import NegativeGossip, PositiveGossip
 
 class DummyLogger(object):
     def __getattr__(self, name):
@@ -175,7 +180,7 @@ class Node:
                 tx = PublicKeyTransaction()
                 tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
                 tx.pubkey = Keys.to_bytes(node_private.publickey())
-                tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+                tx.signature = Private.sign(tx.get_hash(), node_private)
                 if self.behaviour.malicious_wrong_signature:
                     tx.signature += 1
                     
@@ -233,7 +238,7 @@ class Node:
 
         penalty = PenaltyTransaction()
         penalty.conflicts = conflicts
-        penalty.signature = self.block_signer.private_key.sign(penalty.get_hash(), 0)[0]
+        penalty.signature = Private.sign(penalty.get_hash(), self.block_signer.private_key)
         return penalty
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
@@ -263,7 +268,7 @@ class Node:
         
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
-        tx.signature = self.block_signer.private_key.sign(tx.get_signing_hash(epoch_hash), 0)[0]
+        tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), self.block_signer.private_key)
         return tx
 
     def get_allowed_signers_for_next_block(self, block):
@@ -391,7 +396,7 @@ class Node:
         tx.amount = 1000
         node_private = self.block_signer.private_key
         tx.pubkey = Keys.to_bytes(node_private.publickey())
-        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted StakeHold transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
@@ -399,7 +404,7 @@ class Node:
         tx = StakeReleaseTransaction()
         node_private = self.block_signer.private_key
         tx.pubkey = Keys.to_bytes(node_private.publickey())
-        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
@@ -420,12 +425,12 @@ class Node:
     def create_commit_reveal_pair(node_private, random_bytes, epoch_hash):
         private = Private.generate()
         public = node_private.publickey()
-        encoded = private.encrypt(random_bytes, 32)[0]
+        encoded = Private.encrypt(random_bytes, private)
 
         commit = CommitRandomTransaction()
         commit.rand = encoded
         commit.pubkey = Keys.to_bytes(public)
-        commit.signature = node_private.sign(commit.get_signing_hash(epoch_hash), 0)[0]
+        commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()
         reveal.commit_hash = commit.get_reference_hash()

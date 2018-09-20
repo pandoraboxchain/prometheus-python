@@ -32,7 +32,7 @@ class TestStakeActions(unittest.TestCase):
         block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * last_block_number)
         tx = PenaltyTransaction()
         tx.conflicts = [prev_hash]
-        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        tx.signature = Private.sign(tx.get_hash(), node_private)
         block.system_txs = [tx]
         signed_block = BlockFactory.sign_block(block, node_private)
         dag.add_signed_block(last_block_number, signed_block)
@@ -77,7 +77,7 @@ class TestStakeActions(unittest.TestCase):
         node_new_private = Private.generate()
 
         tx.pubkey = Keys.to_bytes(node_new_private.publickey())
-        tx.signature = node_new_private.sign(tx.get_hash(), 0)[0]
+        tx.signature = Private.sign(tx.get_hash(), node_new_private)
 
         block.system_txs.append(tx)
         signed_block = BlockFactory.sign_block(block, node_private)
@@ -119,7 +119,7 @@ class TestStakeActions(unittest.TestCase):
         tx_hold = StakeHoldTransaction()
         tx_hold.amount = 2000
         tx_hold.pubkey = Keys.to_bytes(new_node_public)
-        tx_hold.signature = new_node_private.sign(tx_hold.get_hash(), 0)[0]
+        tx_hold.signature = Private.sign(tx_hold.get_hash(), new_node_private)
 
         # append signed stake hold transaction
         block.system_txs.append(tx_hold)
@@ -146,7 +146,7 @@ class TestStakeActions(unittest.TestCase):
         # create stake release transaction for new stakeholder
         tx_release = StakeReleaseTransaction()
         tx_release.pubkey = Keys.to_bytes(new_node_public)
-        tx_release.signature = new_node_private.sign(tx_hold.get_hash(), 0)[0]
+        tx_release.signature = Private.sign(tx_hold.get_hash(), new_node_private)
 
         # append signed stake release transaction
         block.system_txs.append(tx_release)
@@ -187,7 +187,7 @@ class TestStakeActions(unittest.TestCase):
         # create stake release transaction for new stakeholder
         tx_release = StakeReleaseTransaction()
         tx_release.pubkey = Keys.to_bytes(genesis_validator.public_key)
-        tx_release.signature = node_private.sign(tx_release.get_hash(), 0)[0]
+        tx_release.signature = Private.sign(tx_release.get_hash(), node_private)
 
         # append signed stake release transaction
         block.system_txs.append(tx_release)

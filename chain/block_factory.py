@@ -1,7 +1,9 @@
 from chain.block import Block
 from chain.signed_block import SignedBlock
+from crypto.private import Private
 from tools.time import Time
 
+class BlockFactory():
 
 class BlockFactory:
 
@@ -25,6 +27,7 @@ class BlockFactory:
     def sign_block(block, private):
         block_hash = block.get_hash()
         signature = private.sign(block_hash, 0)[0]  # for some reason it returns tuple with second item being None
+        signature = Private.sign(block_hash, private)
         signed_block = SignedBlock()
         signed_block.set_block(block)
         signed_block.set_signature(signature)
