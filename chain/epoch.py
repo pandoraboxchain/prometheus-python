@@ -1,5 +1,4 @@
 from tools.time import Time
-from crypto.dec_part_random import decode_random_using_raw_key
 from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
 from crypto.keys import Keys

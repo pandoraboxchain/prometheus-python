@@ -13,8 +13,6 @@ from chain.params import Round, Duration
 from chain.block_factory import BlockFactory
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
-from crypto.dec_part_random import dec_part_random
-from crypto.enc_random import enc_part_random
 from crypto.sum_random import sum_random, calculate_validators_indexes
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits, decode_random
