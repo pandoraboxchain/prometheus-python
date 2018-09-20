@@ -1,11 +1,12 @@
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
+from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 
 from serialization.serializer import Serializer, Deserializer
 
 
-class Type():
+class Type:
     PUBLIC = 0
     RANDOM = 1
     PRIVATE = 2
@@ -14,8 +15,13 @@ class Type():
     STAKEHOLD = 5
     STAKERELEASE = 6
     PENALTY = 7
+    NEGATIVE_GOSSIP = 8
+    POSITIVE_GOSSIP = 9
 
-class TransactionParser():
+
+class TransactionParser:
+
+    @staticmethod
     def parse(raw_data):
         deserializer = Deserializer(raw_data)
         tx_type = deserializer.parse_u8()
@@ -36,11 +42,17 @@ class TransactionParser():
             tx = StakeReleaseTransaction()
         elif tx_type == Type.PENALTY:
             tx = PenaltyTransaction()
+
+        elif tx_type == Type.NEGATIVE_GOSSIP:
+            tx = NegativeGossipTransaction()
+        elif tx_type == Type.POSITIVE_GOSSIP:
+            tx = PositiveGossipTransaction()
         else:
             assert False, "Cannot parse unknown transaction type"
         tx.parse(deserializer.data)
         return tx
 
+    @staticmethod
     def pack(tx):
         raw = b''
         if isinstance(tx, PublicKeyTransaction):
@@ -61,6 +73,11 @@ class TransactionParser():
             raw += Serializer.write_u8(Type.STAKERELEASE)
         elif isinstance(tx, PenaltyTransaction):
             raw += Serializer.write_u8(Type.PENALTY)
+
+        elif isinstance(tx, NegativeGossipTransaction):
+            raw += Serializer.write_u8(Type.NEGATIVE_GOSSIP)
+        elif isinstance(tx, PositiveGossipTransaction):
+            raw += Serializer.write_u8(Type.POSITIVE_GOSSIP)
         else:
             assert False, "Cannot pack unknown transaction type"
         raw += tx.pack()

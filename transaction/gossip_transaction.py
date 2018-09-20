@@ -1,4 +1,3 @@
-import struct
 from Crypto.Hash import SHA256
 from chain.signed_block import SignedBlock
 from serialization.serializer import Serializer, Deserializer
@@ -32,7 +31,7 @@ send positive gossip+ rule
 
 
 # negative gossip base class
-class NegativeGossip:
+class NegativeGossipTransaction:
     def __init__(self):
         # node signature
         self.signature = None
@@ -63,7 +62,7 @@ class NegativeGossip:
 
 
 # positive gossip base class
-class PositiveGossip:
+class PositiveGossipTransaction:
     def __init__(self):
         # node signature
         self.signature = None

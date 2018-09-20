@@ -1,46 +1,42 @@
-import time
 import asyncio
 import os
-import logging
 
-from base64 import b64decode,b64encode
+import time
 
-from chain.node_api import NodeApi
-from chain.dag import Dag
-from chain.epoch import Round, Epoch
+from chain.behaviour import Behaviour
+from chain.block_factory import BlockFactory
 from chain.block_signer import BlockSigner
-from chain.block_signers import BlockSigners
+from chain.dag import Dag
+from chain.epoch import Epoch
+from chain.merger import Merger
+from chain.params import Round, Duration
 from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
-from chain.block_factory import BlockFactory
-from chain.params import Round, Duration
-from chain.merger import Merger
-from chain.behaviour import Behaviour
 from chain.validators import Validators
-from transaction.mempool import Mempool
-from transaction.transaction_parser import TransactionParser
-from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
-from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
-from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
-from verification.transaction_verifier import TransactionVerifier
-from verification.block_verifier import BlockVerifier
-from crypto.enc_random import enc_part_random
 from crypto.keys import Keys
 from crypto.private import Private
-from crypto.secret import split_secret, encode_splits, decode_random
-from gossip.gossip import NegativeGossip, PositiveGossip
+from crypto.secret import split_secret, encode_splits
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
+from transaction.gossip_transaction import NegativeGossipTransaction
+from transaction.mempool import Mempool
+from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
+from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
+from transaction.transaction_parser import TransactionParser
+from verification.transaction_verifier import TransactionVerifier
+
 
 class DummyLogger(object):
     def __getattr__(self, name):
         return lambda *x: None
 
-class Node():
+
+class Node:
     
     def __init__(self, genesis_creation_time, node_id, network,
-                block_signer=BlockSigner(Private.generate()),
-                validators=Validators(),
-                behaviour=Behaviour(),
-                logger=DummyLogger()):
+                 block_signer=BlockSigner(Private.generate()),
+                 validators=Validators(),
+                 behaviour=Behaviour(),
+                 logger=DummyLogger()):
         self.logger = logger
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
@@ -54,10 +50,10 @@ class Node():
         self.logger.info("Public key is %s", Keys.to_visual_string(block_signer.private_key.publickey()))
         self.network = network
         self.node_id = node_id
-        self.epoch_private_keys = [] #TODO make this single element
-        #self.epoch_private_keys where first element is era number, and second is key to reveal commited random
+        self.epoch_private_keys = []  # TODO make this single element
+        # self.epoch_private_keys where first element is era number, and second is key to reveal commited random
         self.reveals_to_send = {}
-        self.sent_shares_epochs = [] #epoch hashes of secret shares 
+        self.sent_shares_epochs = []  # epoch hashes of secret shares
 
     def start(self):
         pass
@@ -66,21 +62,28 @@ class Node():
         current_block_number = self.epoch.get_current_timeframe_block_number()
         if self.epoch.is_new_epoch_upcoming(current_block_number):
             self.epoch.accept_tops_as_epoch_hashes()
-        
+
+        # service method for update node behavior (if behavior is temporary)
         self.behaviour.update(Epoch.get_epoch_number(current_block_number))
+
+        # check current block number by local dag length
+        if current_block_number > len(self.dag.blocks_by_number):
+            self.broadcast_gossip_negative(current_block_number)
+
         current_round = self.epoch.get_round_by_block_number(current_block_number)
         if current_round == Round.PUBLIC:
             self.try_to_publish_public_key(current_block_number)
         elif current_round == Round.SECRETSHARE:
             self.try_to_share_random()
-        #elif current_round == Round.PRIVATE:
-            #do nothing as private key should be included to block by block signer
+        # elif current_round == Round.PRIVATE:
+            # do nothing as private key should be included to block by block signer
         elif current_round == Round.COMMIT:
             self.try_to_commit_random()
         elif current_round == Round.REVEAL:
             self.try_to_reveal_random()
         elif current_round == Round.FINAL:
-            #at this point we may remove everything systemic from mempool, so it does not interfere with pubkeys for next epoch
+            # at this point we may remove everything systemic from mempool,
+            # so it does not interfere with pubkeys for next epoch
             self.mempool.remove_all_systemic_transactions()
                             
         self.try_to_sign_block(current_block_number)
@@ -118,7 +121,6 @@ class Node():
                 self.logger.info("Maliciously skiped block")
             else:
                 self.sign_block(current_block_number)
-            
 
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
@@ -175,7 +177,7 @@ class Node():
                 tx.pubkey = Keys.to_bytes(node_private.publickey())
                 tx.signature = node_private.sign(tx.get_hash(), 0)[0]
                 if self.behaviour.malicious_wrong_signature:
-                    tx.signature+=1
+                    tx.signature += 1
                     
                 self.epoch_private_keys.append(generated_private)
                 self.logger.debug("Broadcasted public key")
@@ -253,7 +255,6 @@ class Node():
         tx = self.form_secret_sharing_transaction(sorted_published_pubkeys, epoch_hash)
         return tx
 
-    
     def form_secret_sharing_transaction(self, sorted_public_keys, epoch_hash):
         random_bytes = os.urandom(32)
         splits = split_secret(random_bytes, Duration.PRIVATE // 2 + 1, Duration.PRIVATE)
@@ -287,8 +288,14 @@ class Node():
         assert len(allowed_signers) > 0, "No signers allowed to sign next block"
         return allowed_signers
 
-
+    # -------------------------------------------------------------------------------
+    # Handlers
+    # -------------------------------------------------------------------------------
     def handle_block_message(self, node_id, raw_signed_block):
+        # skip receiving block by malicious behavior
+        if self.behaviour.is_malicious_skip_block_receive():
+            return
+
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
         
@@ -302,7 +309,7 @@ class Node():
         
         if is_block_allowed:
             block = signed_block.block
-            if True: #TODO: add block verification
+            if True:  # TODO: add block verification
                 current_block_number = self.epoch.get_current_timeframe_block_number()
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
@@ -315,10 +322,12 @@ class Node():
         transaction = TransactionParser.parse(raw_transaction)
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number) #TODO: add public key knowledge (permission )
-        #print("Node ", self.node_id, "received transaction with hash", transaction.get_hash().hexdigest(), " from node ", node_id)
+        # TODO: add public key knowledge (permission )
+        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
+        # print("Node ", self.node_id, "received transaction with hash",
+        # transaction.get_hash().hexdigest(), " from node ", node_id)
         if verifier.check_if_valid(transaction):
-           # print("It is valid. Adding to mempool")
+            # print("It is valid. Adding to mempool")
             self.mempool.add_transaction(transaction)
         else:
             self.logger.error("Received tx is invalid")
@@ -351,11 +360,17 @@ class Node():
             self.logger.error("Received block from %d, but it's signature is wrong", node_id)
 
     def handle_gossip_negative(self, sender_node_id, raw_gossip):
-        pass
+        transaction = TransactionParser.parse(raw_gossip)
+        current_block_number = self.epoch.get_current_timeframe_block_number()
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
+        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
+        if verifier.check_if_valid(transaction):
+            self.mempool.add_transaction(transaction)
+        else:
+            self.logger.error("Received gossip tx is invalid")
 
     def handle_gossip_positive(self, sender_node_id, raw_gossip):
         pass
-
 
     def get_allowed_signers_for_block_number(self, block_number):
         blocks = self.dag.blocks_by_number[block_number]
@@ -388,8 +403,15 @@ class Node():
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
-    def broadcast_gossip_negative(self):
-        pass
+    def broadcast_gossip_negative(self, block_number):
+        tx = NegativeGossipTransaction()
+        node_private = self.block_signer.private_key
+        tx.node_public_key = Keys.to_bytes(node_private.publickey())
+        tx.timestamp = int(time.time())
+        tx.number_of_block = block_number
+        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        self.logger.info("Broadcasted negative gossip transaction")
+        self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_positive(self):
         pass

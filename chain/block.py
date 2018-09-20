@@ -2,7 +2,8 @@ from Crypto.Hash import SHA256
 import struct
 from transaction.transaction_parser import TransactionParser
 
-class Block():
+
+class Block:
 
     def get_hash(self):
         return SHA256.new(self.pack()).digest()
@@ -23,7 +24,7 @@ class Block():
         for i in range(0, system_tx_count):
             tx = TransactionParser.parse(raw_data[offset:])
             self.system_txs.append(tx)
-            offset += tx.get_len() + 1 #one byte for type
+            offset += tx.get_len() + 1  # one byte for type
 
     def pack(self):
         raw_block = struct.pack("I", self.timestamp)

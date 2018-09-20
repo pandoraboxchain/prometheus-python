@@ -1,9 +1,11 @@
 from chain.params import Round
+from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
 from transaction.secret_sharing_transactions import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 
-class Mempool():
+
+class Mempool:
 
     def __init__(self):
         self.public_keys = []
@@ -11,12 +13,13 @@ class Mempool():
         self.commits = []
         self.reveals = []
         self.shares = []
+        self.gossips = []
 
     def add_transaction(self, tx):
         if isinstance(tx, PublicKeyTransaction):
             self.public_keys.append(tx)
         elif isinstance(tx, StakeHoldTransaction) or\
-             isinstance(tx, StakeReleaseTransaction):
+                isinstance(tx, StakeReleaseTransaction):
             self.stake_operations.append(tx)
         elif isinstance(tx, CommitRandomTransaction):
             self.commits.append(tx)
@@ -24,18 +27,22 @@ class Mempool():
             self.reveals.append(tx)
         elif isinstance(tx, SplitRandomTransaction):
             self.shares.append(tx)
+        elif isinstance(tx, NegativeGossipTransaction):
+            self.gossips.append(tx)
+        elif isinstance(tx, PositiveGossipTransaction):
+            self.gossips.append(tx)
         else:
             assert False, "Can't add. Transaction type is unknown or should not be added to mempool"
 
     # remove all occurences of given transaction
     def remove_transaction(self, tx):
-        if  isinstance(tx, PrivateKeyTransaction) or \
-            isinstance(tx, PenaltyTransaction): # should only be as part of the block
-            pass
+        if isinstance(tx, PrivateKeyTransaction) or \
+               isinstance(tx, PenaltyTransaction):  # should only be as part of the block
+                pass
         elif isinstance(tx, PublicKeyTransaction):
             self.public_keys = [a for a in self.public_keys if a.get_hash() != tx.get_hash()]
-        elif isinstance(tx, StakeHoldTransaction) or\
-             isinstance(tx, StakeReleaseTransaction):
+        elif isinstance(tx, StakeHoldTransaction) or \
+                isinstance(tx, StakeReleaseTransaction):
             self.stake_operations = [a for a in self.stake_operations if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, CommitRandomTransaction):
             self.commits = [a for a in self.commits if a.get_reference_hash() != tx.get_reference_hash()]
@@ -47,8 +54,8 @@ class Mempool():
             assert False, "Can't remove. Transaction type is unknown"
 
     def get_transactions_for_round(self, round_type):
-        if  round_type == Round.PRIVATE or \
-            round_type == Round.FINAL:
+        if round_type == Round.PRIVATE or \
+           round_type == Round.FINAL:
             return []
         elif round_type == Round.PUBLIC:
             public_keys = self.public_keys.copy()
@@ -79,4 +86,5 @@ class Mempool():
         self.stake_operations.clear()
         self.commits.clear()
         self.reveals.clear()
+        self.gossips.clear()
 

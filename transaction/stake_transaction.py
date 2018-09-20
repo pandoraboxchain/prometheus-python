@@ -1,7 +1,8 @@
 from Crypto.Hash import SHA256
 import struct
 
-class StakeHoldTransaction():
+
+class StakeHoldTransaction:
     def get_hash(self):
         raw_amount = self.amount.to_bytes(2, byteorder='big')
         return SHA256.new(raw_amount + self.pubkey).digest()
@@ -20,7 +21,8 @@ class StakeHoldTransaction():
     def get_len(self):
         return 218 + 128
 
-class PenaltyTransaction():
+
+class PenaltyTransaction:
     def parse(self, raw_data):
         conflict_count = struct.unpack_from("B", raw_data)[0]
         raw_conflicts = raw_data[1:]
@@ -49,7 +51,8 @@ class PenaltyTransaction():
     def get_hash(self):
         return SHA256.new(self.pack_conflicts()).digest()
 
-class StakeReleaseTransaction():
+
+class StakeReleaseTransaction:
     def get_hash(self):
         return SHA256.new(self.pubkey).digest()
 

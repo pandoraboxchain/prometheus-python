@@ -1,9 +1,5 @@
-from tools.time import Time
-import operator
-from crypto.keys import Keys
-from chain.dag import Dag
 
-class Merger():
+class Merger:
 
     def __init__(self, dag):
         self.dag = dag
@@ -33,13 +29,3 @@ class Merger():
             top = top_blocks[0]
 
         return top, conflicts
-
-
-            
-            
-
-
-        
-
-    
-    

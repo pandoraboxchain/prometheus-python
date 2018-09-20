@@ -53,7 +53,6 @@ class TestImmutability(unittest.TestCase):
         zeta = immutability.calculate_zeta(dag.blocks_by_number[6][1].get_hash())
         self.assertEqual(zeta, 1)
 
-
     def test_confirmations_calculation(self):
         dag = Dag(0)
         private = Private.generate()

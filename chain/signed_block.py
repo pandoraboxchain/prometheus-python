@@ -1,8 +1,8 @@
-from Crypto.Hash import SHA256
 import struct
-from chain.block import Block
+import chain
 
-class SignedBlock():
+
+class SignedBlock:
 
     def get_hash(self):
         return self.block.get_hash()
@@ -11,7 +11,7 @@ class SignedBlock():
         self.signature = int.from_bytes(raw_data[0:128], byteorder='big')
         block_length = struct.unpack_from("I", raw_data, 128)[0]
         raw_block = raw_data[132:132+block_length]
-        self.block = Block()
+        self.block = chain.block.Block()
         self.block.parse(raw_block)
         return self
 

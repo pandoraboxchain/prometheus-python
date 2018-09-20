@@ -1,4 +1,4 @@
-class NodeApi():
+class NodeApi:
 
     def __init__(self):
         self.nodes = []
@@ -6,16 +6,20 @@ class NodeApi():
     def register_node(self, node):
         self.nodes.append(node)
 
-    def get_list_of_actual_chains(self):
+    @staticmethod
+    def get_list_of_actual_chains():
         return True
 
-    def get_block_by_hash(self):
+    @staticmethod
+    def get_block_by_hash():
         return True
 
-    def push_block(self, hash):
+    @staticmethod
+    def push_block():
         return True
 
-    def gossip_malicious(self, node_id):
+    @staticmethod
+    def gossip_malicious():
         return True
 
     def broadcast_transaction(self, sender_node_id, raw_tx):

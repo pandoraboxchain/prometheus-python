@@ -1,12 +1,10 @@
 import unittest
-import os
-from chain.block import Block
-from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.dag import Dag
 from crypto.private import Private
 from chain.epoch import BLOCK_TIME
 from chain.merger import Merger
+
 
 class TestMerger(unittest.TestCase):
 
@@ -38,7 +36,3 @@ class TestMerger(unittest.TestCase):
 
 
 
-        
-
-
-        

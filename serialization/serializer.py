@@ -63,9 +63,9 @@ class Deserializer:
     def parse_timestamp(self):
         return self.parse_u32()
 
-    #sometimes encrypted value can be 127 or 128 bytes in 32-byte RSA
+    # sometimes encrypted value can be 127 or 128 bytes in 32-byte RSA
     def parse_encrypted_data(self):
-        length = self.parse_u8()    #255 bytes max
+        length = self.parse_u8()    # 255 bytes max
         return self.read_and_move(length)
 
     def parse_hash(self):

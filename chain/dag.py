@@ -1,9 +1,8 @@
 from chain.block import Block
 from chain.signed_block import SignedBlock
-from Crypto.Hash import SHA256
-import binascii
 
-class Dag():
+
+class Dag:
     
     def __init__(self, genesis_creation_time):
         self.genesis_creation_time = genesis_creation_time
@@ -82,7 +81,7 @@ class Dag():
             result = result or self.is_ancestor(prev_hash, hash_to_find)
         return result
 
-    #TODO randomly choose one chain if there are two with the same length
+    # TODO randomly choose one chain if there are two with the same length
     def get_longest_chain_top_block(self, top_blocks):
         max_length = 0
         max_length_index = 0
@@ -122,7 +121,8 @@ class Dag():
         top_hashes = list(all_blocks_in_range.keys())
 
         return top_hashes
-    
+
+
 class ChainIter:
     def __init__(self, dag, block_hash):
         self.block_hash = block_hash
@@ -148,7 +148,7 @@ class ChainIter:
         block = self.dag.blocks_by_hash[self.block_hash]
         self.block_number = block_number
         
-        if block_number == 0: #genesis block. Stop iteration on next()
+        if block_number == 0:  # genesis block. Stop iteration on next()
             self.time_to_stop = True
         else:
             self.block_hash = block.block.prev_hashes[0]
@@ -157,4 +157,6 @@ class ChainIter:
 
     def next(self):
         return self.__next__()
-        
+
+
+
