@@ -56,7 +56,7 @@ class TestEpoch(unittest.TestCase):
             pubkey_tx = PublicKeyTransaction()
             pubkey_tx.generated_pubkey = Keys.to_bytes(private.publickey())
             pubkey_tx.pubkey = Keys.to_bytes(signer.publickey())
-            pubkey_tx.signature = signer.sign(pubkey_tx.get_hash(), 0)[0]
+            pubkey_tx.signature = Private.sign(pubkey_tx.get_hash(), signer)
 
             block = Block()
             block.timestamp = i * BLOCK_TIME
@@ -83,7 +83,7 @@ class TestEpoch(unittest.TestCase):
             encoded_splits = encode_splits(splits, public_keys)
             split_random_tx.pieces = encoded_splits
             expected_random_pieces.append(split_random_tx.pieces)
-            split_random_tx.signature = dummy_private.sign(pubkey_tx.get_hash(), 0)[0]
+            split_random_tx.signature = Private.sign(pubkey_tx.get_hash(), dummy_private)
             block = Block()
             block.timestamp = i * BLOCK_TIME
             block.prev_hashes = [prev_hash]
@@ -339,7 +339,7 @@ class TestEpoch(unittest.TestCase):
         commit = CommitRandomTransaction()
         commit.rand = encoded
         commit.pubkey = Keys.to_bytes(node_public)
-        commit.signature = node_private.sign(commit.get_signing_hash(epoch_hash), 0)[0]
+        commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()
         reveal.commit_hash = commit.get_reference_hash()

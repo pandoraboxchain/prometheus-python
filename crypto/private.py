@@ -12,11 +12,11 @@ class Private():
     
     @staticmethod
     def sign(message, key):
-        return key.sign(message, 0)[0]
+        return key.sign(message, 0)[0]  #for some reason it returns tuple with second item being None
 
     @staticmethod
     def encrypt(message, key):
-        return key.encrypt(message, 32)[0]
+        return key.encrypt(message, 32)[0]  #same thing here
 
     @staticmethod
     def decrypt(message, key):

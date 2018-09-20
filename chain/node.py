@@ -172,7 +172,7 @@ class Node():
                 tx = PublicKeyTransaction()
                 tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
                 tx.pubkey = Keys.to_bytes(node_private.publickey())
-                tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+                tx.signature = Private.sign(tx.get_hash(), node_private)
                 if self.behaviour.malicious_wrong_signature:
                     tx.signature+=1
                     
@@ -230,7 +230,7 @@ class Node():
 
         penalty = PenaltyTransaction()
         penalty.conflicts = conflicts
-        penalty.signature = self.block_signer.private_key.sign(penalty.get_hash(), 0)[0]
+        penalty.signature = Private.sign(penalty.get_hash(), self.block_signer.private_key)
         return penalty
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
@@ -261,7 +261,7 @@ class Node():
         
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
-        tx.signature = self.block_signer.private_key.sign(tx.get_signing_hash(epoch_hash), 0)[0]
+        tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), self.block_signer.private_key)
         return tx
 
     def get_allowed_signers_for_next_block(self, block):
@@ -375,7 +375,7 @@ class Node():
         tx.amount = 1000
         node_private = self.block_signer.private_key
         tx.pubkey = Keys.to_bytes(node_private.publickey())
-        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted StakeHold transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
@@ -383,7 +383,7 @@ class Node():
         tx = StakeReleaseTransaction()
         node_private = self.block_signer.private_key
         tx.pubkey = Keys.to_bytes(node_private.publickey())
-        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
@@ -402,7 +402,7 @@ class Node():
         commit = CommitRandomTransaction()
         commit.rand = encoded
         commit.pubkey = Keys.to_bytes(public)
-        commit.signature = node_private.sign(commit.get_signing_hash(epoch_hash), 0)[0]
+        commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()
         reveal.commit_hash = commit.get_reference_hash()

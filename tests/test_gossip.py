@@ -17,7 +17,7 @@ class TestGossip(unittest.TestCase):
 
         block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
         original.block = BlockFactory.sign_block(block, private)
-        original.signature = private.sign(original.get_hash(), 0)[0]
+        original.signature = Private.sign(original.get_hash(), private)
 
         raw = original.pack()
         restored = PositiveGossip()
@@ -31,7 +31,7 @@ class TestGossip(unittest.TestCase):
         original.node_public_key = Keys.to_bytes(private.publickey())
         original.timestamp = Time.get_current_time()
         original.number_of_block = 47
-        original.signature = private.sign(original.get_hash(), 0)[0]
+        original.signature = Private.sign(original.get_hash(), private)
 
         raw = original.pack()
         restored = NegativeGossip()
