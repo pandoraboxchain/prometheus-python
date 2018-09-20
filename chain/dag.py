@@ -22,6 +22,8 @@ class Dag:
 
     def add_signed_block(self, index, block):
         block_hash = block.block.get_hash()
+        if block_hash in self.blocks_by_hash:
+            assert False, "Trying to add block with the hash which already exists"
         self.blocks_by_hash[block_hash] = block
         if index in self.blocks_by_number:
             self.blocks_by_number[index].append(block)
