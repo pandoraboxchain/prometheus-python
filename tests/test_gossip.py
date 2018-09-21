@@ -98,3 +98,9 @@ class TestGossip(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 2)
         # verify that node0 receive new block
         self.assertEqual(len(node0.dag.blocks_by_number), 2)
+        # verify that negative gossip transaction is in block
+        last_block = node0.dag.blocks_by_number[2]
+        signed_block = last_block[0]
+        block = signed_block.block
+        system_txs = block.system_txs
+        self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
