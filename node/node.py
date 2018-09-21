@@ -1,9 +1,8 @@
-import time
 import asyncio
 import os
 
 from chain.dag import Dag
-from chain.epoch import Round, Epoch
+from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, Duration
@@ -12,6 +11,7 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
+from tools.time import Time
 from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
