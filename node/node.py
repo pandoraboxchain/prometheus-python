@@ -8,7 +8,7 @@ from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, Duration
 from chain.merger import Merger
-from chain.behaviour import Behaviour
+from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators

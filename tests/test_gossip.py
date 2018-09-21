@@ -1,6 +1,6 @@
 import unittest
 
-from chain.behaviour import Behaviour
+from node.behaviour import Behaviour
 from chain.block_factory import BlockFactory
 from chain.epoch import Epoch
 from node.block_signers import BlockSigners

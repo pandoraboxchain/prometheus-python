@@ -6,7 +6,7 @@ from node.node_api import NodeApi
 from node.block_signers import BlockSigners
 from node.validators import Validators
 from chain.epoch import Epoch
-from chain.behaviour import Behaviour
+from node.behaviour import Behaviour
 from tests.test_chain_generator import TestChainGenerator
 from tools.time import Time
 from crypto.private import Private

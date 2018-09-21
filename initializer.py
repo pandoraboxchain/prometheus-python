@@ -7,7 +7,7 @@ from node.node import Node
 from node.node_api import NodeApi
 from node.block_signers import BlockSigners
 from chain.epoch import BLOCK_TIME
-from chain.behaviour import Behaviour
+from node.behaviour import Behaviour
 from tools.announcer_node import AnnouncerNode
 from tools.time import Time
 
