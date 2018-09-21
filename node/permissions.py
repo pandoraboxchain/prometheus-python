@@ -1,11 +1,10 @@
 import random
 
-from chain.validator import Validator
-from chain.validators import Validators
 from chain.epoch import Epoch
 from chain.params import Round
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
-from chain.stake_manager import StakeManager
+from node.validators import Validator, Validators
+from node.stake_manager import StakeManager
 from crypto.keys import Keys
 from crypto.entropy import Source, Entropy
 from chain.params import SECRET_SHARE_PARTICIPANTS_COUNT

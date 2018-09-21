@@ -3,11 +3,11 @@ import unittest
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 from chain.epoch import Epoch, BLOCK_TIME
 from chain.dag import Dag
-from chain.permissions import Permissions
+from chain.block_factory import BlockFactory
 from crypto.private import Private
 from crypto.keys import Keys
-from chain.block_factory import BlockFactory
-from chain.validators import Validators
+from node.permissions import Permissions
+from node.validators import Validators
 from tests.test_chain_generator import TestChainGenerator
 
 

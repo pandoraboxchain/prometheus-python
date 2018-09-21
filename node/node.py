@@ -4,14 +4,14 @@ import os
 
 from chain.dag import Dag
 from chain.epoch import Round, Epoch
-from chain.block_signer import BlockSigner
-from chain.permissions import Permissions
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, Duration
 from chain.merger import Merger
 from chain.behaviour import Behaviour
-from chain.validators import Validators
+from node.block_signers import BlockSigner
+from node.permissions import Permissions
+from node.validators import Validators
 from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser

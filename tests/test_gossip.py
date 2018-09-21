@@ -2,11 +2,11 @@ import unittest
 
 from chain.behaviour import Behaviour
 from chain.block_factory import BlockFactory
-from chain.block_signers import BlockSigners
 from chain.epoch import Epoch
-from chain.node import Node
-from chain.node_api import NodeApi
-from chain.validators import Validators
+from node.block_signers import BlockSigners
+from node.node import Node
+from node.node_api import NodeApi
+from node.validators import Validators
 from crypto.keys import Keys
 from crypto.private import Private
 from tools.time import Time

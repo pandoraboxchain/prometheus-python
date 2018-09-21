@@ -3,9 +3,9 @@ import logging
 import importlib
 import datetime
 
-from chain.node import Node
-from chain.node_api import NodeApi
-from chain.block_signers import BlockSigners
+from node.node import Node
+from node.node_api import NodeApi
+from node.block_signers import BlockSigners
 from chain.epoch import BLOCK_TIME
 from chain.behaviour import Behaviour
 from tools.announcer_node import AnnouncerNode
