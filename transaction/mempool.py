@@ -76,6 +76,11 @@ class Mempool:
         else:
             assert False, "No known transactions for round"
 
+    def pop_round_transactions_and_gossips(self, round):
+        txs = self.get_transactions_for_round(round)
+        txs += self.gossips
+        return txs
+
     def remove_transactions(self, transactions):
         for tx in transactions:
             self.remove_transaction(tx)
