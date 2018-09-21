@@ -1,12 +1,12 @@
 import unittest
 import os
 
-from chain.node import Node
-from chain.node_api import NodeApi
-from chain.behaviour import Behaviour
-from chain.block_signers import BlockSigners
-from chain.validators import Validators
+from node.node import Node
+from node.node_api import NodeApi
+from node.block_signers import BlockSigners
+from node.validators import Validators
 from chain.epoch import Epoch
+from node.behaviour import Behaviour
 from tests.test_chain_generator import TestChainGenerator
 from tools.time import Time
 from crypto.private import Private

@@ -1,6 +1,11 @@
-from chain.validator import Validator
 from base64 import b64decode
 from Crypto.PublicKey import RSA
+
+class Validator:
+
+    def __init__(self, pubkey, stake):
+        self.public_key = pubkey
+        self.stake = stake
 
 
 class Validators:
