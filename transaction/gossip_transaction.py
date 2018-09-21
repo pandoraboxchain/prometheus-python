@@ -36,7 +36,7 @@ class NegativeGossipTransaction:
         # node signature
         self.signature = None
         # node public key (gossip request sender address)
-        self.node_public_key = None
+        self.pubkey = None
         # current timestamp
         self.timestamp = None
         # block number
@@ -45,18 +45,18 @@ class NegativeGossipTransaction:
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.signature = deserializer.parse_signature()
-        self.node_public_key = deserializer.parse_pubkey()
+        self.pubkey = deserializer.parse_pubkey()
         self.timestamp = deserializer.parse_timestamp()
         self.number_of_block = deserializer.parse_u32()
 
     def pack(self):
         return Serializer.write_signature(self.signature) + \
-               self.node_public_key + \
+               self.pubkey + \
                Serializer.write_timestamp(self.timestamp) + \
                Serializer.write_u32(self.number_of_block)
 
     def get_hash(self):
-        return SHA256.new(self.node_public_key +
+        return SHA256.new(self.pubkey +
                           Serializer.write_timestamp(self.timestamp) +
                           Serializer.write_u32(self.number_of_block)).digest()
 
@@ -67,7 +67,7 @@ class PositiveGossipTransaction:
         # node signature
         self.signature = None
         # node public key (gossip request sender address)
-        self.node_public_key = None
+        self.pubkey = None
         # current timestamp
         self.timestamp = None
         # returned block by number
@@ -76,17 +76,17 @@ class PositiveGossipTransaction:
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.signature = deserializer.parse_signature()
-        self.node_public_key = deserializer.parse_pubkey()
+        self.pubkey = deserializer.parse_pubkey()
         self.timestamp = deserializer.parse_timestamp()
         self.block = SignedBlock().parse(raw_data=raw_data[348:])
 
     def pack(self):
         return Serializer.write_signature(self.signature) + \
-               self.node_public_key + \
+               self.pubkey + \
                Serializer.write_timestamp(self.timestamp) + \
                self.block.pack()
 
     def get_hash(self):
-        return SHA256.new(self.node_public_key +
+        return SHA256.new(self.pubkey +
                           Serializer.write_timestamp(self.timestamp) +
                           self.block.pack()).digest()

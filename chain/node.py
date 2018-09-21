@@ -12,6 +12,7 @@ from chain.params import Round, Duration
 from chain.merger import Merger
 from chain.behaviour import Behaviour
 from chain.validators import Validators
+from tools.time import Time
 from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
@@ -115,8 +116,8 @@ class Node:
         block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
         if allowed_to_sign and block_has_not_been_signed_yet:
             should_skip_maliciously = self.behaviour.is_malicious_skip_block()
-            first_epoch_ever = self.epoch.get_epoch_number(current_block_number) == 1
-            if should_skip_maliciously and not first_epoch_ever:
+            # first_epoch_ever = self.epoch.get_epoch_number(current_block_number) == 1
+            if should_skip_maliciously:  # and not first_epoch_ever: # skip first epoch check
                 self.epoch_private_keys.clear()
                 self.logger.info("Maliciously skiped block")
             else:
@@ -292,9 +293,6 @@ class Node:
     # Handlers
     # -------------------------------------------------------------------------------
     def handle_block_message(self, node_id, raw_signed_block):
-        # skip receiving block by malicious behavior
-        if self.behaviour.is_malicious_skip_block_receive():
-            return
 
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
@@ -372,20 +370,9 @@ class Node:
     def handle_gossip_positive(self, sender_node_id, raw_gossip):
         pass
 
-    def get_allowed_signers_for_block_number(self, block_number):
-        blocks = self.dag.blocks_by_number[block_number]
-        allowed_signers = []
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
-        for block in blocks:
-            epoch_hash = self.epoch.find_epoch_hash_for_block(block.get_hash())
-            
-            if epoch_hash:
-                allowed_pubkey = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
-                allowed_signers.append(allowed_pubkey)
-
-        assert len(allowed_signers) > 0, "No signers allowed to sign block"
-        return allowed_signers
-
+    # -------------------------------------------------------------------------------
+    # Broadcast
+    # -------------------------------------------------------------------------------
     def broadcast_stakehold_transaction(self):
         tx = StakeHoldTransaction()
         tx.amount = 1000
@@ -406,16 +393,19 @@ class Node:
     def broadcast_gossip_negative(self, block_number):
         tx = NegativeGossipTransaction()
         node_private = self.block_signer.private_key
-        tx.node_public_key = Keys.to_bytes(node_private.publickey())
-        tx.timestamp = int(time.time())
+        tx.pubkey = Keys.to_bytes(node_private.publickey())
+        tx.timestamp = Time.get_current_time()
         tx.number_of_block = block_number
-        tx.signature = node_private.sign(tx.get_hash(), 0)[0]
+        tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted negative gossip transaction")
         self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_positive(self):
         pass
 
+    # -------------------------------------------------------------------------------
+    # Internal
+    # -------------------------------------------------------------------------------
     @staticmethod
     def create_commit_reveal_pair(node_private, random_bytes, epoch_hash):
         private = Private.generate()
@@ -433,4 +423,17 @@ class Node:
 
         return commit, reveal
 
+    def get_allowed_signers_for_block_number(self, block_number):
+        blocks = self.dag.blocks_by_number[block_number]
+        allowed_signers = []
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
+        for block in blocks:
+            epoch_hash = self.epoch.find_epoch_hash_for_block(block.get_hash())
+
+            if epoch_hash:
+                allowed_pubkey = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
+                allowed_signers.append(allowed_pubkey)
+
+        assert len(allowed_signers) > 0, "No signers allowed to sign block"
+        return allowed_signers
 

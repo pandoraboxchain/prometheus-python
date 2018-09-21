@@ -2,7 +2,6 @@ class Behaviour:
     def __init__(self):
         self.malicious_excessive_block = False
         self.malicious_skip_block = False
-        self.malicious_skip_block_receive = False
         self.malicious_wrong_signature = False
         self.malicious_wrong_signature_epoch = False
         self.wants_to_hold_stake = False
@@ -19,9 +18,6 @@ class Behaviour:
 
     def is_malicious_skip_block(self):
         return self.malicious_skip_block
-
-    def is_malicious_skip_block_receive(self):
-        return self.malicious_skip_block_receive
 
     def should_hold_stake(self):
         return self.wants_to_hold_stake

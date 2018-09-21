@@ -18,7 +18,7 @@ class TestGossip(unittest.TestCase):
     def test_parse_pack_gossip_positive(self):
         private = Private.generate()
         original = PositiveGossipTransaction()
-        original.node_public_key = Keys.to_bytes(private.publickey())
+        original.pubkey = Keys.to_bytes(private.publickey())
         original.timestamp = Time.get_current_time()
 
         block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
@@ -34,7 +34,7 @@ class TestGossip(unittest.TestCase):
     def test_parse_pack_gossip_negative(self):
         private = Private.generate()
         original = NegativeGossipTransaction()
-        original.node_public_key = Keys.to_bytes(private.publickey())
+        original.pubkey = Keys.to_bytes(private.publickey())
         original.timestamp = Time.get_current_time()
         original.number_of_block = 47
         original.signature = Private.sign(original.get_hash(), private)
@@ -58,35 +58,33 @@ class TestGossip(unittest.TestCase):
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
+        behavior = Behaviour()
+        behavior.malicious_skip_block = True
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
                      network=network,
                      block_signer=private_keys[0],
                      validators=validators,
-                     behaviour=Behaviour())
+                     behaviour=behavior)
         network.register_node(node0)
 
-        behavior = Behaviour()
-        behavior.malicious_skip_block_receive = True
         node1 = Node(genesis_creation_time=1,
                      node_id=1,
                      network=network,
                      block_signer=private_keys[1],
                      validators=validators,
-                     behaviour=behavior)
+                     behaviour=Behaviour())
         network.register_node(node1)
 
         Time.advance_to_next_timeslot()
         node0.step()
-        # ensure that node 0 create and send block
-        self.assertEqual(len(node0.dag.blocks_by_number), 2)
-
+        self.assertEqual(len(node0.dag.blocks_by_number), 1)  # ensure that block skipped by node0
         node1.step()
-        # ensure that node 1 do not receive block
-        self.assertEqual(len(node1.dag.blocks_by_number), 1)
+        self.assertEqual(len(node0.dag.blocks_by_number), 1)  # ensure that block not received by node1
 
         Time.advance_to_next_timeslot()
         node0.step()
-        node1.step()
-        # ensure that node 1 send negative gossip transaction
-        self.assertEqual(len(node0.mempool.gossips), 1)
+        self.assertEqual(len(node0.mempool.gossips), 0)
+
+        node1.step()  # on next step node 1 will send negative gossip
+        self.assertEqual(len(node1.mempool.gossips), 1)
