@@ -39,7 +39,7 @@ class TestTransaction(unittest.TestCase):
             restored.parse(raw)
 
             self.assertEqual(TransactionParser.pack(original), TransactionParser.pack(restored))        
-            self.assertEqual(original.get_hash(), restored.get_hash())        
+            self.assertEqual(original.get_reference_hash(), restored.get_reference_hash())
 
     def test_split_pack_unpack(self):
         original = SplitRandomTransaction()
