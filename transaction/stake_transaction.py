@@ -8,6 +8,7 @@ class StakeHoldTransaction:
         self.amount = None
         self.pubkey = None
         self.signature = None
+        self.len = None
 
     def get_hash(self):
         return SHA256.new(Serializer.write_u16(self.amount) + self.pubkey).digest()
@@ -69,6 +70,7 @@ class StakeReleaseTransaction:
     def __init__(self):
         self.pubkey = None
         self.signature = None
+        self.len = None
 
     def get_hash(self):
         return SHA256.new(self.pubkey).digest()

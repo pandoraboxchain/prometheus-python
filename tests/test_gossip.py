@@ -83,8 +83,18 @@ class TestGossip(unittest.TestCase):
         self.assertEqual(len(node0.dag.blocks_by_number), 1)  # ensure that block not received by node1
 
         Time.advance_to_next_timeslot()
+        # on next step node0 broadcast negative gossip
         node0.step()
+        # and not include it to (node0) self.mempool
         self.assertEqual(len(node0.mempool.gossips), 0)
-
-        node1.step()  # on next step node 1 will send negative gossip
+        # assume that negative gossip broadcasted and placed to node1 mempool
         self.assertEqual(len(node1.mempool.gossips), 1)
+
+        # on next step node 1 will send negative gossip
+        # node1 MUST create and sign block which contain negative gossip and broadcast it
+        node1.step()
+
+        # verify that node1 make block broadcast
+        self.assertEqual(len(node1.dag.blocks_by_number), 2)
+        # verify that node0 receive new block
+        self.assertEqual(len(node0.dag.blocks_by_number), 2)

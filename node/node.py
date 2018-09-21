@@ -125,7 +125,7 @@ class Node:
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
         
-        transactions = self.mempool.get_transactions_for_round(current_round_type)
+        transactions = self.mempool.pop_round_system_transactions(current_round_type)
 
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()
@@ -140,7 +140,8 @@ class Node:
             transactions.append(penalty)
 
         current_top_blocks = [top]
-        if conflicts: current_top_blocks += conflicts
+        if conflicts:
+            current_top_blocks += conflicts
         
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = transactions
