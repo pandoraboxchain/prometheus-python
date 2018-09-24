@@ -1,5 +1,15 @@
 from graphviz import Digraph
 
+# Usage
+# Just add two following lines where you want to visualize
+# And pass dag as argument
+# Last argument set to True will try to immediately render and show PDF
+# But you have to have graphviz installed in order for this to work
+# Please do not commit visualizations since it overwrites file every time it's used
+
+# from visualization.dag_visualizer import DagVisualizer
+# DagVisualizer.visualize(dag, True)
+
 class DagVisualizer:
     @staticmethod
     def visualize(dag, view_immediately=False):

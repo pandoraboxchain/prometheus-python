@@ -213,9 +213,6 @@ class TestEpoch(unittest.TestCase):
     def test_round_iterator(self):
         dag = TestChainGenerator.generate_two_chains(9)
 
-        # from visualization.dag_visualizer import DagVisualizer
-        # DagVisualizer.visualize(dag)
-
         main_top = dag.blocks_by_number[9][0]
 
         round_iter = RoundIter(dag, main_top.get_hash(), Round.PUBLIC)

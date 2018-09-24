@@ -8,8 +8,23 @@ class Immutability:
     def __init__(self, dag: Dag):
         self.dag = dag
 
-    @staticmethod
-    def is_block_immutable():
+    # returns part of chain starting from top block
+    # putting None where block is skipped
+    def get_mutable_part_of_chain(self, top):
+        chain_part = []
+        chain_iter = ChainIter(self.dag, top)
+        count = 0
+        for block in chain_iter:
+            count += 1
+            if count == ZETA:
+                if block:
+                    chain_part.append(block)
+                else:
+                    chain_part.append(None)
+
+        return list(reversed(chain_part))
+
+
         return False
 
     @staticmethod
