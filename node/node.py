@@ -227,7 +227,7 @@ class Node:
     def form_penalize_violators_transaction(self, conflicts):
         for conflict in conflicts:
             block = self.dag.blocks_by_hash[conflict]
-            self.network.broadcast_conflicting_block(self.node_id, block.pack())
+            self.network.broadcast_block_out_of_timeslot(self.node_id, block.pack())
         
         self.logger.info("Forming transaction with conflicting blocks")
         self.logger.info(conflict.hex())
@@ -330,7 +330,7 @@ class Node:
         else:
             self.logger.error("Received tx is invalid")
 
-    def handle_conflicting_block_message(self, node_id, raw_signed_block):
+    def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
 

@@ -32,10 +32,10 @@ class NodeApi:
             if node.node_id != sender_node_id:
                 node.handle_block_message(sender_node_id, raw_signed_block)
 
-    def broadcast_conflicting_block(self, sender_node_id, raw_signed_block):
+    def broadcast_block_out_of_timeslot(self, sender_node_id, raw_signed_block):
         for node in self.nodes:
             if node.node_id != sender_node_id:
-                node.handle_conflicting_block_message(sender_node_id, raw_signed_block)
+                node.handle_block_out_of_timeslot(sender_node_id, raw_signed_block)
 
     def broadcast_gossip_negative(self, sender_node_id, raw_gossip):
         for node in self.nodes:
