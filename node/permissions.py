@@ -38,12 +38,12 @@ class Permissions:
 
     def get_sign_permission(self, epoch_hash, block_number_in_epoch):
         validators_for_epoch = self.get_validators(epoch_hash)
-        random_indexes = self.get_signers_indexes(epoch_hash)
+        random_signers_indexes = self.get_signers_indexes(epoch_hash)
         # cycle validators in case of exclusion
         if block_number_in_epoch >= len(validators_for_epoch):
             block_number_in_epoch = block_number_in_epoch % len(validators_for_epoch)
             print("Looping epoch validators. Next block validator is as in block number", block_number_in_epoch)
-        index = random_indexes[block_number_in_epoch]
+        index = random_signers_indexes[block_number_in_epoch]
         return validators_for_epoch[index]
 
     def get_commiters(self, epoch_hash):
@@ -93,15 +93,24 @@ class Permissions:
         validators = self.apply_stake_actions(validators, stake_actions)
         self.epoch_validators[epoch_hash] = validators
 
-    def get_ordered_pubkeys_for_last_round(self, epoch_hash):
+    def get_ordered_pubkeys_for_round(self, epoch_hash, round_type):
         selected_epoch_validators = self.get_validators(epoch_hash)
-        epoch_random_indexes = self.get_signers_indexes(epoch_hash)
+
+        epoch_random_indexes = []
+        if round_type==Round.PUBLIC or round_type==Round.PRIVATE or round_type==Round.FINAL:
+            epoch_random_indexes = self.get_signers_indexes(epoch_hash)
+        elif round_type==Round.SECRETSHARE:
+            epoch_random_indexes = self.get_secret_sharers(epoch_hash)
+        elif round_type==Round.COMMIT or round_type==Round.REVEAL:
+            epoch_random_indexes = self.get_commiters(epoch_hash)
+
         validators = []	
-        for i in Epoch.get_round_range(1, Round.PRIVATE):	
+        for i in Epoch.get_round_range(1, round_type):	
             index = epoch_random_indexes[i-1]
             validators.append(selected_epoch_validators[index])
 
         return validators
+
 
     def get_random_senders_pubkeys(self, epoch_hash):
         selected_epoch_validators = self.get_validators(epoch_hash)

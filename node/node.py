@@ -166,7 +166,7 @@ class Node:
         
         pubkey_publishers = []
         for _, epoch_hash in self.epoch.get_epoch_hashes().items():
-            pubkey_publishers += self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash)
+            pubkey_publishers += self.permissions.get_ordered_pubkeys_for_round(epoch_hash, Round.PRIVATE)
 
         for publisher in pubkey_publishers:
             if node_pubkey == publisher.public_key:
@@ -237,7 +237,7 @@ class Node:
         return penalty
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
-        ordered_senders = self.permissions.get_ordered_pubkeys_for_last_round(epoch_hash)
+        ordered_senders = self.permissions.get_ordered_pubkeys_for_round(epoch_hash, Round.PRIVATE)
         published_pubkeys = self.epoch.get_public_keys_for_epoch(top_hash)
         
         self.logger.info("Ordered pubkeys for secret sharing:")
