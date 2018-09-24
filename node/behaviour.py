@@ -7,6 +7,9 @@ class Behaviour:
         self.wants_to_hold_stake = False
         self.wants_to_release_stake = False
         self.epoch_to_release_stake = -1
+        # behavior flag for create block but not broadcast it
+        # added as temporary fast solution
+        self.transport_cancel_block_broadcast = False
 
     def update(self, epoch_number):
         if self.epoch_to_release_stake == epoch_number:

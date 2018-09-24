@@ -3,10 +3,10 @@ from chain.signed_block import SignedBlock
 from serialization.serializer import Serializer, Deserializer
 
 """
-Gossip message used for off chain data transfer.
+Gossip message used for on/off chain data transfer.
 Gossip can be POSITIVE or NEGATIVE
 gossip- (NEGATIVE GOSSIP) is structured broadcast request send to validator about absent block in X time_slot
-gossip+ (POSITIVE GOSSIP) is structured broadcast data send to requester with block in X time_slot
+gossip+ (POSITIVE GOSSIP) is structured broadcast data send to requester with block tx_hash in X time_slot
 
 gossip validation rules
 - gossip can be sent by every node (simple_node, validator)
@@ -19,7 +19,7 @@ gossip validation rules
 - negative gossip can be broadcast only once by one node per time_slot
 - positive gossip must be broadcast by ALL nodes
   (3 same positive gossips by different senders means that this is correct block)
-- validator node DO NOT listen positive gossip
+- validator node listen positive gossip validate it and add to DAG if block not exist
 
 send negative gossip- rule
 - negative gossip sends when block not received on time_slot finished

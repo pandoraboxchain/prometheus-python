@@ -148,7 +148,8 @@ class Node:
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
         self.logger.debug("Broadcasting signed block number %s", current_block_number)
-        self.network.broadcast_block(self.node_id, signed_block.pack())
+        if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
+            self.network.broadcast_block(self.node_id, signed_block.pack())
 
         if self.behaviour.is_malicious_excessive_block():
             additional_block_timestamp = block.timestamp + 1
@@ -364,10 +365,9 @@ class Node:
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
-            if self.dag.has_block_number(transaction.number_of_block):
-                # block exist, send it by handle gossip positive
-                # TODO rebuild positive gossip to send only hash of finded block
-                pass
+            if self.dag.has_block_number(transaction.number_of_block - 1):
+                signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block - 1]
+                self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
         else:
             self.logger.error("Received gossip negative tx is invalid")
 
@@ -378,8 +378,8 @@ class Node:
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
-            received_block = transaction.block
-            # TODO validate block and store to DAG
+            gossip_positive_block_hash = transaction.block_hash
+            # TODO validate block hash and request block by hash (system transaction)
         else:
             self.logger.error("Received gossip positive tx is invalid")
 
@@ -413,16 +413,18 @@ class Node:
         self.logger.info("Broadcasted negative gossip transaction")
         self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))
 
-    def broadcast_gossip_positive(self, signed_block):
+    def broadcast_gossip_positive(self, signed_block_hash):
         tx = PositiveGossipTransaction()
         node_private = self.block_signer.private_key
         tx.pubkey = Keys.to_bytes(node_private.publickey())
-        tx.signature = Private.sign(tx.get_hash(), node_private)
         tx.timestamp = Time.get_current_time()
-        tx.block = signed_block
+        tx.block_hash = signed_block_hash
+        tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted positive gossip transaction")
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
 
+    def broadcast_request_block_by_hash(self):  # broadcast system transaction for request block by hash
+        pass
     # -------------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------------
