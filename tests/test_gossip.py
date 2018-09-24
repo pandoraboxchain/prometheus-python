@@ -22,7 +22,7 @@ class TestGossip(unittest.TestCase):
         original.timestamp = Time.get_current_time()
 
         block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
-        original.block = BlockFactory.sign_block(block, private)
+        original.block_hash = BlockFactory.sign_block(block, private).get_hash()
         original.signature = Private.sign(original.get_hash(), private)
 
         raw = original.pack()

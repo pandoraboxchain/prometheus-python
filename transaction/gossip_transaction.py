@@ -79,8 +79,8 @@ class PositiveGossipTransaction:
         self.pubkey = None
         # current timestamp
         self.timestamp = None
-        # returned block by number
-        self.block = None
+        # returned block hash by number
+        self.block_hash = None
         # tx length
         self.len = None
 
@@ -89,19 +89,19 @@ class PositiveGossipTransaction:
         self.signature = deserializer.parse_signature()
         self.pubkey = deserializer.parse_pubkey()
         self.timestamp = deserializer.parse_timestamp()
-        self.block = SignedBlock().parse(raw_data=raw_data[348:])
+        self.block_hash = deserializer.parse_hash()
         self.len = deserializer.get_len()
 
     def pack(self):
         return Serializer.write_signature(self.signature) + \
                self.pubkey + \
                Serializer.write_timestamp(self.timestamp) + \
-               self.block.pack()
+               self.block_hash
 
     def get_hash(self):
         return SHA256.new(self.pubkey +
                           Serializer.write_timestamp(self.timestamp) +
-                          self.block.pack()).digest()
+                          self.block_hash).digest()
 
     def get_len(self):
         return self.len
