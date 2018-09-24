@@ -101,3 +101,71 @@ class TestGossip(unittest.TestCase):
         # verify that negative gossip transaction is in block
         system_txs = node0.dag.blocks_by_number[2][0].block.system_txs
         self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
+
+    def test_send_positive_gossip(self):
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0] + [1] + [2] * Epoch.get_duration()
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
+        network = NodeApi()
+
+        node0 = Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node0)
+
+        behavior = Behaviour()
+        behavior.malicious_skip_block = True
+        node1 = Node(genesis_creation_time=1,
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators,
+                     behaviour=behavior)
+        network.register_node(node1)
+
+        node2 = Node(genesis_creation_time=1,
+                     node_id=2,
+                     network=network,
+                     block_signer=private_keys[2],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node2)
+
+        # TODO complete test after rebuild negative gossip send logic
+        # Time.advance_to_next_timeslot()  # current block number 1
+        # node0.step()  # create and sign block
+        # node1.step()
+        # node2.step()
+        # asset that node0 create block number 2
+        #
+        # Time.advance_to_next_timeslot()  # current block number 2
+        # node0.step()
+        # node1.step()  # skip creation block
+        # node2.step()
+        # assert that block 3 not created
+
+        # Time.advance_to_next_timeslot()  # current block number 3
+        # node0.step()  # send negative gossip for block 3
+        # node1.step()  # send negative gossip for block 3
+        # node2.step()  # send negative gossip for block 3
+                      # create and sign block (with negative gossips) block number 4
+                      # скорее всего данный валидатор должен так же разослать позитивный госип и сам создать блок номер 3
+                      # при том отправить позитивный госип ПЕРЕД своим блоком
+                      # КОНФЛИКТЫ ЦЕПИ РЕГУЛИРУЮТСЯ ТЕКУЩИМ ВАЛИДАТОРОМ
+        # assert block 3 created
+
+        # Time.advance_to_next_timeslot()
+        # node0.step()
+        # node1.step()
+        # node2.step()
