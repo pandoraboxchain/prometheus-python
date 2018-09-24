@@ -55,5 +55,5 @@ class RevealRandomTransaction:
     def get_len(self):
         return self.len
 
-    def get_hash(self):
+    def get_reference_hash(self):
         return SHA256.new(self.pack()).digest()
