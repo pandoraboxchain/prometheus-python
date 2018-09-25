@@ -34,5 +34,7 @@ class TestMerger(unittest.TestCase):
         self.assertEqual(len(conflicts), 1)
         self.assertEqual(conflicts[0], other_block2.get_hash())
 
+        #TODO more complicated test to find conflicts in next epoch
+
 
 

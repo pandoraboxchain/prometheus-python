@@ -454,15 +454,22 @@ class Node:
         return commit, reveal
 
     def get_allowed_signers_for_block_number(self, block_number):
-        blocks = self.dag.blocks_by_number[block_number]
-        allowed_signers = []
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
-        for block in blocks:
-            epoch_hash = self.epoch.find_epoch_hash_for_block(block.get_hash())
+        prev_epoch_number = self.epoch.get_epoch_number(block_number) - 1
+        prev_epoch_start = self.epoch.get_epoch_start_block_number(prev_epoch_number)
+        prev_epoch_end = self.epoch.get_epoch_end_block_number(prev_epoch_number)
+        
+        # this will extract every unconnected block in epoch, which is practically epoch hash
+        # TODO maybe consider blocks to be epoch hashes if they are in final round and consider everything else is orphan
+        epoch_hashes = self.dag.get_branches_for_timeslot_range(prev_epoch_start, prev_epoch_end)
+        
+        if prev_epoch_number == 0:
+            epoch_hashes = [self.dag.genesis_block().get_hash()]
 
-            if epoch_hash:
-                allowed_pubkey = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
-                allowed_signers.append(allowed_pubkey)
+        allowed_signers = []
+        for epoch_hash in epoch_hashes:
+            epoch_block_number = Epoch.convert_to_epoch_block_number(block_number)
+            allowed_pubkey = self.permissions.get_sign_permission(epoch_hash, epoch_block_number).public_key
+            allowed_signers.append(allowed_pubkey)
 
         assert len(allowed_signers) > 0, "No signers allowed to sign block"
         return allowed_signers
