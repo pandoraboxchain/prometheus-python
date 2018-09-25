@@ -5,7 +5,7 @@ from chain.dag import Dag
 from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
-from chain.params import Round, Duration
+from chain.params import Round, Duration, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS
 from chain.merger import Merger
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
@@ -167,7 +167,7 @@ class Node:
         
         pubkey_publishers = []
         for _, epoch_hash in self.epoch.get_epoch_hashes().items():
-            pubkey_publishers += self.permissions.get_ordered_pubkeys_for_round(epoch_hash, Round.PRIVATE)
+            pubkey_publishers += self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
 
         for publisher in pubkey_publishers:
             if node_pubkey == publisher.public_key:
@@ -191,7 +191,7 @@ class Node:
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
             if epoch_hash in self.sent_shares_epochs: continue
-            allowed_to_share_random = self.permissions.get_secret_sharers(epoch_hash)
+            allowed_to_share_random = self.permissions.get_secret_sharers_pubkeys(epoch_hash)
             if not pubkey in allowed_to_share_random: continue
             split_random = self.form_split_random_transaction(top, epoch_hash)
             self.sent_shares_epochs.append(epoch_hash)
@@ -203,7 +203,7 @@ class Node:
         epoch_hashes = self.epoch.get_epoch_hashes().values()
         for epoch_hash in epoch_hashes:
             if not epoch_hash in self.reveals_to_send:
-                allowed_to_commit_list = self.permissions.get_commiters(epoch_hash)
+                allowed_to_commit_list = self.permissions.get_commiters_pubkeys(epoch_hash)
                 if not pubkey in allowed_to_commit_list: continue
                 commit, reveal = self.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), epoch_hash)
                 self.reveals_to_send[epoch_hash] = reveal
@@ -238,14 +238,14 @@ class Node:
         return penalty
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
-        ordered_senders = self.permissions.get_ordered_pubkeys_for_round(epoch_hash, Round.PRIVATE)
+        ordered_senders = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
         published_pubkeys = self.epoch.get_public_keys_for_epoch(top_hash)
         
         self.logger.info("Ordered pubkeys for secret sharing:")
         sorted_published_pubkeys = []
         for sender in ordered_senders:
             raw_pubkey = Keys.to_bytes(sender.public_key)
-            if raw_pubkey in published_pubkeys:
+            if raw_pubkey in published_pubkeys: 
                 generated_pubkey = published_pubkeys[raw_pubkey]
                 sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
                 self.logger.info(Keys.to_visual_string(generated_pubkey))
@@ -258,7 +258,7 @@ class Node:
 
     def form_secret_sharing_transaction(self, sorted_public_keys, epoch_hash):
         random_bytes = os.urandom(32)
-        splits = split_secret(random_bytes, Duration.PRIVATE // 2 + 1, Duration.PRIVATE)
+        splits = split_secret(random_bytes, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS)
         encoded_splits = encode_splits(splits, sorted_public_keys)
         self.logger.info("Formed split random")
         

@@ -2,7 +2,7 @@ from transaction.secret_sharing_transactions import PrivateKeyTransaction,  Publ
 from transaction.stake_transaction import PenaltyTransaction
 
 from crypto.keys import Keys
-from chain.params import Round
+from chain.params import Round, MINIMAL_SECRET_SHARERS
 
 class InvalidTransactionException(Exception):
     def __init__(self, message):
@@ -30,6 +30,8 @@ class TransactionVerifier():
             self.is_signature_valid_for_at_least_one_epoch(transaction)
 
             self.validate_if_secret_sharing_transaction(transaction)
+
+            
         except InvalidTransactionException as e:
             print(e)
             return False
@@ -51,7 +53,7 @@ class TransactionVerifier():
         epoch_hashes = self.epoch.get_epoch_hashes()
         signature_valid_for_at_least_one_valid_publickey = False
         for _top, epoch_hash in epoch_hashes.items():
-            validators = self.permissions.get_ordered_pubkeys_for_round(epoch_hash, current_round)
+            validators = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, current_round)
             for validator in validators:
                 if TransactionVerifier.check_signature(transaction, validator.public_key, epoch_hash) == True:
                     signature_valid_for_at_least_one_valid_publickey = True
@@ -80,7 +82,7 @@ class TransactionVerifier():
         if isinstance(transaction, PublicKeyTransaction):
             epoch_hashes = self.epoch.get_epoch_hashes()
             for _top, epoch_hash in epoch_hashes.items():
-                pubkey_publishers = self.permissions.get_ordered_pubkeys_for_round(epoch_hash, Round.PRIVATE)
+                pubkey_publishers = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
                 allowed_pubkey = False
                 for pubkey_publisher in pubkey_publishers:
                     if pubkey_publisher.public_key == Keys.from_bytes(transaction.pubkey):
@@ -94,7 +96,8 @@ class TransactionVerifier():
             self.has_enough_pieces_for_secret_sharing(transaction)
 
     def has_enough_pieces_for_secret_sharing(self, transaction):
-        pass
+        if len(transaction.pieces) < MINIMAL_SECRET_SHARERS:
+            raise InvalidTransactionException("SplitRandomTransaction has not enough pieces!")
 
     @staticmethod
     def check_signature(tx, pubkey, epoch_hash):
