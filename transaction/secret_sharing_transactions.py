@@ -85,4 +85,4 @@ class SplitRandomTransaction:
         return SHA256.new(self.pack_pieces() + epoch_hash).digest()
 
     def get_reference_hash(self):
-        return SHA256.new(self.pack() + Serializer.write_signature(self.signature)).digest()
+        return SHA256.new(self.pack()).digest()
