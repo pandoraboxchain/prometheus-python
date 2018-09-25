@@ -25,6 +25,7 @@ class TestTransaction(unittest.TestCase):
 
             self.assertEqual(TransactionParser.pack(original), TransactionParser.pack(restored))        
             self.assertEqual(original.get_hash(), restored.get_hash())
+            self.assertEqual(original.get_signing_hash(b"epoch_hash"), restored.get_signing_hash(b"epoch_hash"))
 
     def test_pack_parse_reveal_transaction(self):
         for _ in range(10):
