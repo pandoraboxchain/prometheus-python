@@ -317,6 +317,33 @@ class Node:
         else:
             self.logger.error("Received block from %d, but it's signature is wrong", node_id)
 
+    def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
+        signed_block = SignedBlock()
+        signed_block.parse(raw_signed_block)
+
+        block_hash = signed_block.get_hash()
+        if block_hash in self.dag.blocks_by_hash:
+            self.logger.info("Received conflicting block, but it already exists in DAG")
+            return
+
+        block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
+
+        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
+        is_block_allowed = False
+        for allowed_signer in allowed_signers:
+            if signed_block.verify_signature(allowed_signer):
+                is_block_allowed = True
+                break
+
+        if is_block_allowed:
+            if True:  # TODO: add block verification
+                self.dag.add_signed_block(block_number, signed_block)
+                self.mempool.remove_transactions(signed_block.block.system_txs)
+            else:
+                self.logger.error("Block was not added. Considered invalid")
+        else:
+            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
+
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
         current_block_number = self.epoch.get_current_timeframe_block_number()
@@ -331,34 +358,7 @@ class Node:
         else:
             self.logger.error("Received tx is invalid")
 
-    def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
-        signed_block = SignedBlock()
-        signed_block.parse(raw_signed_block)
-
-        block_hash = signed_block.get_hash()
-        if block_hash in self.dag.blocks_by_hash:
-            self.logger.info("Received conflicting block, but it already exists in DAG")
-            return
-
-        block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
-        
-        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
-        is_block_allowed = False
-        for allowed_signer in allowed_signers:
-            if signed_block.verify_signature(allowed_signer):
-                is_block_allowed = True
-                break
-        
-        if is_block_allowed:
-            if True:  # TODO: add block verification
-                self.dag.add_signed_block(block_number, signed_block)
-                self.mempool.remove_transactions(signed_block.block.system_txs)
-            else:
-                self.logger.error("Block was not added. Considered invalid")
-        else:
-            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
-
-    def handle_gossip_negative(self, sender_node_id, raw_gossip):
+    def handle_gossip_negative(self, node_id, raw_gossip):
         transaction = TransactionParser.parse(raw_gossip)
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
@@ -371,15 +371,17 @@ class Node:
         else:
             self.logger.error("Received gossip negative tx is invalid")
 
-    def handle_gossip_positive(self, sender_node_id, raw_gossip):
+    def handle_gossip_positive(self, node_id, raw_gossip):
         transaction = TransactionParser.parse(raw_gossip)
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
-            gossip_positive_block_hash = transaction.block_hash
-            # TODO validate block hash and request block by hash (system transaction)
+            signed_block = self.network.get_block_by_hash(node_id=node_id,
+                                                          block_hash=transaction.block_hash)
+            # rice exception on handle_block_out_of_timeslot !!!
+            self.handle_block_out_of_timeslot(node_id, signed_block.pack())
         else:
             self.logger.error("Received gossip positive tx is invalid")
 
@@ -423,8 +425,14 @@ class Node:
         self.logger.info("Broadcasted positive gossip transaction")
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
 
-    def broadcast_request_block_by_hash(self):  # broadcast system transaction for request block by hash
-        pass
+    # -------------------------------------------------------------------------------
+    # Targeted request
+    # -------------------------------------------------------------------------------
+    def request_block_by_hash(self, block_hash):
+        # TODO add some validations ?
+        signed_block = self.dag.blocks_by_hash[block_hash]
+        return signed_block
+
     # -------------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------------

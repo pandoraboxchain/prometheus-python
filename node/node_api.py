@@ -10,9 +10,8 @@ class NodeApi:
     def get_list_of_actual_chains():
         return True
 
-    @staticmethod
-    def get_block_by_hash():
-        return True
+    def get_block_by_hash(self, node_id, block_hash):
+        return self.nodes[node_id].request_block_by_hash(block_hash=block_hash)
 
     @staticmethod
     def push_block():

@@ -1,5 +1,4 @@
 from Crypto.Hash import SHA256
-from chain.signed_block import SignedBlock
 from serialization.serializer import Serializer, Deserializer
 
 """
