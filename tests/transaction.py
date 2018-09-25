@@ -24,7 +24,7 @@ class TestTransaction(unittest.TestCase):
             restored.parse(raw)
 
             self.assertEqual(TransactionParser.pack(original), TransactionParser.pack(restored))        
-            self.assertEqual(original.get_reference_hash(), restored.get_reference_hash())
+            self.assertEqual(original.get_hash(), restored.get_hash())
 
     def test_pack_parse_reveal_transaction(self):
         for _ in range(10):
@@ -39,7 +39,7 @@ class TestTransaction(unittest.TestCase):
             restored.parse(raw)
 
             self.assertEqual(TransactionParser.pack(original), TransactionParser.pack(restored))        
-            self.assertEqual(original.get_reference_hash(), restored.get_reference_hash())
+            self.assertEqual(original.get_hash(), restored.get_hash())
 
     def test_split_pack_unpack(self):
         original = SplitRandomTransaction()
@@ -50,7 +50,7 @@ class TestTransaction(unittest.TestCase):
         restored = SplitRandomTransaction()
         restored.parse(raw)
 
-        self.assertEqual(original.get_reference_hash(), restored.get_reference_hash())        
+        self.assertEqual(original.get_hash(), restored.get_hash())        
         self.assertEqual(original.get_signing_hash(b"epoch_hash"), restored.get_signing_hash(b"epoch_hash"))
 
     def test_payment_pack_unpack(self):

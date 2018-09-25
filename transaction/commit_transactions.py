@@ -30,7 +30,7 @@ class CommitRandomTransaction:
         return SHA256.new(self.rand + self.pubkey + epoch_hash).digest()
     
     # this hash is for linking this transaction from reveal
-    def get_reference_hash(self):
+    def get_hash(self):
         return SHA256.new(self.pack()).digest()
 
 
@@ -55,5 +55,5 @@ class RevealRandomTransaction:
     def get_len(self):
         return self.len
 
-    def get_reference_hash(self):
+    def get_hash(self):
         return SHA256.new(self.pack()).digest()
