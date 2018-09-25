@@ -158,7 +158,7 @@ class Epoch:
             if block:
                 for tx in block.block.system_txs:
                     if isinstance(tx, CommitRandomTransaction):
-                        commits[tx.get_reference_hash()] = tx
+                        commits[tx.get_hash()] = tx
         
         return commits
 

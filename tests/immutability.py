@@ -40,9 +40,6 @@ class TestImmutability(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        from visualization.dag_visualizer import DagVisualizer
-        DagVisualizer.visualize(dag, False)
-
         immutability = Immutability(dag)
         # zeta = immutability.calculate_zeta(dag.blocks_by_number[2][0].get_hash())
         # self.assertEqual(zeta, -2)

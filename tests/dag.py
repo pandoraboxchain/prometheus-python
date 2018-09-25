@@ -126,9 +126,6 @@ class TestDag(unittest.TestCase):
         TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,8), [4])
         TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,7), [4,5])
 
-        # from visualization.dag_visualizer import DagVisualizer
-        # DagVisualizer.visualize(dag)
-
         tops = dag.get_branches_for_timeslot_range(3, 6)
 
         self.assertEqual(len(tops), 3)

@@ -38,12 +38,12 @@ class Permissions:
 
     def get_sign_permission(self, epoch_hash, block_number_in_epoch):
         validators_for_epoch = self.get_validators(epoch_hash)
-        random_indexes = self.get_signers_indexes(epoch_hash)
+        random_signers_indexes = self.get_signers_indexes(epoch_hash)
         # cycle validators in case of exclusion
         if block_number_in_epoch >= len(validators_for_epoch):
             block_number_in_epoch = block_number_in_epoch % len(validators_for_epoch)
             print("Looping epoch validators. Next block validator is as in block number", block_number_in_epoch)
-        index = random_indexes[block_number_in_epoch]
+        index = random_signers_indexes[block_number_in_epoch]
         return validators_for_epoch[index]
 
     def get_commiters(self, epoch_hash):
@@ -51,16 +51,22 @@ class Permissions:
         random_indexes = self.get_randomizers_indexes(epoch_hash)
         sharers = []
         for index in random_indexes[:SECRET_SHARE_PARTICIPANTS_COUNT]:
-            sharers.append(validators_for_epoch[index].public_key)
+            sharers.append(validators_for_epoch[index])
         return sharers
+
+    def get_commiters_pubkeys(self, epoch_hash):
+        return [commiter.public_key for commiter in self.get_commiters(epoch_hash)]
 
     def get_secret_sharers(self, epoch_hash):
         validators_for_epoch = self.get_validators(epoch_hash)
         random_indexes = self.get_randomizers_indexes(epoch_hash)
         sharers = []
         for index in random_indexes[-SECRET_SHARE_PARTICIPANTS_COUNT:]:
-            sharers.append(validators_for_epoch[index].public_key)
+            sharers.append(validators_for_epoch[index])
         return sharers
+
+    def get_secret_sharers_pubkeys(self, epoch_hash):
+        return [secret_sharer.public_key for secret_sharer in self.get_secret_sharers(epoch_hash)]
 
     def get_signers_indexes(self, epoch_hash):
         if not epoch_hash in self.signers_indexes:
@@ -93,15 +99,38 @@ class Permissions:
         validators = self.apply_stake_actions(validators, stake_actions)
         self.epoch_validators[epoch_hash] = validators
 
-    def get_ordered_pubkeys_for_last_round(self, epoch_hash):
+    def get_ordered_signers_pubkeys_for_round(self, epoch_hash, round_type):
         selected_epoch_validators = self.get_validators(epoch_hash)
-        epoch_random_indexes = self.get_signers_indexes(epoch_hash)
+
+        epoch_signers_indexes = self.get_signers_indexes(epoch_hash)
         validators = []	
-        for i in Epoch.get_round_range(1, Round.PRIVATE):	
-            index = epoch_random_indexes[i-1]
+        for i in Epoch.get_round_range(1, round_type):	
+            index = epoch_signers_indexes[i-1]
             validators.append(selected_epoch_validators[index])
 
         return validators
+
+    def get_ordered_randomizers_pubkeys_for_round(self, epoch_hash, round_type):
+        selected_epoch_validators = self.get_validators(epoch_hash)
+
+        epoch_random_indexes = []
+        if round_type==Round.PUBLIC or round_type==Round.PRIVATE:
+            epoch_random_indexes = self.get_signers_indexes(epoch_hash)
+            round_type=Round.PRIVATE
+
+            validators = []	
+            for i in Epoch.get_round_range(1, round_type):	
+                index = epoch_random_indexes[i-1]
+                validators.append(selected_epoch_validators[index])
+
+            return validators
+
+        elif round_type==Round.SECRETSHARE:
+            return self.get_secret_sharers(epoch_hash)
+        elif round_type==Round.COMMIT or round_type==Round.REVEAL:
+            return self.get_commiters(epoch_hash)   
+
+        assert False, "No randomizers exist for this round type!"
 
     def get_random_senders_pubkeys(self, epoch_hash):
         selected_epoch_validators = self.get_validators(epoch_hash)

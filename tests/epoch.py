@@ -213,9 +213,6 @@ class TestEpoch(unittest.TestCase):
     def test_round_iterator(self):
         dag = TestChainGenerator.generate_two_chains(9)
 
-        # from visualization.dag_visualizer import DagVisualizer
-        # DagVisualizer.visualize(dag)
-
         main_top = dag.blocks_by_number[9][0]
 
         round_iter = RoundIter(dag, main_top.get_hash(), Round.PUBLIC)
@@ -339,7 +336,7 @@ class TestEpoch(unittest.TestCase):
         commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()
-        reveal.commit_hash = commit.get_reference_hash()
+        reveal.commit_hash = commit.get_hash()
         reveal.key = Keys.to_bytes(private)
 
         return commit, reveal

@@ -53,20 +53,18 @@ class NegativeGossipTransaction:
 
     def pack(self):
         return Serializer.write_signature(self.signature) + \
-               self.pubkey + \
+               self.pack_fields()
+
+    def pack_fields(self):
+        return self.pubkey + \
                Serializer.write_timestamp(self.timestamp) + \
                Serializer.write_u32(self.number_of_block)
-
-    def get_hash(self):
-        return SHA256.new(self.pubkey +
-                          Serializer.write_timestamp(self.timestamp) +
-                          Serializer.write_u32(self.number_of_block)).digest()
 
     def get_len(self):
         return self.len
 
-    def get_reference_hash(self):
-        return SHA256.new(self.pack()).digest()
+    def get_hash(self):
+        return SHA256.new(self.pack_fields()).digest()
 
 
 # positive gossip base class
@@ -92,18 +90,16 @@ class PositiveGossipTransaction:
         self.len = deserializer.get_len()
 
     def pack(self):
-        return Serializer.write_signature(self.signature) + \
-               self.pubkey + \
+        return  Serializer.write_signature(self.signature) + \
+                self.pack_fields()
+
+    def pack_fields(self):
+        return self.pubkey + \
                Serializer.write_timestamp(self.timestamp) + \
                self.block_hash
 
     def get_hash(self):
-        return SHA256.new(self.pubkey +
-                          Serializer.write_timestamp(self.timestamp) +
-                          self.block_hash).digest()
+        return SHA256.new(self.pack_fields()).digest()
 
     def get_len(self):
         return self.len
-
-    def get_reference_hash(self):
-        return SHA256.new(self.pack()).digest()
