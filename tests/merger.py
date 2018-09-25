@@ -4,6 +4,7 @@ from chain.dag import Dag
 from crypto.private import Private
 from chain.epoch import BLOCK_TIME
 from chain.merger import Merger
+from tests.test_chain_generator import TestChainGenerator
 
 
 class TestMerger(unittest.TestCase):
@@ -33,6 +34,17 @@ class TestMerger(unittest.TestCase):
 
         self.assertEqual(len(conflicts), 1)
         self.assertEqual(conflicts[0], other_block2.get_hash())
+
+
+    def test_common_ancestor(self):
+        dag = TestChainGenerator.generate_two_chains(5)
+        expected_intersection = dag.blocks_by_number[1][0].get_hash()
+        
+        merger = Merger(dag)
+        tops = dag.get_top_blocks_hashes()
+        found_intersection = merger.get_common_ancestor(tops[0], tops[1])
+
+        self.assertEqual(expected_intersection, found_intersection)
 
 
 

@@ -44,16 +44,16 @@ class Mempool:
         elif isinstance(tx, StakeHoldTransaction) or isinstance(tx, StakeReleaseTransaction):
             self.stake_operations = [a for a in self.stake_operations if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, CommitRandomTransaction):
-            self.commits = [a for a in self.commits if a.get_reference_hash() != tx.get_reference_hash()]
+            self.commits = [a for a in self.commits if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, RevealRandomTransaction):
-            self.reveals = [a for a in self.reveals if a.get_reference_hash() != tx.get_reference_hash()]
+            self.reveals = [a for a in self.reveals if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, SplitRandomTransaction):
-            self.shares = [a for a in self.shares if a.get_reference_hash() != tx.get_reference_hash()]
+            self.shares = [a for a in self.shares if a.get_hash() != tx.get_hash()]
 
         elif isinstance(tx, NegativeGossipTransaction):
-            self.shares = [a for a in self.gossips if a.get_reference_hash() != tx.get_reference_hash()]
+            self.shares = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, PositiveGossipTransaction):
-            self.shares = [a for a in self.gossips if a.get_reference_hash() != tx.get_reference_hash()]
+            self.shares = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"
 

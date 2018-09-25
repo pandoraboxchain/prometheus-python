@@ -124,7 +124,11 @@ class Dag:
 
         return top_hashes
 
-
+# iterator over DAG, which uses first children only principle when traversing
+# first argument is starting point
+# returns None if block is skipped in the chain and block if it's present
+# first call to next() is block with block_hash itself
+# last one is genesis block
 class ChainIter:
     def __init__(self, dag, block_hash):
         self.block_hash = block_hash

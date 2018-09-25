@@ -418,7 +418,7 @@ class Node:
         commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()
-        reveal.commit_hash = commit.get_reference_hash()
+        reveal.commit_hash = commit.get_hash()
         reveal.key = Keys.to_bytes(private)
 
         return commit, reveal

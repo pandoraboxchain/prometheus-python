@@ -29,6 +29,6 @@ class TestBlock(unittest.TestCase):
         restored.parse(raw)
 
         self.assertEqual(original_block.get_hash(), restored.get_hash())
-        self.assertEqual(tx.get_reference_hash(), restored.system_txs[0].get_reference_hash())
+        self.assertEqual(tx.get_hash(), restored.system_txs[0].get_hash())
         self.assertEqual(pktx.get_hash(), restored.system_txs[1].get_hash())
 
