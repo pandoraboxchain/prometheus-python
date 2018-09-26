@@ -5,6 +5,7 @@ from transaction.stake_transaction import PenaltyTransaction
 from crypto.keys import Keys
 from chain.params import Round, MINIMAL_SECRET_SHARERS
 
+
 class InvalidTransactionException(Exception):
     def __init__(self, message):
         self.message = message
@@ -12,7 +13,8 @@ class InvalidTransactionException(Exception):
     def __str__(self):
         return self.message
 
-class TransactionVerifier():
+
+class TransactionVerifier:
     def __init__(self, epoch, permissions, epoch_block_number):
         self.epoch = epoch
         self.permissions = permissions

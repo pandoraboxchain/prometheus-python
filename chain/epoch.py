@@ -1,13 +1,13 @@
 from tools.time import Time
 from crypto.sum_random import sum_random, calculate_validators_indexes
-from crypto.secret import recover_splits, enc_part_secret, decode_random, encode_splits
+from crypto.secret import decode_random
 from crypto.keys import Keys
 from crypto.entropy import Entropy
 from crypto.private import Private
 from transaction.secret_sharing_transactions import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from chain.dag import ChainIter
-from chain.params import Round, Duration, ROUND_DURATION
+from chain.params import Round, ROUND_DURATION
 BLOCK_TIME = 4
 
 

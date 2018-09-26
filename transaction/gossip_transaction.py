@@ -18,7 +18,7 @@ gossip validation rules
 - negative gossip can be broadcast only once by one node per time_slot
 - positive gossip must be broadcast by ALL nodes
   (3 same positive gossips by different senders means that this is correct block)
-- validator node listen positive gossip validate it and add to DAG if block not exist
+- every node (except sender) listen positive gossip validate it and add to DAG if block not exist
 
 send negative gossip- rule
 - negative gossip sends when block not received on time_slot finished
@@ -90,8 +90,8 @@ class PositiveGossipTransaction:
         self.len = deserializer.get_len()
 
     def pack(self):
-        return  Serializer.write_signature(self.signature) + \
-                self.pack_fields()
+        return Serializer.write_signature(self.signature) + \
+               self.pack_fields()
 
     def pack_fields(self):
         return self.pubkey + \

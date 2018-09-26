@@ -53,29 +53,36 @@ class Node:
         # self.epoch_private_keys where first element is era number, and second is key to reveal commited random
         self.reveals_to_send = {}
         self.sent_shares_epochs = []  # epoch hashes of secret shares
+        self.last_expected_timeslot = 0
 
     def start(self):
         pass
 
+    def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):  # new_timeslot_number):
+        # prev_timeslot = current_timeslot_number - 1  # сдвигаем на -1 таймслот? может лучше на -1 степ ? (считать отдельно степы)
+        self.last_expected_timeslot = current_timeslot_number
+        # при такой логике негативный госсип забродкастится при первом же степе при условии отсутствия блока в локальном даге
+        """ПРОВЕРЯЕМ ЕСЛИ ЛИ БЛОК УЖЕ В ДАГ ПЕРЕД ОТПРАВКОЙ НЕГАТИВНОГО ГОСИПА"""
+        if previous_timeslot_number not in self.dag.blocks_by_number:
+            self.broadcast_gossip_negative(previous_timeslot_number)  # бродкастит негативный госип по номеру прошлого таймслота
+            return True
+        return False
+
     def step(self):
         current_block_number = self.epoch.get_current_timeframe_block_number()
+
         if self.epoch.is_new_epoch_upcoming(current_block_number):
             self.epoch.accept_tops_as_epoch_hashes()
 
         # service method for update node behavior (if behavior is temporary)
         self.behaviour.update(Epoch.get_epoch_number(current_block_number))
 
-        # check current block number by local dag length
-        # TODO refactor send negative gossip condition
-        if current_block_number > len(self.dag.blocks_by_number):
-            self.broadcast_gossip_negative(current_block_number)
-
         current_round = self.epoch.get_round_by_block_number(current_block_number)
         if current_round == Round.PUBLIC:
             self.try_to_publish_public_key(current_block_number)
         elif current_round == Round.SECRETSHARE:
             self.try_to_share_random()
-        # elif current_round == Round.PRIVATE:
+            # elif current_round == Round.PRIVATE:
             # do nothing as private key should be included to block by block signer
         elif current_round == Round.COMMIT:
             self.try_to_commit_random()
@@ -85,16 +92,21 @@ class Node:
             # at this point we may remove everything systemic from mempool,
             # so it does not interfere with pubkeys for next epoch
             self.mempool.remove_all_systemic_transactions()
-                            
-        self.try_to_sign_block(current_block_number)
 
         if self.behaviour.wants_to_hold_stake:
             self.broadcast_stakehold_transaction()
             self.behaviour.wants_to_hold_stake = False
-        
+
         if self.behaviour.wants_to_release_stake:
             self.broadcast_stakerelease_transaction()
             self.behaviour.wants_to_release_stake = False
+
+        if current_block_number != self.last_expected_timeslot:
+            should_wait = self.handle_timeslot_changed(previous_timeslot_number=self.last_expected_timeslot,
+                                                       current_timeslot_number=current_block_number)
+            if should_wait:
+                return
+        self.try_to_sign_block(current_block_number)
 
     async def run(self):
         while True:
@@ -147,9 +159,11 @@ class Node:
         block.system_txs = transactions
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
-        self.logger.debug("Broadcasting signed block number %s", current_block_number)
         if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
+            self.logger.debug("Broadcasting signed block number %s", current_block_number)
             self.network.broadcast_block(self.node_id, signed_block.pack())
+        else:
+            self.logger.info("Created but maliciously skipped broadcasted block")
 
         if self.behaviour.is_malicious_excessive_block():
             additional_block_timestamp = block.timestamp + 1
@@ -339,6 +353,7 @@ class Node:
             if True:  # TODO: add block verification
                 self.dag.add_signed_block(block_number, signed_block)
                 self.mempool.remove_transactions(signed_block.block.system_txs)
+                self.logger.error("Added block out of timeslot")
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
@@ -365,9 +380,15 @@ class Node:
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
-            if self.dag.has_block_number(transaction.number_of_block - 1):
-                signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block - 1]
+            if self.dag.has_block_number(transaction.number_of_block):
+                signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
                 self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
+                self.logger.error("Received valid gossip negative. Requested block %i found",
+                                  transaction.number_of_block)
+            else:
+                # received gossip block but not have requested block for gossip positive broadcasting
+                self.logger.error("Received valid gossip negative. Requested block %i not found",
+                                  transaction.number_of_block)
         else:
             self.logger.error("Received gossip negative tx is invalid")
 
@@ -376,12 +397,13 @@ class Node:
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
-        if verifier.check_if_valid(transaction):
-            self.mempool.add_transaction(transaction)
-            signed_block = self.network.get_block_by_hash(node_id=node_id,
-                                                          block_hash=transaction.block_hash)
-            # rice exception on handle_block_out_of_timeslot !!!
-            self.handle_block_out_of_timeslot(node_id, signed_block.pack())
+        if verifier.check_if_valid(transaction):      # на валидность он может и проходит но уже может содержаться в даг
+            self.mempool.add_transaction(transaction) # добавлять ли в таком случае транзакцию в мемпул ?
+            """ТОЛЬКО ПРИ ОТСУТСВИИ БЛОКА У СЕБЯ В ЦЕПИ ТАК КАК БЛОК УЖЕ МОЖЕТ БЫТЬ ПОЛУЧЕН И ВСТРОЕН В ДАГ"""
+            if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> !!! make request ONLY if block
+                                                                            # in timeslot (and may be by anchor hash)
+                self.network.get_block_by_hash(receiver_node_id=node_id,  # request TO ----> receiver_node_id
+                                               block_hash=transaction.block_hash)
         else:
             self.logger.error("Received gossip positive tx is invalid")
 
@@ -429,9 +451,10 @@ class Node:
     # Targeted request
     # -------------------------------------------------------------------------------
     def request_block_by_hash(self, block_hash):
-        # TODO add some validations ?
+        # no need validate/ public info ?
         signed_block = self.dag.blocks_by_hash[block_hash]
-        return signed_block
+        # is it need to be broadcasted ? or just sand block to node which request it ?
+        self.network.broadcast_block_out_of_timeslot(self.node_id, signed_block.pack())
 
     # -------------------------------------------------------------------------------
     # Internal

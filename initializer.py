@@ -46,19 +46,26 @@ class Initializer:
             for i in range(0, 19):
                 behaviour = Behaviour()
 
-                if i==7:
-                    behaviour.malicious_wrong_signature = True
+                # if i==7:
+                #     behaviour.malicious_wrong_signature = True
+
+                # behavior for gossip emulation (create block but not broadcast)
+                # if i == 3:
+                #    behaviour.transport_cancel_block_broadcast = True
 
                 logger = logging.getLogger("Node " + str(i))
                 # uncomment the following line to enable logging only on specific node
                 # if i != 13: logger.setLevel(logging.CRITICAL)
+
                 node = Node(genesis_creation_time=genesis_creation_time,
                             node_id=i,
                             network=network,
+                            behaviour=behaviour,
                             block_signer=private_keys.block_signers[i],
                             logger=logger)
 
-                if i == 0: node_to_visualize_after_exit = node
+                if i == 0:
+                    node_to_visualize_after_exit = node
                 network.register_node(node)
                 tasks.append(node.run())
 
