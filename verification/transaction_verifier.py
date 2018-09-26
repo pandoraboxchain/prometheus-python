@@ -1,4 +1,5 @@
 from transaction.secret_sharing_transactions import PrivateKeyTransaction,  PublicKeyTransaction, SplitRandomTransaction
+from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from transaction.stake_transaction import PenaltyTransaction
 
 from crypto.keys import Keys
@@ -47,8 +48,19 @@ class TransactionVerifier():
         if isinstance(transaction, PenaltyTransaction): #do not accept to mempool, because its block only tx
             raise InvalidTransactionException("Penalty transation is not allowed! Private key should be transmitted as part of a block!")
 
+    def is_randomizer_transaction(self, transaction):
+        if isinstance(transaction, PublicKeyTransaction) or \
+        isinstance(transaction, SplitRandomTransaction) or \
+        isinstance(transaction, PrivateKeyTransaction) or \
+        isinstance(transaction, CommitRandomTransaction) or \
+        isinstance(transaction, RevealRandomTransaction):
+            return True
+        return False
 
     def is_sender_valid_for_current_round(self, transaction):
+        if not self.is_randomizer_transaction(transaction):
+            return 
+
         current_round = self.epoch.get_current_round()
         epoch_hashes = self.epoch.get_epoch_hashes()
         signature_valid_for_at_least_one_valid_publickey = False
