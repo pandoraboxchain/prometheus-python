@@ -58,13 +58,10 @@ class Node:
     def start(self):
         pass
 
-    def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):  # new_timeslot_number):
-        # prev_timeslot = current_timeslot_number - 1  # сдвигаем на -1 таймслот? может лучше на -1 степ ? (считать отдельно степы)
+    def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):
         self.last_expected_timeslot = current_timeslot_number
-        # при такой логике негативный госсип забродкастится при первом же степе при условии отсутствия блока в локальном даге
-        """ПРОВЕРЯЕМ ЕСЛИ ЛИ БЛОК УЖЕ В ДАГ ПЕРЕД ОТПРАВКОЙ НЕГАТИВНОГО ГОСИПА"""
         if previous_timeslot_number not in self.dag.blocks_by_number:
-            self.broadcast_gossip_negative(previous_timeslot_number)  # бродкастит негативный госип по номеру прошлого таймслота
+            self.broadcast_gossip_negative(previous_timeslot_number)
             return True
         return False
 
@@ -397,9 +394,8 @@ class Node:
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
-        if verifier.check_if_valid(transaction):      # на валидность он может и проходит но уже может содержаться в даг
-            self.mempool.add_transaction(transaction) # добавлять ли в таком случае транзакцию в мемпул ?
-            """ТОЛЬКО ПРИ ОТСУТСВИИ БЛОКА У СЕБЯ В ЦЕПИ ТАК КАК БЛОК УЖЕ МОЖЕТ БЫТЬ ПОЛУЧЕН И ВСТРОЕН В ДАГ"""
+        if verifier.check_if_valid(transaction):
+            self.mempool.add_transaction(transaction)  # is need to add tx to self.mempool() ---> ?
             if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> !!! make request ONLY if block
                                                                             # in timeslot (and may be by anchor hash)
                 self.network.get_block_by_hash(receiver_node_id=node_id,  # request TO ----> receiver_node_id
@@ -453,7 +449,6 @@ class Node:
     def request_block_by_hash(self, block_hash):
         # no need validate/ public info ?
         signed_block = self.dag.blocks_by_hash[block_hash]
-        # is it need to be broadcasted ? or just sand block to node which request it ?
         self.network.broadcast_block_out_of_timeslot(self.node_id, signed_block.pack())
 
     # -------------------------------------------------------------------------------

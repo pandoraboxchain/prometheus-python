@@ -10,14 +10,12 @@ class NodeApi:
     def get_list_of_actual_chains():
         return True
 
-    # TODO make request correct
-    # запрашивает нарямую у автора позитивного госсипа (не бродкаст)
+    # request receiver_node_id (node) by getting SignedBlock() by HASH.
+    # receiver MUST response by SignedBlock() else ?(+1 request to ANOTHER node - ?)
     def get_block_by_hash(self, receiver_node_id, block_hash):
         for node in self.nodes:
             if node.node_id == receiver_node_id:
                 node.request_block_by_hash(block_hash=block_hash)
-        ##
-        #return self.nodes[node_id].request_block_by_hash(block_hash=block_hash)
 
     @staticmethod
     def push_block():
@@ -37,7 +35,6 @@ class NodeApi:
             if node.node_id != sender_node_id:
                 node.handle_block_message(sender_node_id, raw_signed_block)
 
-    # бродкастить ли данную операцию ? (передача блока всем независимо от отправляющего)
     def broadcast_block_out_of_timeslot(self, sender_node_id, raw_signed_block):
         for node in self.nodes:
             if node.node_id != sender_node_id:
