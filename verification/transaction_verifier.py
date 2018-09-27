@@ -121,4 +121,8 @@ class TransactionVerifier:
         else:
             tx_hash = tx.get_hash()
         
+        if isinstance(tx, RevealRandomTransaction):
+            #TODO implement check by key accordance
+            return True
+
         return pubkey.verify(tx_hash, (tx.signature,))
