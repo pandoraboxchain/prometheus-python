@@ -35,3 +35,6 @@ class SignedBlock:
     def verify_signature(self, pubkey):
         block_hash = self.block.get_hash()
         return pubkey.verify(block_hash, (self.signature,))
+
+    def __hash__(self):
+        return self.get_hash()

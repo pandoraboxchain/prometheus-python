@@ -45,3 +45,6 @@ class Block:
             raw_block += struct.pack("B", 0)
 
         return raw_block
+
+    def __hash__(self):
+        return self.get_hash()
