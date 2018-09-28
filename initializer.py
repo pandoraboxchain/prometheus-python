@@ -69,18 +69,18 @@ class Initializer:
                 network.register_node(node)
                 tasks.append(node.run())
 
-            for i in range(19, 20):
-                behaviour = Behaviour()
-                behaviour.wants_to_hold_stake = True
-                behaviour.epoch_to_release_stake = 2
-                logger = logging.getLogger("Node " + str(i))
-                keyless_node = Node(genesis_creation_time=genesis_creation_time,
-                                    node_id=i,
-                                    network=network,
-                                    block_signer=private_keys.block_signers[i],
-                                    logger=logger)
-                network.register_node(keyless_node)
-                tasks.append(keyless_node.run())
+            # for i in range(19, 20):
+            #     behaviour = Behaviour()
+            #     behaviour.wants_to_hold_stake = True
+            #     behaviour.epoch_to_release_stake = 2
+            #     logger = logging.getLogger("Node " + str(i))
+            #     keyless_node = Node(genesis_creation_time=genesis_creation_time,
+            #                         node_id=i,
+            #                         network=network,
+            #                         block_signer=private_keys.block_signers[i],
+            #                         logger=logger)
+            #     network.register_node(keyless_node)
+            #     tasks.append(keyless_node.run())
 
             loop = asyncio.get_event_loop()
             loop.run_until_complete(asyncio.gather(*tasks))       
