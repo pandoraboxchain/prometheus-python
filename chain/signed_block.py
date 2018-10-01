@@ -1,6 +1,7 @@
 import struct
 import chain
 
+from serialization.serializer import Serializer, Deserializer
 
 class SignedBlock:
 
@@ -12,9 +13,10 @@ class SignedBlock:
         return self.block.get_hash()
 
     def parse(self, raw_data):
-        self.signature = int.from_bytes(raw_data[0:128], byteorder='big')
-        block_length = struct.unpack_from("I", raw_data, 128)[0]
-        raw_block = raw_data[132:132+block_length]
+        deserializer = Deserializer(raw_data)
+        self.signatre = self.signature = deserializer.parse_signature()
+        block_length = deserializer.parse_u32()
+        raw_block = deserializer.read_and_move(block_length)
         self.block = chain.block.Block()
         self.block.parse(raw_block)
         return self
@@ -22,7 +24,7 @@ class SignedBlock:
     def pack(self):
         raw_block = self.block.pack()
         raw_signed_block = self.signature.to_bytes(128, byteorder='big')
-        raw_signed_block += struct.pack("I", len(raw_block))
+        raw_signed_block += Serializer.write_u32(len(raw_block))
         raw_signed_block += raw_block
         return raw_signed_block
 
