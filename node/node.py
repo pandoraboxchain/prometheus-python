@@ -61,7 +61,9 @@ class Node:
     def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):
         self.last_expected_timeslot = current_timeslot_number
         if previous_timeslot_number not in self.dag.blocks_by_number:
-            self.broadcast_gossip_negative(previous_timeslot_number)
+            # get all tops and hashes for sending negative gossip
+            for previous_hash in self.dag.get_top_blocks_hashes():
+                self.broadcast_gossip_negative(previous_timeslot_number, previous_hash)
             return True
         return False
 
@@ -423,12 +425,13 @@ class Node:
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
-    def broadcast_gossip_negative(self, block_number):
+    def broadcast_gossip_negative(self, block_number, previous_block_hash):
         tx = NegativeGossipTransaction()
         node_private = self.block_signer.private_key
         tx.pubkey = Keys.to_bytes(node_private.publickey())
         tx.timestamp = Time.get_current_time()
         tx.number_of_block = block_number
+        tx.anchor_block_hash = previous_block_hash
         tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted negative gossip transaction")
         self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))

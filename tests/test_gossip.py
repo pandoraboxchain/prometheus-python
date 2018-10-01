@@ -53,6 +53,9 @@ class TestGossip(unittest.TestCase):
         original.pubkey = Keys.to_bytes(private.publickey())
         original.timestamp = Time.get_current_time()
         original.number_of_block = 47
+
+        block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
+        original.anchor_block_hash = block.get_hash()
         original.signature = Private.sign(original.get_hash(), private)
 
         raw = original.pack()
@@ -77,6 +80,7 @@ class TestGossip(unittest.TestCase):
         gossip_negative_tx.pubkey = Keys.to_bytes(private.publickey())
         gossip_negative_tx.timestamp = Time.get_current_time()
         gossip_negative_tx.number_of_block = 47
+        gossip_negative_tx.anchor_block_hash = block.get_hash()
         gossip_negative_tx.signature = Private.sign(original.get_hash(), private)
 
         original.conflicts = [gossip_positive_tx.get_hash(), gossip_negative_tx.get_hash()]
