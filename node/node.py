@@ -19,6 +19,7 @@ from transaction.secret_sharing_transactions import PublicKeyTransaction, Privat
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from verification.transaction_verifier import TransactionVerifier
+from verification.block_verifier import BlockVerifier 
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
@@ -321,7 +322,8 @@ class Node:
         
         if is_block_allowed:
             block = signed_block.block
-            if True:  # TODO: add block verification
+            block_verifier = BlockVerifier(self.epoch, self.logger)
+            if block_verifier.check_if_valid(block):
                 current_block_number = self.epoch.get_current_timeframe_block_number()
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
@@ -349,7 +351,9 @@ class Node:
                 break
 
         if is_block_allowed:
-            if True:  # TODO: add block verification
+            block = signed_block.block
+            block_verifier = BlockVerifier(self.epoch, self.logger)
+            if block_verifier.check_if_valid(block):
                 self.dag.add_signed_block(block_number, signed_block)
                 self.mempool.remove_transactions(signed_block.block.system_txs)
                 self.logger.error("Added block out of timeslot")

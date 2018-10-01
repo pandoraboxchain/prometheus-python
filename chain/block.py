@@ -1,7 +1,7 @@
 from Crypto.Hash import SHA256
 import struct
 from transaction.transaction_parser import TransactionParser
-
+from serialization.serializer import Serializer, Deserializer
 
 class Block:
 
@@ -14,35 +14,38 @@ class Block:
         return SHA256.new(self.pack()).digest()
 
     def parse(self, raw_data):
-        self.timestamp = struct.unpack_from("I", raw_data)[0]
-        hash_count = struct.unpack_from("h", raw_data, 4)[0]
+        deserializer = Deserializer(raw_data)
+
+        self.timestamp = deserializer.parse_u32()
+
+        hash_count = deserializer.parse_u16()
+
         self.prev_hashes = []
         for i in range(0, hash_count):
-            hash_start = 6 + 32 * i
-            hash_end = hash_start + 32
-            prev_hash = raw_data[hash_start : hash_end]
+            prev_hash = deserializer.read_and_move(32)
             self.prev_hashes.append(prev_hash)
-        offset = 6 + 32 * hash_count
-        system_tx_count = struct.unpack_from("B", raw_data, offset)[0]
-        offset += 1
+
+        system_tx_count = deserializer.parse_u8()
         self.system_txs = []
         for i in range(0, system_tx_count):
-            tx = TransactionParser.parse(raw_data[offset:])
+            tx = TransactionParser.parse(deserializer.data) # TODO: (is) Better to deserialize passing deserializer directly
             self.system_txs.append(tx)
-            offset += tx.get_len() + 1  # one byte for type
+            deserializer.read_and_move(tx.get_len() + 1)  # one byte for type
 
     def pack(self):
-        raw_block = struct.pack("I", self.timestamp)
-        raw_block += struct.pack("h", len(self.prev_hashes))
+        raw_block = Serializer.write_u32(self.timestamp)
+
+        raw_block += Serializer.write_u16(len(self.prev_hashes))
         for prev_hash in self.prev_hashes:
             raw_block += prev_hash
 
         if hasattr(self, 'system_txs'):
-            raw_block += struct.pack("B", len(self.system_txs))
+            raw_block += Serializer.write_u8(len(self.system_txs))
+
             for tx in self.system_txs:
                 raw_block += TransactionParser.pack(tx)
         else:
-            raw_block += struct.pack("B", 0)
+            raw_block += Serializer.write_u8(0)
 
         return raw_block
 
