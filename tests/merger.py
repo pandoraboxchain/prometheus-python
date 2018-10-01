@@ -55,9 +55,6 @@ class TestMerger(unittest.TestCase):
         TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [1,3])
         TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [2])
         
-        # from visualization.dag_visualizer import DagVisualizer
-        # DagVisualizer.visualize(dag, True)
-
         merger = Merger(dag)
         res = merger.merge()
 

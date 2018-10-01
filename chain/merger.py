@@ -88,18 +88,16 @@ class Merger:
                 random.shuffle(indexes)
                 deterministic_ordering += indexes
 
-        immutability = Immutability(self.dag)
         active = chains[deterministic_ordering[0]]
-        mp = active.get_merging_point(immutability)
+        mp = active.get_merging_point()
         active_merged_point = FlatChain(active[:mp])
         merged_chain = FlatChain(active[:mp])
-
 
         for doi in deterministic_ordering[1:]:
             diffchain = active_merged_point.get_diff(chains[doi])
             for block in diffchain:
                 if block:
-                    if not immutability.is_block_mutable(block.get_hash()):
+                    if not diffchain.is_block_mutable(block.get_hash()):
                         if not block in merged_chain:
                             merged_chain.append(block)
         
@@ -107,7 +105,7 @@ class Merger:
             diffchain = active_merged_point.get_diff(chains[doi])
             for block in diffchain:
                 if block:
-                    if immutability.is_block_mutable(block.get_hash()):
+                    if diffchain.is_block_mutable(block.get_hash()):
                         if not block in merged_chain:
                             merged_chain.append(block)
 

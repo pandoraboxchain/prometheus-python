@@ -24,13 +24,6 @@ class Immutability:
 
         return list(reversed(chain_part))
 
-
-        return False
-
-    @staticmethod
-    def is_skip_immutable():
-        return False
-
     def calculate_zeta(self, block_hash):
         import sys
         max_zeta = -sys.maxsize - 1  # TODO replace with reasonable number
