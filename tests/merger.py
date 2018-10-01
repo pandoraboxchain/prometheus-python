@@ -49,6 +49,29 @@ class TestMerger(unittest.TestCase):
 
         self.assertEqual(expected_intersection, found_intersection)
 
+    def test_merge(self):
+        dag = Dag(0)
+        prev_hash = dag.genesis_block().get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [1,3])
+        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [2])
+        
+        # from visualization.dag_visualizer import DagVisualizer
+        # DagVisualizer.visualize(dag, True)
+
+        merger = Merger(dag)
+        res = merger.merge()
+
+        for block in res:
+            if block:
+                print(block.get_hash().hex())
+            else:
+                print("None")
+
+        # self.assertEqual(res[0], zero)
+        # self.assertEqual(res[1], first)
+        # self.assertEqual(res[2], second)
+        # self.assertEqual(res[3], third)
+
     def test_two_tops_on_epoch_end(self):
         # generate two blocks on epoch end
         # 1 --- [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]

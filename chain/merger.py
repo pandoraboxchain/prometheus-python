@@ -1,6 +1,7 @@
 import random
 from chain.immutability import Immutability
 from chain.dag import ChainIter
+from chain.flat_chain import FlatChain
 
 class Merger:
 
@@ -71,14 +72,14 @@ class Merger:
         return chain_diff
         
     def merge(self):
-        tops = self.dag.get_top_blocks_hashes()
-        sizes = [self.dag.calculate_chain_length(top) for top in tops]
+        chains = [FlatChain.from_top_hash(self.dag, top) for top in self.dag.get_top_blocks_hashes()]
+        sizes = [chain.get_chain_size() for chain in chains]
         dict_sizes = dict(enumerate(sizes))
         deterministic_ordering = []
         while dict_sizes:
             m = max(dict_sizes.values())
             indexes = [key for key,value in dict_sizes.items() if value==m]
-            if len(indexes) == 1:
+            if len(indexes)==1:
                 dict_sizes.pop(indexes[0])
                 deterministic_ordering.append(indexes[0])
             else:
@@ -87,32 +88,28 @@ class Merger:
                 random.shuffle(indexes)
                 deterministic_ordering += indexes
 
-        longest_chain = tops[deterministic_ordering[0]]
         immutability = Immutability(self.dag)
-        longest_chain_mutable_part = immutability.get_mutable_part_of_chain(longest_chain)
-        # active_merged_point = Chain(active[:merging_point])
-        merged_chain = []
+        active = chains[deterministic_ordering[0]]
+        mp = active.get_merging_point(immutability)
+        active_merged_point = FlatChain(active[:mp])
+        merged_chain = FlatChain(active[:mp])
+
 
         for doi in deterministic_ordering[1:]:
-            diffchain = self.get_difference(longest_chain_mutable_part, tops[doi])
-            im_chain = diffchain.get_all_immutable()
-            if im_chain:
-                for im in im_chain:
-                    if not im.is_empty:
-                        if not merged_chain.find_block_by_identifier(im.identifier):
-                            merged_chain.append(im)
+            diffchain = active_merged_point.get_diff(chains[doi])
+            for block in diffchain:
+                if block:
+                    if not immutability.is_block_mutable(block.get_hash()):
+                        if not block in merged_chain:
+                            merged_chain.append(block)
         
         for doi in deterministic_ordering:
-            diffchain = active_merged_point.get_diff(chains[doi])[1]
-            m_chain = diffchain.get_all_mutable()
-            if m_chain:
-                for m in m_chain:
-                    if not m.is_empty:
-                        if not merged_chain.find_block_by_identifier(m.identifier):
-                            merged_chain.append(m)
+            diffchain = active_merged_point.get_diff(chains[doi])
+            for block in diffchain:
+                if block:
+                    if immutability.is_block_mutable(block.get_hash()):
+                        if not block in merged_chain:
+                            merged_chain.append(block)
 
-        return {
-            "deterministic_ordering": deterministic_ordering,
-            "merged_chain": merged_chain,
-        }
+        return merged_chain
 
