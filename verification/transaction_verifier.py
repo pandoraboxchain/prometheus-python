@@ -33,6 +33,7 @@ class TransactionVerifier:
             self.is_signature_valid_for_at_least_one_epoch(transaction)
 
             self.validate_if_secret_sharing_transaction(transaction)
+            self.validate_reveal_random_transaction(transaction)
 
             
         except InvalidTransactionException as e:
@@ -108,6 +109,19 @@ class TransactionVerifier:
     def validate_if_secret_sharing_transaction(self, transaction):
         if isinstance(transaction, SplitRandomTransaction):
             self.has_enough_pieces_for_secret_sharing(transaction)
+
+    def validate_reveal_random_transaction(self, transaction):
+        if isinstance(transaction, RevealRandomTransaction):
+            self.has_corresponding_commit_transaction(transaction)
+
+    def has_corresponding_commit_transaction(self, transaction):
+        epoch_hashes = self.epoch.get_epoch_hashes()
+        commit_hash = transaction.commit_hash
+        for top, _epoch_hash in epoch_hashes.items():
+            commits = self.epoch.get_commits_for_epoch(top)
+            if not commit_hash in commits:
+                raise InvalidTransactionException("Reveal transaction has no corresponding commit transaction in the chain!") 
+                     
 
     def has_enough_pieces_for_secret_sharing(self, transaction):
         if len(transaction.pieces) < MINIMAL_SECRET_SHARERS:
