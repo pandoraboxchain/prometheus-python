@@ -103,3 +103,44 @@ class PositiveGossipTransaction:
 
     def get_len(self):
         return self.len
+
+
+# penalty gossip base class
+class PenaltyGossipTransaction:
+
+    def __init__(self):
+        self.conflicts = []
+        self.signature = None
+        # current timestamp
+        self.timestamp = None
+        self.len = None
+
+    def parse(self, raw_data):
+        deserializer = Deserializer(raw_data)
+        conflict_count = deserializer.parse_u8()
+        self.conflicts = []
+        for _ in range(0, conflict_count):
+            conflict = deserializer.parse_hash()
+            self.conflicts.append(conflict)
+        self.signature = deserializer.parse_signature()
+        self.timestamp = deserializer.parse_timestamp()
+        self.len = deserializer.len
+
+    def pack(self):
+        raw = self.pack_conflicts()
+        raw += Serializer.write_signature(self.signature) + \
+               Serializer.write_timestamp(self.timestamp)
+        return raw
+
+    def pack_conflicts(self):
+        raw = Serializer.write_u8(len(self.conflicts))
+        for conflict in self.conflicts:
+            raw += conflict
+        return raw
+
+    def get_len(self):
+        return self.len
+
+    def get_hash(self):
+        return SHA256.new(self.pack_conflicts()).digest()
+

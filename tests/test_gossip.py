@@ -10,7 +10,8 @@ from node.validators import Validators
 from crypto.keys import Keys
 from crypto.private import Private
 from tools.time import Time
-from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGossipTransaction
+from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGossipTransaction, \
+    PenaltyGossipTransaction
 
 """
     Simple case where node1 create but not broadcast block
@@ -26,6 +27,7 @@ from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGo
     - add anchor hash to negative gossip for requested block ?
     - невозможно провести валидацию негативных госипов кроме как по локлаьному дагу но только раз в блок
     """
+
 
 class TestGossip(unittest.TestCase):
 
@@ -55,6 +57,35 @@ class TestGossip(unittest.TestCase):
 
         raw = original.pack()
         restored = NegativeGossipTransaction()
+        restored.parse(raw)
+
+        self.assertEqual(original.get_hash(), restored.get_hash())
+
+    def test_pack_parse_penalty_gossip_transaction(self):
+        private = Private.generate()
+        original = PenaltyGossipTransaction()
+        original.timestamp = Time.get_current_time()
+        block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
+
+        gossip_positive_tx = PositiveGossipTransaction()
+        gossip_positive_tx.pubkey = Keys.to_bytes(private.publickey())
+        gossip_positive_tx.timestamp = Time.get_current_time()
+        gossip_positive_tx.block_hash = BlockFactory.sign_block(block, private).get_hash()
+        gossip_positive_tx.signature = Private.sign(original.get_hash(), private)
+
+        gossip_negative_tx = NegativeGossipTransaction()
+        gossip_negative_tx.pubkey = Keys.to_bytes(private.publickey())
+        gossip_negative_tx.timestamp = Time.get_current_time()
+        gossip_negative_tx.number_of_block = 47
+        gossip_negative_tx.signature = Private.sign(original.get_hash(), private)
+
+        original.conflicts = [gossip_positive_tx.get_hash(), gossip_negative_tx.get_hash()]
+        original.signature = Private.sign(original.get_hash(), private)
+
+        original.block_hash = BlockFactory.sign_block(block, private).get_hash()
+
+        raw = original.pack()
+        restored = PenaltyGossipTransaction()
         restored.parse(raw)
 
         self.assertEqual(original.get_hash(), restored.get_hash())
