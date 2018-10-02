@@ -2,9 +2,6 @@ import random
 import string
 import os
 
-from Crypto.Cipher import AES
-from Crypto.Hash import SHA256
-from Crypto.PublicKey import RSA
 from secretsharing import PlaintextToHexSecretSharer
 from secretsharing import secret_int_to_points, points_to_secret_int
 from base64 import b64decode

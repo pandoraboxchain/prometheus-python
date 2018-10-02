@@ -1,6 +1,3 @@
-from Crypto.PublicKey import RSA
-from base64 import b64decode,b64encode
-
 
 class Keys:
     @staticmethod
@@ -29,4 +26,4 @@ class Keys:
     def to_visual_string(key):
         if not isinstance(key, (bytes, bytearray)):
             key = Keys.to_bytes(key)
-        return key[77:90].hex()+"..."+key[-25:-12].hex()
+        return key[0:13].hex()+"..."+key[-25:-12].hex()
