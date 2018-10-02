@@ -1,5 +1,4 @@
-from base64 import b64decode
-from Crypto.PublicKey import RSA
+from node.genesis_validators import GenesisValidators
 
 class Validator:
 
@@ -18,13 +17,9 @@ class Validators:
     @staticmethod  # reads only pubkeys
     def read_genesis_validators_from_file():
         validators = []
-        with open('validators') as f:
-            lines = f.readlines()
 
-        for line in lines:
-            decode = b64decode(line)
-            if len(decode) != 0:
-                key = RSA.importKey(decode)
-                validator = Validator(key, 100)
-                validators.append(validator)
+        for pubkey in GenesisValidators.public_keys:
+            validator = Validator(pubkey, 100)
+            validators.append(validator)
+            
         return validators

@@ -1,5 +1,4 @@
-from base64 import b64decode
-from Crypto.PublicKey import RSA
+from node.genesis_validators import GenesisValidators
 
 class BlockSigner:
 
@@ -16,12 +15,6 @@ class BlockSigners:
         self.get_from_file()
 
     def get_from_file(self):
-        with open('keys') as f:
-            lines = f.readlines()
-
-        for line in lines:
-            decode = b64decode(line)
-            if len(decode) != 0:
-                key = RSA.importKey(decode)
-                block_signer = BlockSigner(key)
-                self.block_signers.append(block_signer)
+        for key in GenesisValidators.private_keys:
+            block_signer = BlockSigner(key)
+            self.block_signers.append(block_signer)
