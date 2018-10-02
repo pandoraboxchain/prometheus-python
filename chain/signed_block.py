@@ -23,7 +23,7 @@ class SignedBlock:
 
     def pack(self):
         raw_block = self.block.pack()
-        raw_signed_block = self.signature.to_bytes(128, byteorder='big')
+        raw_signed_block = Serializer.write_signature(self.signature)
         raw_signed_block += Serializer.write_u32(len(raw_block))
         raw_signed_block += raw_block
         return raw_signed_block
