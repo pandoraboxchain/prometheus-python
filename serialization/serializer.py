@@ -55,7 +55,7 @@ class Deserializer:
         return parsed
 
     def parse_pubkey(self):
-        return self.read_and_move(25)
+        return self.read_and_move(40)
 
     def parse_signature(self):
         signature_len = self.parse_u8()
