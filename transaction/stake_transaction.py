@@ -1,4 +1,4 @@
-from Crypto.Hash import SHA256
+from hashlib import sha256
 from serialization.serializer import Serializer, Deserializer
 
 
@@ -11,7 +11,7 @@ class StakeHoldTransaction:
         self.len = None
 
     def get_hash(self):
-        return SHA256.new(Serializer.write_u16(self.amount) + self.pubkey).digest()
+        return sha256(Serializer.write_u16(self.amount) + self.pubkey).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)    
@@ -62,7 +62,7 @@ class PenaltyTransaction:
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack_conflicts()).digest()
+        return sha256(self.pack_conflicts()).digest()
 
 
 class StakeReleaseTransaction:
@@ -73,7 +73,7 @@ class StakeReleaseTransaction:
         self.len = None
 
     def get_hash(self):
-        return SHA256.new(self.pubkey).digest()
+        return sha256(self.pubkey).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)

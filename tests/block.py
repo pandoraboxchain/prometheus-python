@@ -5,7 +5,7 @@ from transaction.secret_sharing_transactions import SplitRandomTransaction, Priv
 from crypto.private import Private
 from crypto.keys import Keys
 
-from Crypto.Hash import SHA256
+from hashlib import sha256
 
 
 class TestBlock(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestBlock(unittest.TestCase):
     def test_pack_parse(self):
         original_block = Block()
         original_block.timestamp = 2344
-        original_block.prev_hashes = [SHA256.new(b"323423").digest(), SHA256.new(b"0").digest()]
+        original_block.prev_hashes = [sha256(b"323423").digest(), sha256(b"0").digest()]
 
         tx = SplitRandomTransaction()
         tx.pieces = [os.urandom(128), os.urandom(128), os.urandom(128)]

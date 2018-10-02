@@ -8,7 +8,7 @@ def sum_random(random_list):
         res = num ^ res
     return res
 
-# sum_random([SHA256.new(b"324a"),SHA256.new(b"3s24a"), SHA256.new(b"3s24a")])
+# sum_random([sha256(b"324a"),sha256(b"3s24a"), sha256(b"3s24a")])
 
 # def calculate_validators_indexes(seed, validators_count, epoch_size):
 #     current = seed.to_bytes(32, byteorder='big')
@@ -16,7 +16,7 @@ def sum_random(random_list):
 #     for n in range(epoch_size):
 #         lr = int.from_bytes(current, byteorder='big')            
 #         res.append(lr % validators_count)
-#         current = SHA256.new(current).digest()
+#         current = sha256(current).digest()
 #     return res
 
 

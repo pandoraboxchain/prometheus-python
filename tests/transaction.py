@@ -4,7 +4,7 @@ from transaction.secret_sharing_transactions import SplitRandomTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from transaction.transaction_parser import TransactionParser
 from transaction.payment_transaction import PaymentTransaction
-from Crypto.Hash import SHA256
+from hashlib import sha256
 from crypto.private import Private
 from crypto.keys import Keys
 
@@ -32,7 +32,7 @@ class TestTransaction(unittest.TestCase):
             dummy_private = Private.generate()
 
             original = RevealRandomTransaction()
-            original.commit_hash = SHA256.new(b"previous_transaction").digest()
+            original.commit_hash = sha256(b"previous_transaction").digest()
             original.key = Keys.to_bytes(dummy_private)
 
             raw = original.pack()

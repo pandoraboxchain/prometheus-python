@@ -1,5 +1,5 @@
-from Crypto.Hash import SHA256
 import struct
+from hashlib import sha256
 from transaction.transaction_parser import TransactionParser
 from serialization.serializer import Serializer, Deserializer
 
@@ -11,7 +11,7 @@ class Block:
         self.system_txs = []
 
     def get_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return sha256(self.pack()).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)

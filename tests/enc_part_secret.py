@@ -1,6 +1,6 @@
 import unittest
 import os
-from Crypto.Hash import SHA256
+from hashlib import sha256
 from crypto.secret import enc_part_secret, dec_part_secret
 
 class EncDecSecret(unittest.TestCase):

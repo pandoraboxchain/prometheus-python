@@ -1,4 +1,4 @@
-from Crypto.Hash import SHA256
+from hashlib import sha256
 from serialization.serializer import Serializer, Deserializer
 
 """
@@ -70,7 +70,7 @@ class NegativeGossipTransaction:
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack_fields()).digest()
+        return sha256(self.pack_fields()).digest()
 
 
 # positive gossip base class
@@ -105,7 +105,7 @@ class PositiveGossipTransaction:
                self.block_hash
 
     def get_hash(self):
-        return SHA256.new(self.pack_fields()).digest()
+        return sha256(self.pack_fields()).digest()
 
     def get_len(self):
         return self.len
@@ -148,5 +148,5 @@ class PenaltyGossipTransaction:
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack_conflicts()).digest()
+        return sha256(self.pack_conflicts()).digest()
 

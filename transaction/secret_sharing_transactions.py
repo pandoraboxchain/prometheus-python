@@ -1,5 +1,5 @@
 from serialization.serializer import Serializer, Deserializer
-from Crypto.Hash import SHA256
+from hashlib import sha256
 
 
 class PublicKeyTransaction:
@@ -10,7 +10,7 @@ class PublicKeyTransaction:
         self.len = None
 
     def get_hash(self):
-        return SHA256.new(self.generated_pubkey + self.pubkey).digest()
+        return sha256(self.generated_pubkey + self.pubkey).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
@@ -45,7 +45,7 @@ class PrivateKeyTransaction:
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return sha256(self.pack()).digest()
 
 
 class SplitRandomTransaction:
@@ -82,7 +82,7 @@ class SplitRandomTransaction:
         return self.len
 
     def get_signing_hash(self, epoch_hash):
-        return SHA256.new(self.pack_pieces() + epoch_hash).digest()
+        return sha256(self.pack_pieces() + epoch_hash).digest()
 
     def get_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return sha256(self.pack()).digest()

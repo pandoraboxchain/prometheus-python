@@ -1,4 +1,4 @@
-from Crypto.Hash import SHA256
+from hashlib import sha256
 from serialization.serializer import Serializer, Deserializer
 
 
@@ -13,7 +13,7 @@ class PaymentTransaction:
 
     def get_hash(self):
         # TODO find out if it is safe to use unsigned here
-        return SHA256.new(self.pack_unsigned()).digest()
+        return sha256(self.pack_unsigned()).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)

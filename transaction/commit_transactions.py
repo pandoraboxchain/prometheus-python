@@ -1,6 +1,5 @@
 from serialization.serializer import Serializer, Deserializer
-from Crypto.Hash import SHA256
-
+from hashlib import sha256
 
 class CommitRandomTransaction:
 
@@ -27,11 +26,11 @@ class CommitRandomTransaction:
 
     # this hash includes epoch_hash for checking if random wasn't reused
     def get_signing_hash(self, epoch_hash):
-        return SHA256.new(self.rand + self.pubkey + epoch_hash).digest()
+        return sha256(self.rand + self.pubkey + epoch_hash).digest()
     
     # this hash is for linking this transaction from reveal
     def get_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return sha256(self.pack()).digest()
 
 
 class RevealRandomTransaction:
@@ -56,4 +55,4 @@ class RevealRandomTransaction:
         return self.len
 
     def get_hash(self):
-        return SHA256.new(self.pack()).digest()
+        return sha256(self.pack()).digest()
