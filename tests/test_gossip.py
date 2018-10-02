@@ -34,7 +34,7 @@ class TestGossip(unittest.TestCase):
     def test_parse_pack_gossip_positive(self):
         private = Private.generate()
         original = PositiveGossipTransaction()
-        original.pubkey = Keys.to_bytes(private.publickey())
+        original.pubkey = Private.publickey(private)
         original.timestamp = Time.get_current_time()
 
         block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
@@ -50,7 +50,7 @@ class TestGossip(unittest.TestCase):
     def test_parse_pack_gossip_negative(self):
         private = Private.generate()
         original = NegativeGossipTransaction()
-        original.pubkey = Keys.to_bytes(private.publickey())
+        original.pubkey = Private.publickey(private)
         original.timestamp = Time.get_current_time()
         original.number_of_block = 47
 
@@ -71,13 +71,13 @@ class TestGossip(unittest.TestCase):
         block = BlockFactory.create_block_with_timestamp([], timestamp=original.timestamp)
 
         gossip_positive_tx = PositiveGossipTransaction()
-        gossip_positive_tx.pubkey = Keys.to_bytes(private.publickey())
+        gossip_positive_tx.pubkey = Private.publickey(private)
         gossip_positive_tx.timestamp = Time.get_current_time()
         gossip_positive_tx.block_hash = BlockFactory.sign_block(block, private).get_hash()
         gossip_positive_tx.signature = Private.sign(original.get_hash(), private)
 
         gossip_negative_tx = NegativeGossipTransaction()
-        gossip_negative_tx.pubkey = Keys.to_bytes(private.publickey())
+        gossip_negative_tx.pubkey = Private.publickey(private)
         gossip_negative_tx.timestamp = Time.get_current_time()
         gossip_negative_tx.number_of_block = 47
         gossip_negative_tx.anchor_block_hash = block.get_hash()

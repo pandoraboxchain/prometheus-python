@@ -1,6 +1,7 @@
 from chain.params import Round
 from transaction.secret_sharing_transactions import PrivateKeyTransaction
 from crypto.keys import Keys
+from crypto.private import Private
 
 class InvalidBlockException(Exception):
     def __init__(self, message):
@@ -48,7 +49,7 @@ class BlockVerifier:
             raise InvalidBlockException("Block has more than one PrivateKeyTransaction!")
 
         private_key = private_key_transactions[0].key
-        expected_public = Keys.from_bytes(private_key).publickey()
+        expected_public = Private.publickey(private_key)
         epoch_hashes = self.epoch.get_epoch_hashes()
         
         for top, _epoch_hash in epoch_hashes.items():

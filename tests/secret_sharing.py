@@ -30,7 +30,7 @@ class TestSecretSharing(unittest.TestCase):
         for i in range(0, 5):
             private = Private.generate()
             private_keys.append(private)
-            public_keys.append(private.publickey())
+            public_keys.append(Private.publickey(private))
 
         raw_private_keys = Keys.list_to_bytes(private_keys)
         decoded_private_keys = Keys.list_from_bytes(raw_private_keys)

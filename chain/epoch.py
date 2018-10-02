@@ -214,7 +214,7 @@ class Epoch:
             if not key:
                 # self.log("None")
                 continue
-            pubkey = Keys.from_bytes(key).publickey()
+            pubkey = Private.publickey(key)
             # self.log(Keys.to_visual_string(pubkey))
             private_key_count += 1
             if Keys.to_bytes(pubkey) in public_keys.values():
@@ -250,7 +250,7 @@ class Epoch:
             if private_key == None:
                 filtered_private_keys.append(None)
             else:
-                expected_public = Keys.from_bytes(private_key).publickey()
+                expected_public = Private.publickey(Keys.from_bytes(private_key))
                 if Keys.to_bytes(expected_public) in public_keys.values():
                     filtered_private_keys.append(private_key)
         return private_keys

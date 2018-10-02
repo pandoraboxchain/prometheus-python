@@ -1,13 +1,14 @@
 import struct
 
-
 class Serializer:
     def __init__(self):
         self.data = bytearray()
 
     @staticmethod
     def write_signature(signature):
-        return signature.to_bytes(128, byteorder='big')
+        raw = Serializer.write_u8(len(signature))
+        raw += signature
+        return raw
 
     @staticmethod
     def write_timestamp(timestamp):
@@ -54,11 +55,11 @@ class Deserializer:
         return parsed
 
     def parse_pubkey(self):
-        return self.read_and_move(216)
+        return self.read_and_move(25)
 
     def parse_signature(self):
-        signature_bytes = self.read_and_move(128)
-        return int.from_bytes(signature_bytes, byteorder='big')
+        signature_len = self.parse_u8()
+        return self.read_and_move(signature_len)
     
     def parse_timestamp(self):
         return self.parse_u32()

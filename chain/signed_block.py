@@ -2,6 +2,7 @@ import struct
 import chain
 
 from serialization.serializer import Serializer, Deserializer
+from crypto.public import Public
 
 class SignedBlock:
 
@@ -36,7 +37,7 @@ class SignedBlock:
 
     def verify_signature(self, pubkey):
         block_hash = self.block.get_hash()
-        return pubkey.verify(block_hash, (self.signature,))
+        return Public.verify(block_hash, self.signature, pubkey)
 
     def __hash__(self):
         return self.get_hash()

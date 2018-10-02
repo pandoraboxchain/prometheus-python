@@ -16,8 +16,8 @@ class TestTransaction(unittest.TestCase):
             dummy_private = Private.generate()
             original = CommitRandomTransaction()
             original.rand = Private.encrypt(os.urandom(32), dummy_private)
-            original.pubkey = Keys.to_bytes(dummy_private.publickey())
-            original.signature = int.from_bytes(os.urandom(128), byteorder='big')
+            original.pubkey = Private.publickey(dummy_private)
+            original.signature = Private.sign(original.get_signing_hash(b"epoch_hash"), dummy_private)
 
             raw = original.pack()
             restored = CommitRandomTransaction()
@@ -43,9 +43,11 @@ class TestTransaction(unittest.TestCase):
             self.assertEqual(original.get_hash(), restored.get_hash())
 
     def test_split_pack_unpack(self):
+        dummy_private = Private.generate()
+
         original = SplitRandomTransaction()
         original.pieces = [os.urandom(128), os.urandom(127), os.urandom(128)]
-        original.signature = int.from_bytes(os.urandom(128), byteorder='big')
+        original.signature = Private.sign(original.get_signing_hash(b"epoch_hash"), dummy_private)
 
         raw = original.pack()
         restored = SplitRandomTransaction()
@@ -60,7 +62,7 @@ class TestTransaction(unittest.TestCase):
         original.from_tx = os.urandom(32)
         original.amount = 123
         original.to = os.urandom(32)
-        original.pubkey = Keys.to_bytes(dummy_private.publickey())
+        original.pubkey = Private.publickey(dummy_private)
         original.signature = Private.sign(original.get_hash(), dummy_private)
 
         raw = original.pack()

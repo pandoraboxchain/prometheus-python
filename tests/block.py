@@ -17,7 +17,7 @@ class TestBlock(unittest.TestCase):
 
         tx = SplitRandomTransaction()
         tx.pieces = [os.urandom(128), os.urandom(128), os.urandom(128)]
-        tx.signature = int.from_bytes(os.urandom(128), byteorder='big')
+        tx.signature = Private.sign(tx.get_signing_hash(b"epoch_hash"), Private.generate())
 
         pktx = PrivateKeyTransaction()
         pktx.key = Keys.to_bytes(Private.generate())

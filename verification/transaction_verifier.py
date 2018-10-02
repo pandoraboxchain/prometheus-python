@@ -3,6 +3,7 @@ from transaction.commit_transactions import CommitRandomTransaction, RevealRando
 from transaction.stake_transaction import PenaltyTransaction
 
 from crypto.keys import Keys
+from crypto.public import Public
 from chain.params import Round, MINIMAL_SECRET_SHARERS
 
 
@@ -139,4 +140,4 @@ class TransactionVerifier:
             #TODO implement check by key accordance
             return True
 
-        return pubkey.verify(tx_hash, (tx.signature,))
+        return Public.verify(tx_hash, tx.signature, pubkey)

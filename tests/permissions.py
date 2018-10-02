@@ -74,7 +74,7 @@ class TestStakeActions(unittest.TestCase):
         tx.amount = 1000
         node_new_private = Private.generate()
 
-        tx.pubkey = Keys.to_bytes(node_new_private.publickey())
+        tx.pubkey = Private.publickey(node_new_private)
         tx.signature = Private.sign(tx.get_hash(), node_new_private)
 
         block.system_txs.append(tx)
@@ -86,7 +86,7 @@ class TestStakeActions(unittest.TestCase):
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
 
-        self.assertIn(node_new_private.publickey(), pub_keys)
+        self.assertIn(Private.publickey(node_new_private), pub_keys)
 
     def test_release_stake(self):
         # base initialization
@@ -110,7 +110,7 @@ class TestStakeActions(unittest.TestCase):
 
         # create new node for stake hold
         new_node_private = Private.generate()
-        new_node_public = new_node_private.publickey()
+        new_node_public = Private.publickey(new_node_private)
 
         # create transaction for stake hold for new node
         tx_hold = StakeHoldTransaction()

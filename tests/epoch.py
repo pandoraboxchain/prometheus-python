@@ -50,8 +50,8 @@ class TestEpoch(unittest.TestCase):
 
             signer = signers[signer_index]
             pubkey_tx = PublicKeyTransaction()
-            pubkey_tx.generated_pubkey = Keys.to_bytes(private.publickey())
-            pubkey_tx.pubkey = Keys.to_bytes(signer.publickey())
+            pubkey_tx.generated_pubkey = Private.publickey(private)
+            pubkey_tx.pubkey = Private.publickey(signer)
             pubkey_tx.signature = Private.sign(pubkey_tx.get_hash(), signer)
 
             block = Block()
@@ -67,7 +67,7 @@ class TestEpoch(unittest.TestCase):
 
         public_keys = []
         for private in private_keys:
-            public_keys.append(private.publickey())
+            public_keys.append(Private.publickey(private))
 
         randoms_list = []
         expected_random_pieces = []
@@ -159,7 +159,7 @@ class TestEpoch(unittest.TestCase):
             reveals.append(reveal)
 
             revealing_key = Keys.from_bytes(reveal.key)
-            encrypted_bytes = Public.encrypt(random_bytes, revealing_key.publickey())
+            encrypted_bytes = Public.encrypt(random_bytes, Private.publickey(revealing_key))
             decrypted_bytes = Private.decrypt(encrypted_bytes, revealing_key)
             # TODO check if encryption decryption can work million times in a row
             self.assertEqual(decrypted_bytes, random_bytes)
@@ -324,7 +324,7 @@ class TestEpoch(unittest.TestCase):
     @staticmethod
     def create_dummy_commit_reveal(random_bytes, epoch_hash):
         node_private = Private.generate()
-        node_public = node_private.publickey()
+        node_public = Private.publickey(node_private)
         
         private = Private.generate()
 

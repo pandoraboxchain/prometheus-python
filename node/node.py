@@ -47,7 +47,7 @@ class Node:
         self.behaviour = behaviour
 
         self.block_signer = block_signer
-        self.logger.info("Public key is %s", Keys.to_visual_string(block_signer.private_key.publickey()))
+        self.logger.info("Public key is %s", Keys.to_visual_string(Private.publickey(block_signer.private_key)))
         self.network = network
         self.node_id = node_id
         self.epoch_private_keys = []  # TODO make this single element
@@ -120,7 +120,7 @@ class Node:
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
             permission = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
-            if permission.public_key == self.block_signer.private_key.publickey():
+            if permission.public_key == Private.publickey(self.block_signer.private_key):
                 allowed_to_sign = True
                 break
 
@@ -178,7 +178,7 @@ class Node:
         if self.epoch_private_keys:
             return
             
-        node_pubkey = self.block_signer.private_key.publickey()
+        node_pubkey = Private.publickey(self.block_signer.private_key)
         
         pubkey_publishers = []
         for _, epoch_hash in self.epoch.get_epoch_hashes().items():
@@ -189,8 +189,8 @@ class Node:
                 node_private = self.block_signer.private_key
                 generated_private = Private.generate()
                 tx = PublicKeyTransaction()
-                tx.generated_pubkey = Keys.to_bytes(generated_private.publickey())
-                tx.pubkey = Keys.to_bytes(node_private.publickey())
+                tx.generated_pubkey = Private.publickey(generated_private)
+                tx.pubkey = Private.publickey(node_private)
                 tx.signature = Private.sign(tx.get_hash(), node_private)
                 if self.behaviour.malicious_wrong_signature:
                     tx.signature += 1
@@ -202,7 +202,7 @@ class Node:
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
     
     def try_to_share_random(self):
-        pubkey = self.block_signer.private_key.publickey()
+        pubkey = Private.publickey(self.block_signer.private_key)
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
             if epoch_hash in self.sent_shares_epochs: continue
@@ -214,7 +214,7 @@ class Node:
             self.network.broadcast_transaction(self.node_id, TransactionParser.pack(split_random))
 
     def try_to_commit_random(self):
-        pubkey = self.block_signer.private_key.publickey()
+        pubkey = Private.publickey(self.block_signer.private_key)
         epoch_hashes = self.epoch.get_epoch_hashes().values()
         for epoch_hash in epoch_hashes:
             if not epoch_hash in self.reveals_to_send:
@@ -416,7 +416,7 @@ class Node:
         tx = StakeHoldTransaction()
         tx.amount = 1000
         node_private = self.block_signer.private_key
-        tx.pubkey = Keys.to_bytes(node_private.publickey())
+        tx.pubkey = Private.publickey(node_private)
         tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted StakeHold transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
@@ -424,7 +424,7 @@ class Node:
     def broadcast_stakerelease_transaction(self):
         tx = StakeReleaseTransaction()
         node_private = self.block_signer.private_key
-        tx.pubkey = Keys.to_bytes(node_private.publickey())
+        tx.pubkey = Private.publickey(node_private)
         tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
@@ -432,7 +432,7 @@ class Node:
     def broadcast_gossip_negative(self, block_number, previous_block_hash):
         tx = NegativeGossipTransaction()
         node_private = self.block_signer.private_key
-        tx.pubkey = Keys.to_bytes(node_private.publickey())
+        tx.pubkey = Private.publickey(node_private)
         tx.timestamp = Time.get_current_time()
         tx.number_of_block = block_number
         tx.anchor_block_hash = previous_block_hash
@@ -443,7 +443,7 @@ class Node:
     def broadcast_gossip_positive(self, signed_block_hash):
         tx = PositiveGossipTransaction()
         node_private = self.block_signer.private_key
-        tx.pubkey = Keys.to_bytes(node_private.publickey())
+        tx.pubkey = Private.publickey(node_private)
         tx.timestamp = Time.get_current_time()
         tx.block_hash = signed_block_hash
         tx.signature = Private.sign(tx.get_hash(), node_private)
@@ -464,7 +464,7 @@ class Node:
     @staticmethod
     def create_commit_reveal_pair(node_private, random_bytes, epoch_hash):
         private = Private.generate()
-        public = node_private.publickey()
+        public = Private.publickey(node_private)
         encoded = Private.encrypt(random_bytes, private)
 
         commit = CommitRandomTransaction()
