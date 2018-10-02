@@ -52,22 +52,16 @@ class TestMerger(unittest.TestCase):
     def test_merge(self):
         dag = Dag(0)
         prev_hash = dag.genesis_block().get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [1,3])
-        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [2])
+        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [1,2])
+        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [3])
         
         merger = Merger(dag)
         res = merger.merge()
 
-        for block in res:
-            if block:
-                print(block.get_hash().hex())
-            else:
-                print("None")
-
-        # self.assertEqual(res[0], zero)
-        # self.assertEqual(res[1], first)
-        # self.assertEqual(res[2], second)
-        # self.assertEqual(res[3], third)
+        self.assertEqual(res[0], dag.blocks_by_number[0][0])
+        self.assertEqual(res[1], dag.blocks_by_number[1][0])
+        self.assertEqual(res[2], dag.blocks_by_number[2][0])
+        self.assertEqual(res[3], dag.blocks_by_number[3][0])
 
     def test_two_tops_on_epoch_end(self):
         # generate two blocks on epoch end
