@@ -30,15 +30,7 @@ class TestChainGenerator:
     # TODO creater similar but simpler method not using prev_hash and just taking top hash as prev hash
     @staticmethod
     def fill_with_dummies(dag, prev_hash, range):
-        dummy_private = Private.generate()
-        for i in range:
-            dummy_time_offset = len(dag.blocks_by_number.get(i, []))
-            block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i + dummy_time_offset)
-            signed_block = BlockFactory.sign_block(block, dummy_private)
-            dag.add_signed_block(i, signed_block)
-            prev_hash = block.get_hash()
-        
-        return prev_hash
+        return TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range, [])
         
     @staticmethod
     def fill_with_dummies_and_skips(dag, prev_hash, range, indices_to_skip):
