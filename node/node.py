@@ -365,9 +365,14 @@ class Node:
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
         current_block_number = self.epoch.get_current_timeframe_block_number()
+        is_new_epoch_upcoming = self.epoch.is_new_epoch_upcoming(current_block_number)
+
+        #switch no new epoch if necessary
+        if is_new_epoch_upcoming:
+            self.epoch.accept_tops_as_epoch_hashes()
+
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        # TODO: add public key knowledge (permission )
-        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
+        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
         # print("Node ", self.node_id, "received transaction with hash",
         # transaction.get_hash().hexdigest(), " from node ", node_id)
         if verifier.check_if_valid(transaction):
@@ -380,7 +385,7 @@ class Node:
         transaction = TransactionParser.parse(raw_gossip)
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
+        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
             if self.dag.has_block_number(transaction.number_of_block):
@@ -399,7 +404,7 @@ class Node:
         transaction = TransactionParser.parse(raw_gossip)
         current_block_number = self.epoch.get_current_timeframe_block_number()
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number)
+        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)  # is need to add tx to self.mempool() ---> ?
             if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> !!! make request ONLY if block

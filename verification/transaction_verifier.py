@@ -16,10 +16,11 @@ class InvalidTransactionException(Exception):
 
 
 class TransactionVerifier:
-    def __init__(self, epoch, permissions, epoch_block_number):
+    def __init__(self, epoch, permissions, epoch_block_number, logger):
         self.epoch = epoch
         self.permissions = permissions
         self.epoch_block_number = epoch_block_number
+        self.logger = logger
 
     def check_if_valid(self, transaction):
 
@@ -38,7 +39,7 @@ class TransactionVerifier:
 
             
         except InvalidTransactionException as e:
-            print(e)
+            self.logger.error(e)
             return False
 
         return True
@@ -97,14 +98,16 @@ class TransactionVerifier:
     def validate_if_public_key_transaction(self, transaction):
         if isinstance(transaction, PublicKeyTransaction):
             epoch_hashes = self.epoch.get_epoch_hashes()
-            for _top, epoch_hash in epoch_hashes.items():
+
+            for top, epoch_hash in epoch_hashes.items():
+
                 pubkey_publishers = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
                 allowed_pubkey = False
                 for pubkey_publisher in pubkey_publishers:
                     if pubkey_publisher.public_key == Keys.from_bytes(transaction.pubkey):
                         allowed_pubkey = True
                 
-                if allowed_pubkey == False:
+                if not allowed_pubkey:
                     raise InvalidTransactionException("No valid public key found for this transaction!")
     
     def validate_if_secret_sharing_transaction(self, transaction):
