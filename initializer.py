@@ -43,7 +43,7 @@ class Initializer:
             announcer = AnnouncerNode(genesis_creation_time, logger)
             tasks.append(announcer.run())
             
-            for i in range(0, 19):
+            for i in range(0, 20):
                 behaviour = Behaviour()
 
                 # if i==7:
