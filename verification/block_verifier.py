@@ -20,12 +20,21 @@ class BlockVerifier:
         try:
 
             self.validate_private_transactions_in_block(block)
-
+            self.validate_timeslot(block)
+            
         except InvalidBlockException as e:
             self.logger.error(e)
             return False
 
         return True
+
+    def validate_timeslot(self, block):
+        current_block_number = self.epoch.get_current_timeframe_block_number()
+        for prev_hash in block.prev_hashes:
+            prev_hash_number = self.epoch.dag.get_block_number(prev_hash)
+            if prev_hash_number >= current_block_number:
+                raise InvalidBlockException("Block refers to blocks in current or future timeslots!")
+            
 
     def validate_private_transactions_in_block(self, block):
 
