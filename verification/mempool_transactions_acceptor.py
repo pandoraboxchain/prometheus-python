@@ -18,8 +18,6 @@ class MempoolTransactionsAcceptor(Acceptor):
         self.is_not_private_key_transaction(transaction)
         self.is_not_penalty_transaction(transaction)
 
-        self.is_sender_valid_for_current_round(transaction)
-
         self.validate_if_secret_sharing_transaction(transaction)
         self.validate_reveal_random_transaction(transaction)
 
@@ -53,21 +51,4 @@ class MempoolTransactionsAcceptor(Acceptor):
     def has_enough_pieces_for_secret_sharing(self, transaction):
         if len(transaction.pieces) < MINIMAL_SECRET_SHARERS:
             raise AcceptionException("SplitRandomTransaction has not enough pieces!")
-
-    def is_sender_valid_for_current_round(self, transaction):
-        if not Acceptor.is_randomizer_transaction(transaction):
-            return
-
-        current_round = self.epoch.get_current_round()
-        epoch_hashes = self.epoch.get_epoch_hashes()
-        signature_valid_for_at_least_one_valid_publickey = False
-        for _top, epoch_hash in epoch_hashes.items():
-            validators = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, current_round)
-            for validator in validators:
-                if Acceptor.check_transaction_signature(transaction, validator.public_key, epoch_hash):
-                    signature_valid_for_at_least_one_valid_publickey = True
-                    break
-
-        if not signature_valid_for_at_least_one_valid_publickey:
-            raise AcceptionException("Transaction was not signed by a valid public key for this round!")
 

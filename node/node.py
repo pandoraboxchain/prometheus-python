@@ -371,12 +371,6 @@ class Node:
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
-        current_block_number = self.epoch.get_current_timeframe_block_number()
-        is_new_epoch_upcoming = self.epoch.is_new_epoch_upcoming(current_block_number)
-
-        #switch no new epoch if necessary
-        if is_new_epoch_upcoming:
-            self.epoch.accept_tops_as_epoch_hashes()
 
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         # print("Node ", self.node_id, "received transaction with hash",
