@@ -1,5 +1,7 @@
 from chain.params import Round
-from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
+from transaction.gossip_transaction import NegativeGossipTransaction, \
+                                           PositiveGossipTransaction, \
+                                           PenaltyGossipTransaction
 from transaction.secret_sharing_transactions import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
@@ -31,6 +33,8 @@ class Mempool:
             self.gossips.append(tx)
         elif isinstance(tx, PositiveGossipTransaction):
             self.gossips.append(tx)
+        elif isinstance(tx, PenaltyGossipTransaction):
+            self.gossips.append(tx)
         else:
             assert False, "Can't add. Transaction type is unknown or should not be added to mempool"
 
@@ -53,6 +57,8 @@ class Mempool:
         elif isinstance(tx, NegativeGossipTransaction):
             self.shares = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
         elif isinstance(tx, PositiveGossipTransaction):
+            self.shares = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
+        elif isinstance(tx, PenaltyGossipTransaction):
             self.shares = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"

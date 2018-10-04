@@ -62,6 +62,9 @@ class Node:
     def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):
         self.last_expected_timeslot = current_timeslot_number
         if previous_timeslot_number not in self.dag.blocks_by_number:
+            # TODO chack mempool for negative gossip tx for block
+            # if mempool contain negative gossip for current block DO NOT provide another broadcast
+            # TODO create methods for getting negative gossip from mempool
             self.broadcast_gossip_negative(previous_timeslot_number)
             return True
         return False
