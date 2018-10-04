@@ -18,8 +18,9 @@ from transaction.transaction_parser import TransactionParser
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
-from verification.transaction_verifier import TransactionVerifier
-from verification.block_verifier import BlockVerifier 
+from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
+from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
+from verification.block_acceptor import BlockAcceptor
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
@@ -138,6 +139,12 @@ class Node:
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
         
         transactions = self.mempool.pop_round_system_transactions(current_round_type)
+
+        # skip non valid transactions
+        verifier = InBlockTransactionsAcceptor(self.epoch, self.permissions, self.logger)
+        for transaction in transactions:
+            if not verifier.check_if_valid(transactions):
+                del transaction
 
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()
@@ -322,7 +329,7 @@ class Node:
         
         if is_block_allowed:
             block = signed_block.block
-            block_verifier = BlockVerifier(self.epoch, self.logger)
+            block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 current_block_number = self.epoch.get_current_timeframe_block_number()
                 self.dag.add_signed_block(current_block_number, signed_block)
@@ -352,7 +359,7 @@ class Node:
 
         if is_block_allowed:
             block = signed_block.block
-            block_verifier = BlockVerifier(self.epoch, self.logger)
+            block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 self.dag.add_signed_block(block_number, signed_block)
                 self.mempool.remove_transactions(signed_block.block.system_txs)
@@ -371,8 +378,7 @@ class Node:
         if is_new_epoch_upcoming:
             self.epoch.accept_tops_as_epoch_hashes()
 
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
+        verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         # print("Node ", self.node_id, "received transaction with hash",
         # transaction.get_hash().hexdigest(), " from node ", node_id)
         if verifier.check_if_valid(transaction):
@@ -383,9 +389,7 @@ class Node:
 
     def handle_gossip_negative(self, node_id, raw_gossip):
         transaction = TransactionParser.parse(raw_gossip)
-        current_block_number = self.epoch.get_current_timeframe_block_number()
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
+        verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
             if self.dag.has_block_number(transaction.number_of_block):
@@ -402,9 +406,7 @@ class Node:
 
     def handle_gossip_positive(self, node_id, raw_gossip):
         transaction = TransactionParser.parse(raw_gossip)
-        current_block_number = self.epoch.get_current_timeframe_block_number()
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
-        verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
+        verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)  # is need to add tx to self.mempool() ---> ?
             if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> !!! make request ONLY if block

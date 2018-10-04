@@ -1,0 +1,47 @@
+from verification.acceptor import Acceptor, AcceptionException
+
+from transaction.secret_sharing_transactions import PublicKeyTransaction
+from chain.params import Round
+
+from crypto.keys import Keys
+
+
+class InBlockTransactionsAcceptor(Acceptor):
+
+    def __init__(self, epoch, permissions, logger):
+        super().__init__(logger)
+        self.epoch = epoch
+        self.permissions = permissions
+
+    def validate(self, transaction):
+        self.validate_if_public_key_transaction(transaction)
+        self.is_signature_valid_for_at_least_one_epoch(transaction)
+
+    def validate_if_public_key_transaction(self, transaction):
+        if isinstance(transaction, PublicKeyTransaction):
+            epoch_hashes = self.epoch.get_epoch_hashes()
+
+            for top, epoch_hash in epoch_hashes.items():
+
+                pubkey_publishers = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
+                allowed_pubkey = False
+                for pubkey_publisher in pubkey_publishers:
+                    if pubkey_publisher.public_key == Keys.from_bytes(transaction.pubkey):
+                        allowed_pubkey = True
+
+                if not allowed_pubkey:
+                    raise AcceptionException("No valid public key found for this transaction!")
+
+    def is_signature_valid_for_at_least_one_epoch(self, transaction):
+        if hasattr(transaction, "pubkey"):
+            public_key = Keys.from_bytes(transaction.pubkey)
+            signature_valid_for_at_least_one_epoch = False
+            epoch_hashes = self.epoch.get_epoch_hashes()
+            for _top, epoch_hash in epoch_hashes.items():
+                valid_for_epoch = Acceptor.check_transaction_signature(transaction, public_key, epoch_hash)
+                if valid_for_epoch:
+                    signature_valid_for_at_least_one_epoch = True
+                    break
+
+            if not signature_valid_for_at_least_one_epoch:
+                raise AcceptionException("Signature is not valid for any epoch")
