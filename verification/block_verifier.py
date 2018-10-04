@@ -17,10 +17,13 @@ class BlockVerifier:
 
     def check_if_valid(self, block):
 
+        current_round = self.epoch.get_current_round()
+        current_block_number = self.epoch.get_current_timeframe_block_number()
+
         try:
 
-            self.validate_private_transactions_in_block(block)
-            self.validate_timeslot(block)
+            self.validate_private_transactions_in_block(block, current_block_number)
+            self.validate_timeslot(block, current_round)
             
         except InvalidBlockException as e:
             self.logger.error(e)
@@ -28,33 +31,32 @@ class BlockVerifier:
 
         return True
 
-    def validate_timeslot(self, block):
-        current_block_number = self.epoch.get_current_timeframe_block_number()
+    def validate_timeslot(self, block, current_block_number):
+
         for prev_hash in block.prev_hashes:
             prev_hash_number = self.epoch.dag.get_block_number(prev_hash)
             if prev_hash_number >= current_block_number:
                 raise InvalidBlockException("Block refers to blocks in current or future timeslots!")
-            
 
-    def validate_private_transactions_in_block(self, block):
+    def validate_private_transactions_in_block(self, block, current_round):
 
         private_key_transactions = []
         for tx in block.system_txs:
             if isinstance(tx, PrivateKeyTransaction):
                 private_key_transactions.append(tx)
 
-        current_round = self.epoch.get_current_round()
+        private_key_transactions_count_in_block = len(private_key_transactions)
 
         if current_round != Round.PRIVATE:
-            if len(private_key_transactions) > 0:
+            if private_key_transactions_count_in_block > 0:
                 raise InvalidBlockException("PrivateKeyTransaction was found in round " + current_round.name)
 
             return
 
-        if len(private_key_transactions) == 0:
+        if private_key_transactions_count_in_block == 0:
             raise InvalidBlockException("Block has no PrivateKeyTransaction in private round!")
 
-        elif len(private_key_transactions) > 1:
+        elif private_key_transactions_count_in_block > 1:
             raise InvalidBlockException("Block has more than one PrivateKeyTransaction!")
 
         private_key = private_key_transactions[0].key
