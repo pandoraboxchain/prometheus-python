@@ -44,10 +44,6 @@ class Acceptor:
         else:
             tx_hash = tx.get_hash()
 
-        if isinstance(tx, RevealRandomTransaction):
-            # TODO implement check by key accordance
-            return True
-
         return Public.verify(tx_hash, tx.signature, pubkey)
 
     @staticmethod
