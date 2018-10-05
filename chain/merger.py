@@ -53,6 +53,39 @@ class Merger:
                     return block_hash
                 second_blocks.append(block_hash)
 
+    def get_multiple_common_ancestor(self, chain_list):
+        chains_blocks_lists = []
+        iters = []
+        length = len(chain_list)
+        for i in range(length):
+            chains_blocks_lists.append([])
+            iterator = ChainIter(self.dag, chain_list[i])
+            iters.append(iterator)
+        
+        while True: #TODO sane exit condition
+            this_round_blocks = []
+            for i in range(length):
+                try:
+                    block = iters[i].next()
+                    if block:
+                        block_hash = block.get_hash()
+                        chains_blocks_lists.append(block_hash)
+                        this_round_blocks.append(block_hash)
+                except StopIteration:
+                    pass
+            
+            for block in this_round_blocks:
+                count = 0
+                for block_list in chains_blocks_lists:
+                    if block in block_list:
+                        count += 1
+                if count == length:
+                    return block
+        
+        assert False, "No common ancestor found"
+        return None
+        
+
     #returns part of of second chain where they diverge
     def get_difference(self, first_chain, second_chain):
         common_ancestor = self.get_common_ancestor(first_chain, second_chain)
