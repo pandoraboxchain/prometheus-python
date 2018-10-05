@@ -142,6 +142,7 @@ class ChainIter:
     def __iter__(self):
         return self
 
+    #in real implementation this method should return pair like (block number, block or None)
     def __next__(self):
         if self.time_to_stop:
             raise StopIteration()
