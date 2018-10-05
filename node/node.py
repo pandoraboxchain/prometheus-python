@@ -142,9 +142,7 @@ class Node:
 
         # skip non valid transactions
         verifier = InBlockTransactionsAcceptor(self.epoch, self.permissions, self.logger)
-        for transaction in transactions:
-            if not verifier.check_if_valid(transactions):
-                del transaction
+        transactions = [t for t in transactions if verifier.check_if_valid(t)]
 
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()

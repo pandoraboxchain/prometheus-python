@@ -4,6 +4,8 @@ from transaction.secret_sharing_transactions import SplitRandomTransaction
 from transaction.commit_transactions import RevealRandomTransaction
 from transaction.stake_transaction import PenaltyTransaction
 from chain.params import MINIMAL_SECRET_SHARERS
+from crypto.private import Private
+from seccure import IntegrityError
 
 from transaction.secret_sharing_transactions import PrivateKeyTransaction
 
@@ -44,7 +46,15 @@ class MempoolTransactionsAcceptor(Acceptor):
         commit_hash = transaction.commit_hash
         for top, _epoch_hash in epoch_hashes.items():
             commits = self.epoch.get_commits_for_epoch(top)
-            if commit_hash not in commits:
+            if commit_hash in commits:
+                commit = commits[commit_hash]
+                # check if commited random can be encrypted by reveal private key
+                try:
+                    Private.decrypt(commit.rand, transaction.key)
+                except IntegrityError as e:
+                    raise AcceptionException(
+                        "Private key in reveal random transaction is not valid for corresponding commit transaction!")
+            else:
                 raise AcceptionException(
                     "Reveal transaction has no corresponding commit transaction in the chain!")
 
