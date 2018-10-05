@@ -49,6 +49,22 @@ class TestMerger(unittest.TestCase):
 
         self.assertEqual(expected_intersection, found_intersection)
 
+    def test_multi_chain_common_ancestor(self):
+        dag = Dag(0)
+        genesis_hash = dag.genesis_block().get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,10), [2,5,7,8])
+        first_block = dag.blocks_by_number[1][0].get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, first_block, range(2,10), [3,4,6,7,8,9])
+        second_block = dag.blocks_by_number[2][0].get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
+        expected_intersection = dag.blocks_by_number[1][0].get_hash()
+        
+        merger = Merger(dag)
+        tops = dag.get_top_blocks_hashes()
+        found_intersection = merger.get_multiple_common_ancestor([tops[0], tops[1], tops[2]])
+
+        self.assertEqual(expected_intersection, found_intersection)
+
     def test_merge(self):
         dag = Dag(0)
         prev_hash = dag.genesis_block().get_hash()
@@ -56,7 +72,7 @@ class TestMerger(unittest.TestCase):
         TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [3])
         
         merger = Merger(dag)
-        res = merger.merge()
+        res = merger.merge(dag.get_top_hashes())
 
         self.assertEqual(res[0], dag.blocks_by_number[0][0])
         self.assertEqual(res[1], dag.blocks_by_number[1][0])
@@ -73,7 +89,7 @@ class TestMerger(unittest.TestCase):
         TestChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
         
         merger = Merger(dag)
-        res = merger.merge()
+        res = merger.merge(dag.get_top_hashes())
 
         self.assertEqual(res[0], dag.blocks_by_number[0][0])
         self.assertEqual(res[1], dag.blocks_by_number[1][0])

@@ -53,6 +53,39 @@ class Merger:
                     return block_hash
                 second_blocks.append(block_hash)
 
+    def get_multiple_common_ancestor(self, chain_list):
+        chains_blocks_lists = []
+        iters = []
+        length = len(chain_list)
+        for i in range(length):
+            chains_blocks_lists.append([])
+            iterator = ChainIter(self.dag, chain_list[i])
+            iters.append(iterator)
+        
+        while True: #TODO sane exit condition
+            this_round_blocks = []
+            for i in range(length):
+                try:
+                    block = iters[i].next()
+                    if block:
+                        block_hash = block.get_hash()
+                        chains_blocks_lists.append(block_hash)
+                        this_round_blocks.append(block_hash)
+                except StopIteration:
+                    pass
+            
+            for block in this_round_blocks:
+                count = 0
+                for block_list in chains_blocks_lists:
+                    if block in block_list:
+                        count += 1
+                if count == length:
+                    return block
+        
+        assert False, "No common ancestor found"
+        return None
+        
+
     #returns part of of second chain where they diverge
     def get_difference(self, first_chain, second_chain):
         common_ancestor = self.get_common_ancestor(first_chain, second_chain)
@@ -70,16 +103,16 @@ class Merger:
                 chain_diff.append(None)
 
         return chain_diff
-        
-    def merge(self):
-        chains = [FlatChain.from_top_hash(self.dag, top) for top in self.dag.get_top_blocks_hashes()]
-        sizes = [chain.get_chain_size() for chain in chains]
+
+    # done in deterministic manner, should yield exact same result on every node
+    @staticmethod
+    def sort_deterministically(sizes):
         dict_sizes = dict(enumerate(sizes))
         deterministic_ordering = []
         while dict_sizes:
             m = max(dict_sizes.values())
             indexes = [key for key,value in dict_sizes.items() if value==m]
-            if len(indexes)==1:
+            if len(indexes) == 1:
                 dict_sizes.pop(indexes[0])
                 deterministic_ordering.append(indexes[0])
             else:
@@ -87,22 +120,29 @@ class Merger:
                     dict_sizes.pop(item)
                 random.shuffle(indexes)
                 deterministic_ordering += indexes
+        return deterministic_ordering
+        
+    def merge(self, tops):
+        chains = [FlatChain.from_top_hash(self.dag, top) for top in tops]
+        sizes = [chain.get_chain_size() for chain in chains]
+        deterministic_order = Merger.sort_deterministically(sizes)
+        sorted_chains = [chains[index] for index in deterministic_order]
 
-        active = chains[deterministic_ordering[0]]
+        active = sorted_chains[0]
         mp = active.get_merging_point()
         active_merged_point = FlatChain(active[:mp])
         merged_chain = FlatChain(active[:mp])
 
-        for doi in deterministic_ordering[1:]:
-            diffchain = active_merged_point.get_diff(chains[doi])
+        for chain in sorted_chains[1:]:
+            diffchain = active_merged_point.get_diff(chain)
             for block in diffchain:
                 if block:
                     if not diffchain.is_block_mutable(block.get_hash()):
                         if not block in merged_chain:
                             merged_chain.append(block)
         
-        for doi in deterministic_ordering:
-            diffchain = active_merged_point.get_diff(chains[doi])
+        for chain in sorted_chains:
+            diffchain = active_merged_point.get_diff(chain)
             for block in diffchain:
                 if block:
                     if diffchain.is_block_mutable(block.get_hash()):
