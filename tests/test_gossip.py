@@ -31,7 +31,6 @@ from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGo
 
 class TestGossip(unittest.TestCase):
 
-    @unittest.skip('zetta testing')
     def test_parse_pack_gossip_positive(self):
         private = Private.generate()
         original = PositiveGossipTransaction()
@@ -48,7 +47,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('zetta testing')
     def test_parse_pack_gossip_negative(self):
         private = Private.generate()
         original = NegativeGossipTransaction()
@@ -63,7 +61,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('zetta testing')
     def test_pack_parse_penalty_gossip_transaction(self):
         private = Private.generate()
         original = PenaltyGossipTransaction()
@@ -93,7 +90,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('zetta testing')
     def test_send_negative_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -134,8 +130,8 @@ class TestGossip(unittest.TestCase):
         Time.advance_to_next_timeslot()
         # on next step node0 broadcast negative gossip
         node0.step()
-        # and not include it to (node0) self.mempool
-        self.assertEqual(len(node0.mempool.gossips), 0)
+        # and include! it to (node0) self.mempool
+        self.assertEqual(len(node0.mempool.gossips), 1)
         # assume that negative gossip broadcasted and placed to node1 mempool
         self.assertEqual(len(node1.mempool.gossips), 1)
 # -----------------------------------
@@ -157,7 +153,6 @@ class TestGossip(unittest.TestCase):
         system_txs = node0.dag.blocks_by_number[2][0].block.system_txs
         self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
 
-    @unittest.skip('zetta testing')
     def test_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -258,7 +253,6 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
         # assert that next block is correctly created by next node
 
-    @unittest.skip('zetta testing')
     def test_send_negative_gossip_by_validator(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -457,10 +451,11 @@ class TestGossip(unittest.TestCase):
         # steel 5 negative gossips (from 0,1,2,3,4) on all nodes (add validation ?)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 5)
 
-        node2.step()  # CREATE, SIGN, BROADCAST block
+        node2.step()  # CREATE, SIGN, BROADCAST block (block by node1 not exist)
 
+        # all nodes handle new block
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
-        # steel 5 negative gossips (from 0,1,2,3,4) on all nodes (add validation ?)
+        # gossips cleaned from mem pool by block handling
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
 
         node3.step()  #

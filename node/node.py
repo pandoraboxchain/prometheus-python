@@ -5,7 +5,7 @@ from chain.dag import Dag
 from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
-from chain.params import Round, Duration, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS
+from chain.params import Round, Duration, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.merger import Merger
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
@@ -62,10 +62,10 @@ class Node:
     def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):
         self.last_expected_timeslot = current_timeslot_number
         if previous_timeslot_number not in self.dag.blocks_by_number:
-            # TODO chack mempool for negative gossip tx for block
-            # if mempool contain negative gossip for current block DO NOT provide another broadcast
-            # TODO create methods for getting negative gossip from mempool
-            self.broadcast_gossip_negative(previous_timeslot_number)
+            negative_by_block = self.mempool.get_negative_gossips_by_block(previous_timeslot_number)
+            if len(negative_by_block) < ZETA:  # validate count of negative gossip by block
+                self.broadcast_gossip_negative(previous_timeslot_number)
+            # even if do not broadcast negative gossip perform wait by one step
             return True
         return False
 
@@ -139,6 +139,7 @@ class Node:
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
         
         transactions = self.mempool.pop_round_system_transactions(current_round_type)
+        transactions += self.mempool.pop_current_gossips()  # POP gossips to block
 
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()
@@ -368,7 +369,7 @@ class Node:
         current_block_number = self.epoch.get_current_timeframe_block_number()
         is_new_epoch_upcoming = self.epoch.is_new_epoch_upcoming(current_block_number)
 
-        #switch no new epoch if necessary
+        # switch no new epoch if necessary
         if is_new_epoch_upcoming:
             self.epoch.accept_tops_as_epoch_hashes()
 
@@ -388,7 +389,7 @@ class Node:
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
         if verifier.check_if_valid(transaction):
-            self.mempool.add_transaction(transaction)
+            self.mempool.append_gossip_tx(transaction)  # append negative gossip exclude duplicates
             if self.dag.has_block_number(transaction.number_of_block):
                 signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
                 self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
@@ -407,13 +408,15 @@ class Node:
         epoch_block_number = self.epoch.convert_to_epoch_block_number(current_block_number)
         verifier = TransactionVerifier(self.epoch, self.permissions, epoch_block_number, self.logger)
         if verifier.check_if_valid(transaction):
-            self.mempool.add_transaction(transaction)  # is need to add tx to self.mempool() ---> ?
-            if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> !!! make request ONLY if block
-                                                                            # in timeslot (and may be by anchor hash)
+            self.mempool.append_gossip_tx(transaction)
+            if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> ! make request ONLY if block in timeslot
                 self.network.get_block_by_hash(receiver_node_id=node_id,  # request TO ----> receiver_node_id
                                                block_hash=transaction.block_hash)
         else:
             self.logger.error("Received gossip positive tx is invalid")
+
+    def handle_gossip_penalty(self, node_id, raw_gossip):
+        pass
 
     # -------------------------------------------------------------------------------
     # Broadcast
@@ -443,6 +446,8 @@ class Node:
         tx.number_of_block = block_number
         tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted negative gossip transaction")
+
+        self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_positive(self, signed_block_hash):
@@ -454,6 +459,9 @@ class Node:
         tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted positive gossip transaction")
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
+
+    def broadcast_gossip_penalty(self, negative_gossip_hash, positive_gossip_hash):
+        pass
 
     # -------------------------------------------------------------------------------
     # Targeted request
