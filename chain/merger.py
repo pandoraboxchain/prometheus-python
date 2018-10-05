@@ -70,16 +70,16 @@ class Merger:
                 chain_diff.append(None)
 
         return chain_diff
-        
-    def merge(self):
-        chains = [FlatChain.from_top_hash(self.dag, top) for top in self.dag.get_top_blocks_hashes()]
-        sizes = [chain.get_chain_size() for chain in chains]
+
+    # done in deterministic manner, should yield exact same result on every node
+    @staticmethod
+    def sort_deterministically(sizes):
         dict_sizes = dict(enumerate(sizes))
         deterministic_ordering = []
         while dict_sizes:
             m = max(dict_sizes.values())
             indexes = [key for key,value in dict_sizes.items() if value==m]
-            if len(indexes)==1:
+            if len(indexes) == 1:
                 dict_sizes.pop(indexes[0])
                 deterministic_ordering.append(indexes[0])
             else:
@@ -87,22 +87,29 @@ class Merger:
                     dict_sizes.pop(item)
                 random.shuffle(indexes)
                 deterministic_ordering += indexes
+        return deterministic_ordering
+        
+    def merge(self, tops):
+        chains = [FlatChain.from_top_hash(self.dag, top) for top in tops]
+        sizes = [chain.get_chain_size() for chain in chains]
+        deterministic_order = Merger.sort_deterministically(sizes)
+        sorted_chains = [chains[index] for index in deterministic_order]
 
-        active = chains[deterministic_ordering[0]]
+        active = sorted_chains[0]
         mp = active.get_merging_point()
         active_merged_point = FlatChain(active[:mp])
         merged_chain = FlatChain(active[:mp])
 
-        for doi in deterministic_ordering[1:]:
-            diffchain = active_merged_point.get_diff(chains[doi])
+        for chain in sorted_chains[1:]:
+            diffchain = active_merged_point.get_diff(chain)
             for block in diffchain:
                 if block:
                     if not diffchain.is_block_mutable(block.get_hash()):
                         if not block in merged_chain:
                             merged_chain.append(block)
         
-        for doi in deterministic_ordering:
-            diffchain = active_merged_point.get_diff(chains[doi])
+        for chain in sorted_chains:
+            diffchain = active_merged_point.get_diff(chain)
             for block in diffchain:
                 if block:
                     if diffchain.is_block_mutable(block.get_hash()):

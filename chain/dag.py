@@ -6,9 +6,8 @@ class Dag:
     
     def __init__(self, genesis_creation_time):
         self.genesis_creation_time = genesis_creation_time
-        self.blocks_by_hash = {}
-        self.blocks_by_number = {}
-        self.tops_and_epochs = {}
+        self.blocks_by_hash = {} #just hash map hash:block
+        self.blocks_by_number = {} #key is timeslot number, value is a list of blocks in this timeslot
         self.new_block_listeners = []
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
@@ -47,6 +46,10 @@ class Dag:
     
     def get_top_blocks_hashes(self):
         return list(self.get_top_blocks().keys())
+
+    # just better name for get_top_blocks_hashes method
+    def get_top_hashes(self):
+        return self.get_top_blocks_hashes()
 
     def has_block_number(self, number):
         return number in self.blocks_by_number

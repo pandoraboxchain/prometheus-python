@@ -56,7 +56,7 @@ class TestMerger(unittest.TestCase):
         TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,4), [3])
         
         merger = Merger(dag)
-        res = merger.merge()
+        res = merger.merge(dag.get_top_hashes())
 
         self.assertEqual(res[0], dag.blocks_by_number[0][0])
         self.assertEqual(res[1], dag.blocks_by_number[1][0])
@@ -73,7 +73,7 @@ class TestMerger(unittest.TestCase):
         TestChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
         
         merger = Merger(dag)
-        res = merger.merge()
+        res = merger.merge(dag.get_top_hashes())
 
         self.assertEqual(res[0], dag.blocks_by_number[0][0])
         self.assertEqual(res[1], dag.blocks_by_number[1][0])
