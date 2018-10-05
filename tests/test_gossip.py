@@ -31,6 +31,7 @@ from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGo
 
 class TestGossip(unittest.TestCase):
 
+    @unittest.skip('zetta testing')
     def test_parse_pack_gossip_positive(self):
         private = Private.generate()
         original = PositiveGossipTransaction()
@@ -47,6 +48,7 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
+    @unittest.skip('zetta testing')
     def test_parse_pack_gossip_negative(self):
         private = Private.generate()
         original = NegativeGossipTransaction()
@@ -61,6 +63,7 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
+    @unittest.skip('zetta testing')
     def test_pack_parse_penalty_gossip_transaction(self):
         private = Private.generate()
         original = PenaltyGossipTransaction()
@@ -90,6 +93,7 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
+    @unittest.skip('zetta testing')
     def test_send_negative_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -153,6 +157,7 @@ class TestGossip(unittest.TestCase):
         system_txs = node0.dag.blocks_by_number[2][0].block.system_txs
         self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
 
+    @unittest.skip('zetta testing')
     def test_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -229,6 +234,10 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node1.dag.blocks_by_number) == 3, True)
         self.assertTrue(len(node2.dag.blocks_by_number) == 3, True)
 
+        # after node0 step and broadcast negative gossip
+        # node 2 MUST contains this tx in mempool
+        # current solution is to broadcast negative gossip IF current mempool negative gossip
+        # count is < than 5 (system parameter ZETA) -----> #TODO check in next test
         node2.step()  # send negative gossip for block 3 create and sign block (with negative gossips) block number 4
         self.assertTrue(len(node0.dag.blocks_by_number) == 4, True)
         self.assertTrue(len(node1.dag.blocks_by_number) == 4, True)
@@ -249,6 +258,7 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
         # assert that next block is correctly created by next node
 
+    @unittest.skip('zetta testing')
     def test_send_negative_gossip_by_validator(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -335,5 +345,157 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node0.dag.blocks_by_number) == 5, True)
         self.assertTrue(len(node1.dag.blocks_by_number) == 5, True)
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
+
+    # perform testing ZETA by malicious_skip_block in network of min nodes < ZETA
+    def test_negative_gossip_by_zeta(self):
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
+        network = NodeApi()
+
+        node0 = Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node0)
+
+        behavior = Behaviour()  # this node malicious skip block
+        behavior.malicious_skip_block = True
+        node1 = Node(genesis_creation_time=1,
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators,
+                     behaviour=behavior)
+        network.register_node(node1)
+
+        node2 = Node(genesis_creation_time=1,
+                     node_id=2,
+                     network=network,
+                     block_signer=private_keys[2],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node2)
+
+        node3 = Node(genesis_creation_time=1,
+                     node_id=3,
+                     network=network,
+                     block_signer=private_keys[3],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node3)
+
+        node4 = Node(genesis_creation_time=1,
+                     node_id=4,
+                     network=network,
+                     block_signer=private_keys[4],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node4)
+
+        node5 = Node(genesis_creation_time=1,
+                     node_id=5,
+                     network=network,
+                     block_signer=private_keys[5],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node5)
+
+        Time.advance_to_next_timeslot()  # current block number 1
+        node0.step()    # create and sign block
+        node1.step()
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # validate block created and broadcasted
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+
+        Time.advance_to_next_timeslot()  # current block number 1
+        node0.step()
+        node1.step()    # skip block creation
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # validate block NOT created and NOT broadcasted
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+
+        Time.advance_to_next_timeslot()  # current block number 2
+        # for now all chain do not have block from previous timeslot
+        node0.step()  # broadcast negative gossip
+        # all nodes handle negative gossips by node0
+        # not broadcast to self (ADD TO MEMPOOL before broadcast)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 1)
+
+        node1.step()  # broadcast negative gossip
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 2)
+
+        node2.step()  # broadcast negative gossip AND skip block signing for current step !!!
+        node3.step()  # broadcast negative gossip
+        node4.step()  # broadcast negative gossip
+        node5.step()  # VALIDATE 5 NEGATIVE GOSSIPS AND DO NOT BROADCAST ANOTHER ONE (current ZETA == 5)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 5)
+
+        # duplicate gossips tx will NOT include to mempool !
+        # if node already send negative gossip IT NOT broadcast it again !
+        # if node already have x < ZETA (x - different negative gossips by block count) IT NOT broadcast it again !
+        Time.advance_time(1)  # advance time by one second in current timeslot
+        # make steps by nodes
+        node0.step()  #
+        node1.step()  #
+        # steel 5 negative gossips (from 0,1,2,3,4) on all nodes (add validation ?)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 5)
+
+        node2.step()  # CREATE, SIGN, BROADCAST block
+
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
+        # steel 5 negative gossips (from 0,1,2,3,4) on all nodes (add validation ?)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+
+        node3.step()  #
+        node4.step()  #
+        node5.step()  #
+
+        #  provide validation for next normal block and FOR GOSSIPS is NOT in mempool after next block
+        Time.advance_to_next_timeslot()  # current block number 3
+        node0.step()  #
+        node1.step()  #
+        node2.step()  #
+        node3.step()  # must create and sign and broadcast block (all gossips MUST be mined and erased from mempool)
+        node4.step()  #
+        node5.step()  #
+
+        # after node2 step
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+
+    # -------------------------------------------------------------------
+    # Internal
+    # -------------------------------------------------------------------
+    def list_validator(self, node_list, functions, value):
+        """
+            Method provide check of registered for network nodes (or custom nodes list to check)
+            and perform assertTrue for all nodes in nodes_list for specific parameter by value
+            :param node_list: list of nodes for validation
+            :param functions: see list of params in method or add necessary
+            :param value: value of condition
+            :return: nothing (provide assertation)
+        """
+        for node in node_list:
+            if 'mempool.gossips.length' in functions:
+                self.assertTrue(len(node.mempool.gossips) == value, True)
+            if 'dag.blocks_by_number.length' in functions:
+                self.assertTrue(len(node.dag.blocks_by_number) == value, True)
 
 
