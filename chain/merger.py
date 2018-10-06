@@ -123,7 +123,8 @@ class Merger:
         return deterministic_ordering
         
     def merge(self, tops):
-        chains = [FlatChain.from_top_hash(self.dag, top) for top in tops]
+        common_ancestor = self.get_multiple_common_ancestor(tops)
+        chains = [FlatChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
         deterministic_order = Merger.sort_deterministically(sizes)
         sorted_chains = [chains[index] for index in deterministic_order]
