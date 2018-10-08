@@ -386,6 +386,13 @@ class Node:
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         if verifier.check_if_valid(transaction):
             self.mempool.append_gossip_tx(transaction)  # append negative gossip exclude duplicates
+            current_gossips = self.mempool.get_negative_gossips_by_block(transaction.number_of_block)
+            # check if current node send negative gossip
+            for gossip in current_gossips:
+                # negative gossip already send by node, skip positive gossip searching and broadcasting
+                if gossip.pubkey == Private.publickey(self.block_signer.private_key):
+                    return
+
             if self.dag.has_block_number(transaction.number_of_block):
                 signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
                 self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())

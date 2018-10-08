@@ -116,11 +116,17 @@ class Mempool:
         result = []
         for gossip in self.gossips:
             if isinstance(tx_type, NegativeGossipTransaction):
-                result.append(gossip)
+                if isinstance(gossip, NegativeGossipTransaction):
+                    result.append(gossip)
+                    continue
             elif isinstance(tx_type, PositiveGossipTransaction):
-                result.append(gossip)
+                if isinstance(gossip, PositiveGossipTransaction):
+                    result.append(gossip)
+                    continue
             elif isinstance(tx_type, PenaltyGossipTransaction):
-                result.append(gossip)
+                if isinstance(gossip, PenaltyGossipTransaction):
+                    result.append(gossip)
+                    continue
         return result
 
     def get_negative_gossips_by_block(self, block_number):
