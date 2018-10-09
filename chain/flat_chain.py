@@ -10,6 +10,8 @@ class FlatChain(list):
         for i in other:
             self.append(i)
 
+    # this method flattens chain and merges it recursively if its needed
+    # it should be possible to merge already merged chains
     @staticmethod
     def flatten_with_merge(dag, merger, from_hash, to_hash):
         flat_chain = []
@@ -25,6 +27,7 @@ class FlatChain(list):
                     merge_chain = merger.merge(block.block.prev_hashes)
                     flat_chain += list(reversed(merge_chain))
                     chain_iter = ChainIter(dag, merge_chain[0].get_hash())
+                    chain_iter.next() # immediately transfer to next block because this one is already in chain
 
             block = chain_iter.next()
             if block: block_hash = block.get_hash()

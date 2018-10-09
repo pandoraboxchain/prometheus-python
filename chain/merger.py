@@ -134,6 +134,16 @@ class Merger:
         active_merged_point = FlatChain(active[:mp])
         merged_chain = FlatChain(active[:mp])
 
+        # for chain in chains:
+        #     chain_str = ""
+        #     for block in chain:
+        #         if block:
+        #             chain_str += block.get_hash().hex()[0:6]
+        #         else:
+        #             chain_str += "None"
+        #         chain_str += " "
+        #     print(chain_str)
+
         for chain in sorted_chains[1:]:
             diffchain = active_merged_point.get_diff(chain)
             for block in diffchain:
