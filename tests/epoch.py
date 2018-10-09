@@ -20,15 +20,6 @@ from tests.test_chain_generator import TestChainGenerator
 
 class TestEpoch(unittest.TestCase):
 
-    def test_genesis_is_first_epoch_hash(self):
-        dag = Dag(0)
-        epoch = Epoch(dag)
-
-        first_era_hash = epoch.get_epoch_hash(1)
-        genesis_hash = dag.genesis_block().get_hash()
-
-        self.assertEqual(first_era_hash, genesis_hash)
-
     def test_secret_sharing_rounds(self):
         dag = Dag(0)
         epoch = Epoch(dag)
@@ -145,7 +136,7 @@ class TestEpoch(unittest.TestCase):
 
         reveals = []
 
-        epoch_hash = epoch.get_epoch_hash(1)
+        epoch_hash = dag.genesis_block().get_hash()
 
         for i in Epoch.get_round_range(1, Round.COMMIT):
             rand = randoms_list.pop()

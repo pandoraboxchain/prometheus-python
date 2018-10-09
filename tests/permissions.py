@@ -261,7 +261,7 @@ class TestStakeActions(unittest.TestCase):
         prev_hash = block.get_hash()
 
         # verify that new stake holder now is in validators list
-        resulting_validators = permissions.get_validators(epoch.get_epoch_hash(1))
+        resulting_validators = permissions.get_validators(prev_hash)
         # -------------------------------------------------
 
         # get stakeholder validators (for now new node not added to validators list)
@@ -312,7 +312,7 @@ class TestStakeActions(unittest.TestCase):
         dag.add_signed_block(10, signed_block)
 
         # verify that new node (which will be penaltize on next epoch) still not in validators list of current epoch
-        resulting_validators = permissions.get_validators(epoch.get_epoch_hash(1))
+        resulting_validators = permissions.get_validators(signed_block.get_hash())
         pub_keys = []
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
@@ -329,7 +329,7 @@ class TestStakeActions(unittest.TestCase):
         # show DAG
         # DagVisualizer.visualize(dag)
         current_epoch = epoch.current_epoch
-        current_epoch_hash = epoch.get_epoch_hash(current_epoch)
+        current_epoch_hash = prev_hash #maybe
         # for now its HOLD stake and than release by penalty gossip
         resulting_validators = permissions.get_validators(current_epoch_hash)  # recalculating validators on new epch
         pub_keys = []
