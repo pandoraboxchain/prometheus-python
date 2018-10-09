@@ -60,5 +60,8 @@ class InBlockTransactionsAcceptor(Acceptor):
                     signature_valid_for_at_least_one_valid_publickey = True
                     break
 
+            else:
+                assert False, "System randomizer transaction must have a public_index property!"
+
         if not signature_valid_for_at_least_one_valid_publickey:
             raise AcceptionException("Transaction was not signed by a valid public key for this round!")
