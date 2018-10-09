@@ -47,6 +47,7 @@ class TestTransaction(unittest.TestCase):
 
         original = SplitRandomTransaction()
         original.pieces = [os.urandom(128), os.urandom(127), os.urandom(128)]
+        original.pubkey_index = 0
         original.signature = Private.sign(original.get_signing_hash(b"epoch_hash"), dummy_private)
 
         raw = original.pack()
