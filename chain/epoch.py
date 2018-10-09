@@ -103,13 +103,8 @@ class Epoch:
 
     def get_private_keys_for_epoch(self, block_hash):
         round_iter = RoundIter(self.dag, block_hash, Round.PRIVATE)
-        
+
         private_keys = []
-        block_number = round_iter.current_block_number()
-        # epoch_number = self.get_epoch_number(block_number)
-        # _, round_end = Epoch.get_round_bounds(epoch_number, Round.PRIVATE)
-        # for i in range(block_number, round_end):
-        #     private_keys.append(None)
 
         for block in round_iter:
             if block and block.block.system_txs:
@@ -119,11 +114,11 @@ class Epoch:
                         break  # only one private key transaction can exist and it should be signed by block signer
             else:
                 private_keys.append(None)
-                
+
         private_keys = list(reversed(private_keys))
 
         return private_keys
-    
+
     def get_public_keys_for_epoch(self, block_hash):
         public_keys = {}
         round_iter = RoundIter(self.dag, block_hash, Round.PUBLIC)
@@ -132,10 +127,8 @@ class Epoch:
             if block:
                 for tx in block.block.system_txs:
                     if isinstance(tx, PublicKeyTransaction):
-                        # if tx.pubkey in public_keys: #TODO move this thing into BlockVerifier
-                        #     assert False, "One sender published more than one public key. Aborting"
-                        public_keys[tx.pubkey] = tx.generated_pubkey
-                        
+                        public_keys[tx.pubkey_index] = tx.generated_pubkey
+
         return public_keys
 
     def get_random_splits_for_epoch(self, block_hash):
@@ -146,7 +139,7 @@ class Epoch:
                 for tx in block.block.system_txs:
                     if isinstance(tx, SplitRandomTransaction):
                         random_pieces_list.append(tx.pieces)
-        
+
         random_pieces_list = list(reversed(random_pieces_list))
         # unique_randoms = Epoch.make_unique_list(random_pieces_list)
         return random_pieces_list
@@ -159,7 +152,7 @@ class Epoch:
                 for tx in block.block.system_txs:
                     if isinstance(tx, CommitRandomTransaction):
                         commits[tx.get_hash()] = tx
-        
+
         return commits
 
     def get_reveals_for_epoch(self, block_hash):

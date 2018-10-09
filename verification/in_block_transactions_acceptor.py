@@ -16,24 +16,8 @@ class InBlockTransactionsAcceptor(Acceptor):
         self.permissions = permissions
 
     def validate(self, transaction):
-        self.validate_if_public_key_transaction(transaction)
         self.is_signature_valid_for_at_least_one_epoch(transaction)
         self.is_sender_valid_for_current_round(transaction)
-
-    def validate_if_public_key_transaction(self, transaction):
-        if isinstance(transaction, PublicKeyTransaction):
-            epoch_hashes = self.epoch.get_epoch_hashes()
-
-            for top, epoch_hash in epoch_hashes.items():
-
-                pubkey_publishers = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
-                allowed_pubkey = False
-                for pubkey_publisher in pubkey_publishers:
-                    if pubkey_publisher.public_key == Keys.from_bytes(transaction.pubkey):
-                        allowed_pubkey = True
-
-                if not allowed_pubkey:
-                    raise AcceptionException("No valid public key found for this transaction!")
 
     def is_signature_valid_for_at_least_one_epoch(self, transaction):
         if hasattr(transaction, "pubkey"):
@@ -65,10 +49,22 @@ class InBlockTransactionsAcceptor(Acceptor):
                 break
 
             validators = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, current_round)
-            for validator in validators:
+
+            # if has index, use index to
+            if hasattr(transaction, 'pubkey_index'):
+                if len(validators) <= transaction.pubkey_index:
+                    raise AcceptionException("Public key index out of bounds!")
+
+                validator = validators[transaction.pubkey_index]
                 if Acceptor.check_transaction_signature(transaction, validator.public_key, epoch_hash):
                     signature_valid_for_at_least_one_valid_publickey = True
                     break
+
+            else: #TODO: should not be used anymore!
+                for validator in validators:
+                    if Acceptor.check_transaction_signature(transaction, validator.public_key, epoch_hash):
+                        signature_valid_for_at_least_one_valid_publickey = True
+                        break
 
         if not signature_valid_for_at_least_one_valid_publickey:
             raise AcceptionException("Transaction was not signed by a valid public key for this round!")

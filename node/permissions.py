@@ -113,10 +113,9 @@ class Permissions:
     def get_ordered_randomizers_pubkeys_for_round(self, epoch_hash, round_type):
         selected_epoch_validators = self.get_validators(epoch_hash)
 
-        epoch_random_indexes = []
-        if round_type==Round.PUBLIC or round_type==Round.PRIVATE:
+        if round_type == Round.PUBLIC or round_type == Round.PRIVATE:
             epoch_random_indexes = self.get_signers_indexes(epoch_hash)
-            round_type=Round.PRIVATE
+            round_type = Round.PRIVATE
 
             validators = []	
             for i in Epoch.get_round_range(1, round_type):	
@@ -125,9 +124,9 @@ class Permissions:
 
             return validators
 
-        elif round_type==Round.SECRETSHARE:
+        elif round_type == Round.SECRETSHARE:
             return self.get_secret_sharers(epoch_hash)
-        elif round_type==Round.COMMIT or round_type==Round.REVEAL:
+        elif round_type == Round.COMMIT or round_type == Round.REVEAL:
             return self.get_commiters(epoch_hash)   
 
         assert False, "No randomizers exist for this round type!"
@@ -173,6 +172,33 @@ class Permissions:
 
     def sort_by_stake(self, validators):
         return sorted(validators, key=attrgetter("stake"), reverse=True)
+
+    def get_committer_index_from_public_key(self, public_key, epoch_hash):
+        committers = self.get_commiters(epoch_hash)
+        for i, committer in enumerate(committers):
+            if committer.public_key == public_key:
+                return i
+
+        assert False, "No committer found for this public key!"
+
+    def get_signer_index_from_public_key(self, public_key, epoch_hash):
+        signers = self.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
+        for i, signer in enumerate(signers):
+            if signer.public_key == public_key:
+                return i
+
+        assert False, "No signer was found for this public key!"
+
+    def get_secret_sharer_from_public_key(self, public_key, epoch_hash):
+        secret_sharers = self.get_secret_sharers(epoch_hash)
+        for i, secret_sharer in enumerate(secret_sharers):
+            if secret_sharer.public_key == public_key:
+                return i
+
+        assert False, "No secret sharer was found for this public key!"
+
+
+
 
     # ¯\_( )_/¯
     def log(self, *args):

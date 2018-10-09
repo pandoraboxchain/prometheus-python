@@ -5,22 +5,22 @@ from hashlib import sha256
 class PublicKeyTransaction:
     def __init__(self):
         self.generated_pubkey = None
-        self.pubkey = None
+        self.pubkey_index = None
         self.signature = None
         self.len = None
 
     def get_hash(self):
-        return sha256(self.generated_pubkey + self.pubkey).digest()
+        return sha256(self.generated_pubkey + self.pubkey_index.to_bytes(4, byteorder='big')).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.generated_pubkey = deserializer.parse_pubkey()
-        self.pubkey = deserializer.parse_pubkey()
+        self.pubkey_index = deserializer.parse_u32()
         self.signature = deserializer.parse_signature()
         self.len = deserializer.get_len()
     
     def pack(self):
-        return self.generated_pubkey + self.pubkey + Serializer.write_signature(self.signature)
+        return self.generated_pubkey + Serializer.write_u32(self.pubkey_index) + Serializer.write_signature(self.signature)
     
     def get_len(self):
         return self.len
@@ -52,12 +52,14 @@ class SplitRandomTransaction:
 
     def __init__(self):
         self.signature = None
+        self.pubkey_index = None
         self.pieces = []
         self.len = None
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.signature = deserializer.parse_signature()
+        self.pubkey_index = deserializer.parse_u32()
         self.pieces = []
         pieces_len = deserializer.parse_u16()
         for _ in range(0, pieces_len):
@@ -68,6 +70,7 @@ class SplitRandomTransaction:
             
     def pack(self):
         raw = Serializer.write_signature(self.signature)
+        raw += Serializer.write_u32(self.pubkey_index)
         raw += self.pack_pieces()
         return raw
     

@@ -324,15 +324,14 @@ class TestEpoch(unittest.TestCase):
     @staticmethod
     def create_dummy_commit_reveal(random_bytes, epoch_hash):
         node_private = Private.generate()
-        node_public = Private.publickey(node_private)
-        
+
         private = Private.generate()
 
         encoded = Private.encrypt(random_bytes, private)
 
         commit = CommitRandomTransaction()
         commit.rand = encoded
-        commit.pubkey = Keys.to_bytes(node_public)
+        commit.pubkey_index = 10
         commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()
