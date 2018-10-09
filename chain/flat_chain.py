@@ -24,7 +24,7 @@ class FlatChain(list):
                 if len(block.block.prev_hashes) > 1:
                     merge_chain = merger.merge(block.block.prev_hashes)
                     flat_chain += list(reversed(merge_chain))
-                    chain_iter = ChainIter(dag, merge_chain[0])
+                    chain_iter = ChainIter(dag, merge_chain[0].get_hash())
 
             block = chain_iter.next()
             if block: block_hash = block.get_hash()
