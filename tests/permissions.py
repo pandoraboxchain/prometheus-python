@@ -46,9 +46,6 @@ class TestStakeActions(unittest.TestCase):
         # and one, because epoch starts from 1
         validator_index_to_penalize = initial_validators_order[last_block_number - 2]
 
-        # TODO why we send block.get_hash() while we need current epoch hash ?
-        # for wrong epoch hash all current validators list will be recalculated
-        # block.het_hash() != epoch.get_hash()
         resulting_validators = permissions.get_validators(block.get_hash())
 
         self.assertNotEqual(len(initial_validators), len(resulting_validators))
@@ -137,10 +134,6 @@ class TestStakeActions(unittest.TestCase):
         # add signed block to DAG
         dag.add_signed_block(9, signed_block)
 
-        # verify that new stake holder now is in validators list
-        # TODO why we send block.get_hash() while we need current epoch hash ?
-        # for wrong epoch hash all current validators list will be recalculated
-        # block.het_hash() != epoch.get_hash()
         resulting_validators = permissions.get_validators(block.get_hash())
         pub_keys = []
         for validator in resulting_validators:
@@ -209,10 +202,6 @@ class TestStakeActions(unittest.TestCase):
         # add signed block to DAG
         dag.add_signed_block(19, signed_block)
 
-        # verify that validator release stake
-        # TODO why we send block.get_hash() while we need current epoch hash ?
-        # for wrong epoch hash all current validators list will be recalculated
-        # block.het_hash() != epoch.get_hash()
         resulting_validators = permissions.get_validators(block.get_hash())
         pub_keys = []
         for validator in resulting_validators:
@@ -237,39 +226,11 @@ class TestStakeActions(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        # ------------------------------------------------
-        # provide stake hold tx for become stakeholder
-        block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * 9)
+        # get one of validators
+        genesis_validator_private = Private.generate()
+        genesis_validator_public = initial_validators[9].public_key
 
-        # create new node for stake hold
-        new_node_private = Private.generate()
-        new_node_public = Private.publickey(new_node_private)
-
-        # create transaction for stake hold for new node
-        tx_hold = StakeHoldTransaction()
-        tx_hold.amount = 2000
-        tx_hold.pubkey = Keys.to_bytes(new_node_public)
-        tx_hold.signature = Private.sign(tx_hold.get_hash(), new_node_private)
-
-        # append signed stake hold transaction
-        block.system_txs.append(tx_hold)
-
-        # sign block by one of validators
-        signed_block = BlockFactory.sign_block(block, node_private)
-        # add signed block to DAG
-        dag.add_signed_block(9, signed_block)
-        prev_hash = block.get_hash()
-
-        # verify that new stake holder now is in validators list
-        resulting_validators = permissions.get_validators(prev_hash)
-        # -------------------------------------------------
-
-        # get stakeholder validators (for now new node not added to validators list)
-        pub_keys = []
-        for validator in resulting_validators:
-            pub_keys.append(validator.public_key)
-        self.assertNotIn(new_node_public, pub_keys)
-
+        # put to 10 block gossip+ AND gossip- by one node
         block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * 10)
         # create penalty gossip transaction for stakeholder
         # --------------------------------------------------
@@ -279,63 +240,66 @@ class TestStakeActions(unittest.TestCase):
         # --------------------------------------------------
         # malicious validator (must be excluded from validators list on next epoch)
         gossip_negative_tx = NegativeGossipTransaction()
-        gossip_negative_tx.pubkey = new_node_public
+        gossip_negative_tx.pubkey = genesis_validator_public #new_node_public
         gossip_negative_tx.timestamp = Time.get_current_time()
         gossip_negative_tx.number_of_block = 5
-        gossip_negative_tx.signature = Private.sign(gossip_negative_tx.get_hash(), new_node_private)
+        gossip_negative_tx.signature = Private.sign(gossip_negative_tx.get_hash(), genesis_validator_private)
         # create and add to block negative gossip
         block.system_txs.append(gossip_negative_tx)
 
         gossip_positive_tx = PositiveGossipTransaction()
-        gossip_positive_tx.pubkey = new_node_public
+        gossip_positive_tx.pubkey = genesis_validator_public #new_node_public
         gossip_positive_tx.timestamp = Time.get_current_time()
         gossip_positive_tx.block_hash = dag.blocks_by_number[5][0].get_hash()
-        gossip_positive_tx.signature = Private.sign(gossip_positive_tx.get_hash(), new_node_private)
+        gossip_positive_tx.signature = Private.sign(gossip_positive_tx.get_hash(), genesis_validator_private)
         # create and add to block positive gossip for same number 5 block
         block.system_txs.append(gossip_positive_tx)
+
+        signed_block = BlockFactory.sign_block(block, genesis_validator_private)
+        dag.add_signed_block(10, signed_block)
+        prev_hash = block.get_hash()
         # --------------------------------------------------
 
+        # put to 11 block penalty gossip
+        block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * 11)
         penalty_gossip_tx = PenaltyGossipTransaction()
         penalty_gossip_tx.timestamp = Time.get_current_time()
         penalty_gossip_tx.conflicts = [gossip_positive_tx.get_hash(), gossip_negative_tx.get_hash()]
         # set genesis validator for sign penalty gossip
-        penalty_gossip_tx.signature = Private.sign(penalty_gossip_tx.get_hash(), new_node_private)
+        penalty_gossip_tx.signature = Private.sign(penalty_gossip_tx.get_hash(), genesis_validator_private)
+        block.system_txs.append(penalty_gossip_tx)
+
+        signed_block = BlockFactory.sign_block(block, genesis_validator_private)
+        dag.add_signed_block(11, signed_block)
+        prev_hash = block.get_hash()
         # --------------------------------------------------
 
-        # append signed stake release transaction
-        block.system_txs.append(penalty_gossip_tx)
-        prev_hash = block.get_hash()
-
-        # sign block by one of validators
-        signed_block = BlockFactory.sign_block(block, new_node_private)
-        # add signed block to DAG
-        dag.add_signed_block(10, signed_block)
-
-        # verify that new node (which will be penaltize on next epoch) still not in validators list of current epoch
-        resulting_validators = permissions.get_validators(signed_block.get_hash())
+        # verify that genesis node is steel in validators list
+        current_epoch_hash = epoch.get_epoch_hashes()
+        # for now we DO NOT NEED to recalculate validators (send genesis block hash)
+        resulting_validators = permissions.get_validators(current_epoch_hash.get(prev_hash))
         pub_keys = []
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
-        self.assertNotIn(new_node_public, pub_keys)
+        self.assertIn(genesis_validator_public, pub_keys)
 
         # produce epoch till end
-        for i in range(11, 21):
+        for i in range(12, 21):
             block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
             signed_block = BlockFactory.sign_block(block, node_private)
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
-            epoch.is_new_epoch_upcoming(i)  # epoch wount change if not call this method
 
-        # show DAG
-        # DagVisualizer.visualize(dag)
-        current_epoch = epoch.current_epoch
-        current_epoch_hash = prev_hash #maybe
-        # for now its HOLD stake and than release by penalty gossip
-        resulting_validators = permissions.get_validators(current_epoch_hash)  # recalculating validators on new epch
+        # check for new epoch
+        self.assertTrue(epoch.is_new_epoch_upcoming(i))
+        self.assertTrue(epoch.current_epoch == 2)
+
+        # recalculate validators for last block hash
+        resulting_validators = permissions.get_validators(prev_hash)
         pub_keys = []
         for validator in resulting_validators:
             pub_keys.append(validator.public_key)
 
-        self.assertNotIn(new_node_public, pub_keys)
+        self.assertNotIn(genesis_validator_public, pub_keys)
 
 
