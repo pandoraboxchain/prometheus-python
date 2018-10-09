@@ -60,11 +60,5 @@ class InBlockTransactionsAcceptor(Acceptor):
                     signature_valid_for_at_least_one_valid_publickey = True
                     break
 
-            else: #TODO: should not be used anymore!
-                for validator in validators:
-                    if Acceptor.check_transaction_signature(transaction, validator.public_key, epoch_hash):
-                        signature_valid_for_at_least_one_valid_publickey = True
-                        break
-
         if not signature_valid_for_at_least_one_valid_publickey:
             raise AcceptionException("Transaction was not signed by a valid public key for this round!")
