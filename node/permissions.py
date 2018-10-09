@@ -1,12 +1,11 @@
-import random
-
 from chain.epoch import Epoch
 from chain.params import Round
+from transaction.gossip_transaction import PenaltyGossipTransaction
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from node.validators import Validator, Validators
 from node.stake_manager import StakeManager
 from crypto.keys import Keys
-from crypto.entropy import Source, Entropy
+from crypto.entropy import Source
 from chain.params import SECRET_SHARE_PARTICIPANTS_COUNT
 
 
@@ -87,9 +86,8 @@ class Permissions:
         return self.randomizers_indexes[epoch_hash]
 
     def get_validators(self, epoch_hash):
-        if not epoch_hash in self.epoch_validators:
+        if epoch_hash not in self.epoch_validators:
             self.calculate_validators_for_epoch(epoch_hash)
-
         return self.epoch_validators[epoch_hash]
 
     def calculate_validators_for_epoch(self, epoch_hash):
@@ -149,6 +147,17 @@ class Permissions:
         assert epoch_hash, "Can't find epoch hash for block"
         return self.get_sign_permission(epoch_hash, epoch_block_number)
 
+    # TODO (incorrect)
+    def get_tx_by_hash(self, tx_hash):
+        for i in self.epoch.dag.blocks_by_number:
+            signed_block = self.epoch.dag.blocks_by_number[i]
+            block = signed_block[0].block
+            if len(block.system_txs) > 0:
+                for tx in block.system_txs:
+                    if tx_hash == tx.get_hash():
+                        return tx  # return tx by hash searching
+        assert tx, "Cant find tx by hash"
+
     # this method modifies list, but also returns it for API consistency
     def apply_stake_actions(self, validators, actions):
         for action in actions:
@@ -156,22 +165,35 @@ class Permissions:
                 for conflict in action.conflicts:
                     culprit = self.get_block_validator(conflict)
                     self.release_stake(validators, Keys.to_bytes(culprit.public_key))
+            elif isinstance(action, PenaltyGossipTransaction):
+                # in one conflict we have [positive_gossip_tx_hash, negative_gossip_tx_hash]
+                # TODO incorrect (move to ----> BlockAcceptor)
+                positive_gossip = self.get_tx_by_hash(action.conflicts[0])  # positive gossip tx
+                negative_gossip = self.get_tx_by_hash(action.conflicts[1])  # negative gossip tx
+                if (positive_gossip.pubkey == negative_gossip.pubkey) and \
+                        (negative_gossip.number_of_block == self.epoch.dag.get_block_number(positive_gossip.block_hash)):
+                    culprit = negative_gossip.pubkey
+                    self.release_stake(validators, Keys.to_bytes(culprit))
+
             elif isinstance(action, StakeHoldTransaction):
                 self.hold_stake(validators, action.pubkey, action.amount)
             elif isinstance(action, StakeReleaseTransaction):
                 self.release_stake(validators, action.pubkey)
         return validators
-                
-    def hold_stake(self, validators, pubkey, stake):
+
+    @staticmethod
+    def hold_stake(validators, pubkey, stake):
         validators.append(Validator(Keys.from_bytes(pubkey), stake))
 
-    def release_stake(self, validators, pubkey):
+    @staticmethod
+    def release_stake(validators, pubkey):
         for i in range(len(validators)):
             if validators[i].public_key == Keys.from_bytes(pubkey):
                 del validators[i]
                 break
 
-    def sort_by_stake(self, validators):
+    @staticmethod
+    def sort_by_stake(validators):
         return sorted(validators, key=attrgetter("stake"), reverse=True)
 
     # ¯\_( )_/¯

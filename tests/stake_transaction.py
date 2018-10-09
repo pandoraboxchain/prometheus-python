@@ -4,6 +4,7 @@ import os
 from crypto.private import Private
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 
+
 class TestTransaction(unittest.TestCase):
 
     def test_pack_parse_stakehold_transaction(self):

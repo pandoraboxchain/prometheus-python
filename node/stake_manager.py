@@ -1,3 +1,4 @@
+from transaction.gossip_transaction import PenaltyGossipTransaction
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from chain.dag import Dag, ChainIter
 from chain.epoch import Epoch
@@ -22,7 +23,8 @@ class StakeManager:
                 for tx in block.block.system_txs:
                     if isinstance(tx, StakeHoldTransaction) \
                     or isinstance(tx, StakeReleaseTransaction) \
-                    or isinstance(tx, PenaltyTransaction):
+                    or isinstance(tx, PenaltyTransaction) \
+                    or isinstance(tx, PenaltyGossipTransaction):
                         stake_actions.append(tx)
 
             count += 1
