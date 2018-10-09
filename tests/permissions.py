@@ -232,15 +232,9 @@ class TestStakeActions(unittest.TestCase):
 
         # put to 10 block gossip+ AND gossip- by one node
         block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * 10)
-        # create penalty gossip transaction for stakeholder
-        # --------------------------------------------------
-        # private = Private.generate()
 
-        # modeling different combination of conflict
-        # --------------------------------------------------
-        # malicious validator (must be excluded from validators list on next epoch)
         gossip_negative_tx = NegativeGossipTransaction()
-        gossip_negative_tx.pubkey = genesis_validator_public #new_node_public
+        gossip_negative_tx.pubkey = genesis_validator_public
         gossip_negative_tx.timestamp = Time.get_current_time()
         gossip_negative_tx.number_of_block = 5
         gossip_negative_tx.signature = Private.sign(gossip_negative_tx.get_hash(), genesis_validator_private)
@@ -248,7 +242,7 @@ class TestStakeActions(unittest.TestCase):
         block.system_txs.append(gossip_negative_tx)
 
         gossip_positive_tx = PositiveGossipTransaction()
-        gossip_positive_tx.pubkey = genesis_validator_public #new_node_public
+        gossip_positive_tx.pubkey = genesis_validator_public
         gossip_positive_tx.timestamp = Time.get_current_time()
         gossip_positive_tx.block_hash = dag.blocks_by_number[5][0].get_hash()
         gossip_positive_tx.signature = Private.sign(gossip_positive_tx.get_hash(), genesis_validator_private)
