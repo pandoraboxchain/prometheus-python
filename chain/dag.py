@@ -1,6 +1,6 @@
+import random
 from chain.block import Block
 from chain.signed_block import SignedBlock
-
 
 class Dag:
     
@@ -86,8 +86,11 @@ class Dag:
             result = result or self.is_ancestor(prev_hash, hash_to_find)
         return result
 
-    # TODO randomly choose one chain if there are two with the same length
+    #returns longest chain and chooses randomly if there are equal length longest chains
     def get_longest_chain_top_block(self, top_blocks):
+        randgen = random.SystemRandom() #crypto secure random
+        randgen.shuffle(top_blocks) #randomly shuffle tops so same length chains won't be chosen deterministically
+
         max_length = 0
         max_length_index = 0
         for i in range(0, len(top_blocks)):

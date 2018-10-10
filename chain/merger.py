@@ -105,22 +105,13 @@ class Merger:
         return chain_diff
 
     # done in deterministic manner, should yield exact same result on every node
+    # returns indexes 
     @staticmethod
     def sort_deterministically(sizes):
         dict_sizes = dict(enumerate(sizes))
-        deterministic_ordering = []
-        while dict_sizes:
-            m = max(dict_sizes.values())
-            indexes = [key for key,value in dict_sizes.items() if value==m]
-            if len(indexes) == 1:
-                dict_sizes.pop(indexes[0])
-                deterministic_ordering.append(indexes[0])
-            else:
-                for item in indexes:
-                    dict_sizes.pop(item)
-                random.shuffle(indexes)
-                deterministic_ordering += indexes
-        return deterministic_ordering
+        sorted_dict = sorted(dict_sizes.items(), key=lambda kv: kv[1], reverse=True)
+        sorted_keys = [key for key,value in sorted_dict]
+        return sorted_keys
         
     def merge(self, tops):
         common_ancestor = self.get_multiple_common_ancestor(tops)
