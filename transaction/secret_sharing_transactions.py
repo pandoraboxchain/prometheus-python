@@ -10,7 +10,7 @@ class PublicKeyTransaction:
         self.len = None
 
     def get_hash(self):
-        return sha256(self.generated_pubkey + self.pubkey_index.to_bytes(4, byteorder='big')).digest()
+        return sha256(self.generated_pubkey + Serializer.write_u32(self.pubkey_index)).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)

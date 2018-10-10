@@ -26,7 +26,7 @@ class CommitRandomTransaction:
 
     # this hash includes epoch_hash for checking if random wasn't reused
     def get_signing_hash(self, epoch_hash):
-        return sha256(self.rand + self.pubkey_index.to_bytes(4, byteorder='big') + epoch_hash).digest()
+        return sha256(self.rand + Serializer.write_u32(self.pubkey_index) + epoch_hash).digest()
     
     # this hash is for linking this transaction from reveal
     def get_hash(self):
