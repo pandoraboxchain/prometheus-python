@@ -139,15 +139,8 @@ class Permissions:
             validators.append(selected_epoch_validators[index])
 
         return validators
-    
-    def get_block_validator(self, block_hash):
-        block_number = self.epoch.dag.get_block_number(block_hash)
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
-        epoch_hash = self.epoch.find_epoch_hash_for_block(block_hash)
-        assert epoch_hash, "Can't find epoch hash for block"
-        return self.get_sign_permission(epoch_hash, epoch_block_number)
 
-    # TODO (incorrect)
+    # TODO (incorrect -- > move to dag)
     def get_tx_by_hash(self, tx_hash):
         for i in self.epoch.dag.blocks_by_number:
             signed_block = self.epoch.dag.blocks_by_number[i]
@@ -166,21 +159,34 @@ class Permissions:
                     culprit = self.get_block_validator(conflict)
                     self.release_stake(validators, Keys.to_bytes(culprit.public_key))
             elif isinstance(action, PenaltyGossipTransaction):
-                # in one conflict we have [positive_gossip_tx_hash, negative_gossip_tx_hash]
-                # TODO incorrect (move to ----> BlockAcceptor)
-                positive_gossip = self.get_tx_by_hash(action.conflicts[0])  # positive gossip tx
-                negative_gossip = self.get_tx_by_hash(action.conflicts[1])  # negative gossip tx
-                if (positive_gossip.pubkey == negative_gossip.pubkey) and \
-                        (negative_gossip.number_of_block == self.epoch.dag.get_block_number(positive_gossip.block_hash)):
-                    culprit = negative_gossip.pubkey
-                    self.release_stake(validators, Keys.to_bytes(culprit))
-
+                culprit = self.get_conflict_gossip_sender(action)
+                self.release_stake(validators, Keys.to_bytes(culprit))
             elif isinstance(action, StakeHoldTransaction):
                 self.hold_stake(validators, action.pubkey, action.amount)
             elif isinstance(action, StakeReleaseTransaction):
                 self.release_stake(validators, action.pubkey)
         return validators
 
+    # --------------------------------------
+    # Culprit finders
+    # --------------------------------------
+    def get_block_validator(self, block_hash):
+        block_number = self.epoch.dag.get_block_number(block_hash)
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
+        epoch_hash = self.epoch.find_epoch_hash_for_block(block_hash)
+        assert epoch_hash, "Can't find epoch hash for block"
+        return self.get_sign_permission(epoch_hash, epoch_block_number)
+
+    def get_conflict_gossip_sender(self, action):
+        positive_gossip = self.get_tx_by_hash(action.conflicts[0])  # positive gossip tx
+        negative_gossip = self.get_tx_by_hash(action.conflicts[1])  # negative gossip tx
+        if (positive_gossip.pubkey == negative_gossip.pubkey) and \
+                (negative_gossip.number_of_block == self.epoch.dag.get_block_number(positive_gossip.block_hash)):
+            return negative_gossip.pubkey
+
+    # --------------------------------------
+    # Stake methods
+    # --------------------------------------
     @staticmethod
     def hold_stake(validators, pubkey, stake):
         validators.append(Validator(Keys.from_bytes(pubkey), stake))

@@ -13,12 +13,10 @@ from crypto.keys import Keys
 from node.permissions import Permissions
 from node.validators import Validators
 from tests.test_chain_generator import TestChainGenerator
-from visualization.dag_visualizer import DagVisualizer
 
 
 class TestStakeActions(unittest.TestCase):
 
-    @unittest.skip('penalty gossip tx implementation')
     def test_penalty(self):
         dag = Dag(0)
         epoch = Epoch(dag)
@@ -57,7 +55,6 @@ class TestStakeActions(unittest.TestCase):
 
         self.assertEqual(init_pubkeys, result_pubkeys)
 
-    @unittest.skip('penalty gossip tx implementation')
     def test_hold_stake(self):
         dag = Dag(0)
         epoch = Epoch(dag)
@@ -95,7 +92,6 @@ class TestStakeActions(unittest.TestCase):
 
         self.assertIn(Private.publickey(node_new_private), pub_keys)
 
-    @unittest.skip('penalty gossip tx implementation')
     def test_release_stake(self):
         # base initialization
         dag = Dag(0)
@@ -167,7 +163,6 @@ class TestStakeActions(unittest.TestCase):
             pub_keys.append(validator.public_key)
         self.assertNotIn(new_node_public, pub_keys)
 
-    @unittest.skip('penalty gossip tx implementation')
     def test_stake_release_by_genesis_validator(self):
         # base initialization
         dag = Dag(0)

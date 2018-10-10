@@ -6,8 +6,8 @@ class Dag:
     
     def __init__(self, genesis_creation_time):
         self.genesis_creation_time = genesis_creation_time
-        self.blocks_by_hash = {} #just hash map hash:block
-        self.blocks_by_number = {} #key is timeslot number, value is a list of blocks in this timeslot
+        self.blocks_by_hash = {}  # just hash map hash:block
+        self.blocks_by_number = {}  # key is timeslot number, value is a list of blocks in this timeslot
         self.new_block_listeners = []
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
@@ -127,6 +127,7 @@ class Dag:
 
         return top_hashes
 
+
 # iterator over DAG, which uses first children only principle when traversing
 # first argument is starting point
 # returns None if block is skipped in the chain and block if it's present
@@ -142,7 +143,7 @@ class ChainIter:
     def __iter__(self):
         return self
 
-    #in real implementation this method should return pair like (block number, block or None)
+    # in real implementation this method should return pair like (block number, block or None)
     def __next__(self):
         if self.time_to_stop:
             raise StopIteration()
