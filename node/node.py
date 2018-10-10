@@ -192,10 +192,14 @@ class Node:
         for publisher in pubkey_publishers:
             if node_pubkey == publisher.public_key:
                 node_private = self.block_signer.private_key
+                node_public = Private.publickey(node_private)
+                pubkey_index = self.permissions.get_signer_index_from_public_key(node_public, epoch_hash)
+
                 generated_private = Private.generate()
                 tx = PublicKeyTransaction()
                 tx.generated_pubkey = Private.publickey(generated_private)
-                tx.pubkey = Private.publickey(node_private)
+
+                tx.pubkey_index = pubkey_index
                 tx.signature = Private.sign(tx.get_hash(), node_private)
                 if self.behaviour.malicious_wrong_signature:
                     tx.signature += 1
@@ -265,8 +269,9 @@ class Node:
         sorted_published_pubkeys = []
         for sender in ordered_senders:
             raw_pubkey = Keys.to_bytes(sender.public_key)
-            if raw_pubkey in published_pubkeys: 
-                generated_pubkey = published_pubkeys[raw_pubkey]
+            raw_pubkey_index = self.permissions.get_signer_index_from_public_key(raw_pubkey, epoch_hash)
+            if raw_pubkey_index in published_pubkeys:
+                generated_pubkey = published_pubkeys[raw_pubkey_index]
                 sorted_published_pubkeys.append(Keys.from_bytes(generated_pubkey))
                 self.logger.info(Keys.to_visual_string(generated_pubkey))
             else:
@@ -281,9 +286,14 @@ class Node:
         splits = split_secret(random_bytes, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS)
         encoded_splits = encode_splits(splits, sorted_public_keys)
         self.logger.info("Formed split random")
-        
+
+        node_private = self.block_signer.private_key
+        node_public = Private.publickey(node_private)
+        pubkey_index = self.permissions.get_secret_sharer_from_public_key(node_public, epoch_hash)
+
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
+        tx.pubkey_index = pubkey_index
         tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), self.block_signer.private_key)
         return tx
 
@@ -460,15 +470,16 @@ class Node:
     # -------------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------------
-    @staticmethod
-    def create_commit_reveal_pair(node_private, random_bytes, epoch_hash):
+    def create_commit_reveal_pair(self, node_private, random_bytes, epoch_hash):
         private = Private.generate()
-        public = Private.publickey(node_private)
+        public = Keys.to_bytes(Private.publickey(node_private))
         encoded = Private.encrypt(random_bytes, private)
+
+        pubkey_index = self.permissions.get_committer_index_from_public_key(public, epoch_hash)
 
         commit = CommitRandomTransaction()
         commit.rand = encoded
-        commit.pubkey = Keys.to_bytes(public)
+        commit.pubkey_index = pubkey_index
         commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()

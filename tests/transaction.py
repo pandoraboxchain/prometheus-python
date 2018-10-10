@@ -12,11 +12,11 @@ from crypto.keys import Keys
 class TestTransaction(unittest.TestCase):
 
     def test_pack_parse_commit_transaction(self):
-        for _ in range(10):
+        for i in range(10):
             dummy_private = Private.generate()
             original = CommitRandomTransaction()
             original.rand = Private.encrypt(os.urandom(32), dummy_private)
-            original.pubkey = Private.publickey(dummy_private)
+            original.pubkey_index = i
             original.signature = Private.sign(original.get_signing_hash(b"epoch_hash"), dummy_private)
 
             raw = original.pack()
@@ -47,6 +47,7 @@ class TestTransaction(unittest.TestCase):
 
         original = SplitRandomTransaction()
         original.pieces = [os.urandom(128), os.urandom(127), os.urandom(128)]
+        original.pubkey_index = 0
         original.signature = Private.sign(original.get_signing_hash(b"epoch_hash"), dummy_private)
 
         raw = original.pack()

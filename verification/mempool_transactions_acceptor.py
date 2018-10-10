@@ -62,3 +62,6 @@ class MempoolTransactionsAcceptor(Acceptor):
         if len(transaction.pieces) < MINIMAL_SECRET_SHARERS:
             raise AcceptionException("SplitRandomTransaction has not enough pieces!")
 
+    # From
+    # if tx.pubkey in public_keys: #TODO move this thing into BlockVerifier
+    #     assert False, "One sender published more than one public key. Aborting"
