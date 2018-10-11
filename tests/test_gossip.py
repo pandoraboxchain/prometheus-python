@@ -31,6 +31,7 @@ from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGo
 
 class TestGossip(unittest.TestCase):
 
+    @unittest.skip('test penalty gossip logic')
     def test_parse_pack_gossip_positive(self):
         private = Private.generate()
         original = PositiveGossipTransaction()
@@ -47,6 +48,7 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
+    @unittest.skip('test penalty gossip logic')
     def test_parse_pack_gossip_negative(self):
         private = Private.generate()
         original = NegativeGossipTransaction()
@@ -61,6 +63,7 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
+    @unittest.skip('test penalty gossip logic')
     def test_pack_parse_penalty_gossip_transaction(self):
         private = Private.generate()
         original = PenaltyGossipTransaction()
@@ -90,6 +93,7 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
+    @unittest.skip('test penalty gossip logic')
     def test_send_negative_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -153,6 +157,7 @@ class TestGossip(unittest.TestCase):
         system_txs = node0.dag.blocks_by_number[2][0].block.system_txs
         self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
 
+    @unittest.skip('test penalty gossip logic')
     def test_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -253,6 +258,7 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
         # assert that next block is correctly created by next node
 
+    @unittest.skip('test penalty gossip logic')
     def test_send_negative_gossip_by_validator(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -340,6 +346,7 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node1.dag.blocks_by_number) == 5, True)
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
 
+    @unittest.skip('test penalty gossip logic')
     # perform testing ZETA by malicious_skip_block in network of min nodes < ZETA
     def test_negative_gossip_by_zeta(self):
         Time.use_test_time()
@@ -474,6 +481,75 @@ class TestGossip(unittest.TestCase):
         # after node2 step
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+
+    def test_penalty_gossip_process(self):
+        # проверить мемпул, блок, стейк
+        # пенальтизация самого себя ? %%% скорее всего просто нельзя
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
+        network = NodeApi()
+
+        node0 = Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        network.register_node(node0)
+
+        behavior = Behaviour()  # this node malicious skip block
+        behavior.malicious_skip_block = True  # TODO create behaviours for gossip sending
+        node1 = Node(genesis_creation_time=1,
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators,
+                     behaviour=behavior)
+        network.register_node(node1)
+
+        node2 = Node(genesis_creation_time=1,
+                     node_id=2,
+                     network=network,
+                     block_signer=private_keys[2],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node2)
+
+        node3 = Node(genesis_creation_time=1,
+                     node_id=3,
+                     network=network,
+                     block_signer=private_keys[3],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node3)
+
+        node4 = Node(genesis_creation_time=1,
+                     node_id=4,
+                     network=network,
+                     block_signer=private_keys[4],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node4)
+
+        node5 = Node(genesis_creation_time=1,
+                     node_id=5,
+                     network=network,
+                     block_signer=private_keys[5],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node5)
+
+
 
     # -------------------------------------------------------------------
     # Internal

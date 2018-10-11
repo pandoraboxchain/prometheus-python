@@ -1,5 +1,7 @@
 from chain.block import Block
 from chain.signed_block import SignedBlock
+from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction, \
+    PenaltyGossipTransaction
 
 
 class Dag:
@@ -150,6 +152,29 @@ class Dag:
         result = self.transactions_by_hash.pop(tx_hash)
         assert result, ("Cant pop tx by hash", tx_hash)  # TODO remove ?
         return result
+
+    def get_txs_by_type(self, tx_type):
+        result = []
+        for tx_hash, tx in self.transactions_by_hash:
+            if isinstance(tx_type, NegativeGossipTransaction):
+                if isinstance(tx, NegativeGossipTransaction):
+                    result.append(tx)
+            if isinstance(tx_type, PositiveGossipTransaction):
+                if isinstance(tx, PositiveGossipTransaction):
+                    result.append(tx)
+            if isinstance(tx_type, PenaltyGossipTransaction):
+                if isinstance(tx, PenaltyGossipTransaction):
+                    result.append(tx)
+        return result
+
+    def get_negative_gossips(self):
+        return self.get_txs_by_type(NegativeGossipTransaction())
+
+    def get_positive_gossips(self):
+        return self.get_txs_by_type(PositiveGossipTransaction())
+
+    def get_penalty_gossips(self):
+        return self.get_txs_by_type(PenaltyGossipTransaction())
 
 
 # iterator over DAG, which uses first children only principle when traversing

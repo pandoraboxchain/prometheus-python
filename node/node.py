@@ -7,17 +7,25 @@ from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, Duration, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.merger import Merger
+from chain.transaction_factory import TransactionFactory
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
 from tools.time import Time
-from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
+from transaction.gossip_transaction import NegativeGossipTransaction, \
+                                           PositiveGossipTransaction, \
+                                           PenaltyGossipTransaction
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
-from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
-from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
-from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
+from transaction.secret_sharing_transactions import PublicKeyTransaction, \
+                                                    PrivateKeyTransaction, \
+                                                    SplitRandomTransaction
+from transaction.stake_transaction import StakeHoldTransaction, \
+                                          StakeReleaseTransaction,  \
+                                          PenaltyTransaction
+from transaction.commit_transactions import CommitRandomTransaction, \
+                                            RevealRandomTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
 from verification.block_acceptor import BlockAcceptor
@@ -145,7 +153,8 @@ class Node:
         # skip non valid transactions
         verifier = InBlockTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         transactions = [t for t in transactions if verifier.check_if_valid(t)]
-        # TODO add searching for penalty gossip
+        # get gossip conflicts hashes (validate_gossip() ---> [gossip_negative_hash, gossip_positive_hash])
+        conflicts_gossip = self.validate_gossip(self.dag, self.mempool)
 
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()
@@ -158,6 +167,13 @@ class Node:
         if conflicts:
             penalty = self.form_penalize_violators_transaction(conflicts)
             transactions.append(penalty)
+
+        if conflicts_gossip:
+            for conflict in conflicts_gossip:
+                penalty_gossip_tx = \
+                    TransactionFactory.create_penalty_gossip_transaction(conflict=conflict,
+                                                                         node_private=self.block_signer.private_key)
+                transactions.append(penalty_gossip_tx)
 
         current_top_blocks = [top]
         if conflicts:
@@ -513,4 +529,28 @@ class Node:
 
         assert len(allowed_signers) > 0, "No signers allowed to sign block"
         return allowed_signers
+
+    def validate_gossip(self, dag, mempool, block_number):
+        gossip_negative_hash = ''
+        gossip_positive_hash = ''
+
+        # search in dag
+        test = self.dag.get_negative_gossips()
+
+        dag_negative_gossips = self.dag.get_negative_gossips().sort(key=attrgetter('age')) # complete sorting by publisher to all
+        dag_positive_gossips = self.dag.get_positive_gossips()
+        dag_penalty_gossips = self.dag.get_penalty_gossips()
+
+        # search in mempool
+        mem_negative_gossips = mempool.get_negative_gossips_by_block(block_number=block_number)
+        mem_positive_gossips = mempool.get_positive_gossips_by_block(block_number=block_number)
+        mem_penalty_gossips = mempool.get_penalty_gossips_by_block(block_number=block_number)
+
+        # group by author all negatives and positives
+
+
+        # find penalty for group (if have no penalty add item to results)
+
+        return {[gossip_negative_hash, gossip_positive_hash]}
+
 

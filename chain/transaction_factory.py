@@ -43,10 +43,10 @@ class TransactionFactory:
         return tx
 
     @staticmethod
-    def create_penalty_gossip_transaction(negative_hash, positive_hash, node_private):
+    def create_penalty_gossip_transaction(conflict, node_private):
         tx = PenaltyGossipTransaction()
         tx.timestamp = Time.get_current_time()
-        tx.conflicts = [negative_hash, positive_hash]
+        tx.conflicts = conflict
         tx.signature = Private.sign(tx.get_hash(), node_private)
         return tx
 
