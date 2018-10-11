@@ -61,20 +61,16 @@ class TestMergingIterator(unittest.TestCase):
 
         DagVisualizer.visualize(dag, True)        
 
-        # block = BlockFactory.create_block_with_timestamp([merging_block.get_hash()], BLOCK_TIME * 6)
-        # signed_block = BlockFactory.sign_block(block, Private.generate())
-        # dag.add_signed_block(6, signed_block)
-
         iterator = MergingIter(dag, merging_block.get_hash())
-
-        for block in iterator:
-            print(dag.get_block_number(block.get_hash()))
-            
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[7][0].get_hash())
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[6][0].get_hash())
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[5][0].get_hash())
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[4][0].get_hash())
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[3][0].get_hash())
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[2][0].get_hash())
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[1][0].get_hash())
-        # self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[0][0].get_hash())
+        
+        #shortest chain goes last
+        # 3 and 4 are swapped because 4 has a priority
+        #TODO But is it okay? Maybe we should sometimes give priority to earlier blocks if equal?1
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[7][0].get_hash())
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[6][0].get_hash())
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[1][0].get_hash())
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[5][0].get_hash())
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[3][0].get_hash())
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[4][0].get_hash())
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[2][0].get_hash())
+        self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[0][0].get_hash())
