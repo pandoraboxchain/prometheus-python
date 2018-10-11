@@ -1,5 +1,6 @@
 import unittest
 from chain.block_factory import BlockFactory
+from chain.transaction_factory import TransactionFactory
 from chain.dag import Dag
 from crypto.private import Private
 from chain.epoch import BLOCK_TIME
@@ -143,3 +144,77 @@ class TestDag(unittest.TestCase):
         self.assertIn(dag.blocks_by_number[4][0].get_hash(), tops)
         self.assertIn(dag.blocks_by_number[3][0].get_hash(), tops)
         self.assertIn(dag.blocks_by_number[3][1].get_hash(), tops)
+
+    def test_storing_tx_by_hash(self):
+        dag = Dag(0)
+        private0 = Private.generate()
+        private1 = Private.generate()
+        private2 = Private.generate()
+
+        # add block 1
+        block1 = BlockFactory.create_block_with_timestamp([dag.genesis_block().get_hash()], BLOCK_TIME)
+        signed_block1 = BlockFactory.sign_block(block1, private0)
+        dag.add_signed_block(1, signed_block1)
+
+        # check transactions in dag.transactions_by_hash for empty
+        self.assertTrue(len(dag.transactions_by_hash) == 0)
+
+        # add block 2
+        block2 = BlockFactory.create_block_with_timestamp([block1.get_hash()], BLOCK_TIME)
+        # add penalty gossip case by tx in block
+        tx1 = TransactionFactory.create_negative_gossip_transaction(1, private1)
+        tx2 = TransactionFactory.create_positive_gossip_transaction(block2.get_hash(), private1)
+        block2.system_txs.append(tx1)
+        block2.system_txs.append(tx2)
+        # --------------------------------------
+        signed_block2 = BlockFactory.sign_block(block2, private1)
+        dag.add_signed_block(2, signed_block2)
+
+        # check transactions in dag.transactions_by_hash
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx1.get_hash(): tx1}))
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx2.get_hash(): tx2}))
+
+        block3 = BlockFactory.create_block_with_timestamp([block2.get_hash()], BLOCK_TIME)
+        signed_block3 = BlockFactory.sign_block(block3, private2)
+        dag.add_signed_block(3, signed_block3)
+
+        # check transactions in dag.transactions_by_hash
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx1.get_hash(): tx1}))
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx2.get_hash(): tx2}))
+
+    def test_getting_tx_by_hash(self):
+        dag = Dag(0)
+        private = Private.generate()
+
+        block1 = BlockFactory.create_block_with_timestamp([dag.genesis_block().get_hash()], BLOCK_TIME)
+        tx1 = TransactionFactory.create_negative_gossip_transaction(1, private)
+        tx2 = TransactionFactory.create_positive_gossip_transaction(block1.get_hash(), private)
+        tx3 = TransactionFactory.create_penalty_gossip_transaction(tx1.get_hash(), tx2.get_hash(), private)
+        not_appended_tx = TransactionFactory.create_public_key_transaction(Private.generate(), private)
+        block1.system_txs.append(tx1)
+        block1.system_txs.append(tx2)
+        block1.system_txs.append(tx3)
+
+        signed_block1 = BlockFactory.sign_block(block1, private)
+        dag.add_signed_block(1, signed_block1)
+
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx1.get_hash(): tx1}))
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx2.get_hash(): tx2}))
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx3.get_hash(): tx3}))
+        self.assertFalse(set(dag.transactions_by_hash).issuperset({not_appended_tx.get_hash(): not_appended_tx}))
+
+        # test dag.tx_by_hash getter
+        self.assertTrue(dag.get_tx_by_hash(tx1.get_hash()) == tx1)
+        self.assertTrue(dag.get_tx_by_hash(tx2.get_hash()) == tx2)
+        self.assertTrue(dag.get_tx_by_hash(tx3.get_hash()) == tx3)
+
+        # if ask wrong tx_hash
+        # dag.get_tx_by_hash(not_appended_tx.get_hash())
+        # AssertionError('Cant find tx by hash', not_appended_tx.get_hash()))
+
+        # test pop dag.tx_by_hash
+        result = dag.pop_tx_by_hash(tx1.get_hash())
+        self.assertTrue(result == tx1)
+        self.assertFalse(set(dag.transactions_by_hash).issuperset({tx1.get_hash(): tx1}))
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx2.get_hash(): tx2}))
+        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx3.get_hash(): tx3}))

@@ -8,6 +8,7 @@ class Dag:
         self.genesis_creation_time = genesis_creation_time
         self.blocks_by_hash = {}  # just hash map hash:block
         self.blocks_by_number = {}  # key is timeslot number, value is a list of blocks in this timeslot
+        self.transactions_by_hash = {}  # key is tx_hash, value is tx
         self.new_block_listeners = []
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
@@ -19,6 +20,9 @@ class Dag:
         block.prev_hashes = []
         return block
 
+    # ------------------------------
+    # block methods
+    # ------------------------------
     def add_signed_block(self, index, block):
         block_hash = block.block.get_hash()
         if block_hash in self.blocks_by_hash:
@@ -28,6 +32,8 @@ class Dag:
             self.blocks_by_number[index].append(block)
         else:
             self.blocks_by_number[index] = [block]
+
+        self.add_txs_by_hash(block.block.system_txs)
 
         for listener in self.new_block_listeners:
             listener.on_new_block_added(block)
@@ -126,6 +132,24 @@ class Dag:
         top_hashes = list(all_blocks_in_range.keys())
 
         return top_hashes
+
+    # ------------------------------
+    # transaction methods
+    # ------------------------------
+    def add_txs_by_hash(self, system_txs):
+        for tx in system_txs:
+            self.transactions_by_hash[tx.get_hash()] = tx
+        return self.transactions_by_hash
+
+    def get_tx_by_hash(self, tx_hash):
+        result = self.transactions_by_hash.get(tx_hash)
+        assert result, ("Cant find tx by hash", tx_hash)  # TODO remove ?
+        return result
+
+    def pop_tx_by_hash(self, tx_hash):
+        result = self.transactions_by_hash.pop(tx_hash)
+        assert result, ("Cant pop tx by hash", tx_hash)  # TODO remove ?
+        return result
 
 
 # iterator over DAG, which uses first children only principle when traversing

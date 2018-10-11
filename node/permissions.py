@@ -140,17 +140,6 @@ class Permissions:
 
         return validators
 
-    # TODO (incorrect -- > move to dag)
-    def get_tx_by_hash(self, tx_hash):
-        for i in self.epoch.dag.blocks_by_number:
-            signed_block = self.epoch.dag.blocks_by_number[i]
-            block = signed_block[0].block
-            if len(block.system_txs) > 0:
-                for tx in block.system_txs:
-                    if tx_hash == tx.get_hash():
-                        return tx  # return tx by hash searching
-        assert tx, "Cant find tx by hash"
-
     # this method modifies list, but also returns it for API consistency
     def apply_stake_actions(self, validators, actions):
         for action in actions:
@@ -178,8 +167,8 @@ class Permissions:
         return self.get_sign_permission(epoch_hash, epoch_block_number)
 
     def get_conflict_gossip_sender(self, action):
-        positive_gossip = self.get_tx_by_hash(action.conflicts[0])  # positive gossip tx
-        negative_gossip = self.get_tx_by_hash(action.conflicts[1])  # negative gossip tx
+        positive_gossip = self.epoch.dag.get_tx_by_hash(action.conflicts[0])
+        negative_gossip = self.epoch.dag.get_tx_by_hash(action.conflicts[1])
         if (positive_gossip.pubkey == negative_gossip.pubkey) and \
                 (negative_gossip.number_of_block == self.epoch.dag.get_block_number(positive_gossip.block_hash)):
             return negative_gossip.pubkey
