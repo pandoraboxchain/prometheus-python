@@ -143,3 +143,6 @@ class TestDag(unittest.TestCase):
         self.assertIn(dag.blocks_by_number[4][0].get_hash(), tops)
         self.assertIn(dag.blocks_by_number[3][0].get_hash(), tops)
         self.assertIn(dag.blocks_by_number[3][1].get_hash(), tops)
+
+    def test_top_blocks_in_range_out_of_range(self):
+        pass #TODO

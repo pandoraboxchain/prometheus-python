@@ -59,7 +59,7 @@ class TestMergingIterator(unittest.TestCase):
         merging_signed_block = BlockFactory.sign_block(merging_block, Private.generate())
         dag.add_signed_block(7, merging_signed_block)
 
-        DagVisualizer.visualize(dag, True)        
+        # DagVisualizer.visualize(dag, True)        
 
         iterator = MergingIter(dag, merging_block.get_hash())
         

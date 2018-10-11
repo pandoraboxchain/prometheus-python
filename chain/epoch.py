@@ -289,7 +289,10 @@ class Epoch:
         previous_top_epoch_hash = None
         for prev_hash in block.block.prev_hashes:
             if prev_hash in self.tops_and_epochs:
-                previous_top_epoch_hash = self.tops_and_epochs[prev_hash]
+                # when merging you vote for top hash by putting it first
+                # TODO think if we should choose longest chain?
+                if not previous_top_epoch_hash:
+                    previous_top_epoch_hash = self.tops_and_epochs[prev_hash]
                 del self.tops_and_epochs[prev_hash]
         
         if previous_top_epoch_hash or not self.tops_and_epochs:
