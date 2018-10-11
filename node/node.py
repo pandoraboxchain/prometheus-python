@@ -111,6 +111,13 @@ class Node:
             self.broadcast_stakerelease_transaction()
             self.behaviour.wants_to_release_stake = False
 
+        if self.behaviour.malicious_send_negative_gossip_count >= 0:
+            self.broadcast_gossip_negative(self.last_expected_timeslot)
+            self.behaviour.malicious_send_negative_gossip_count -= 1
+        if self.behaviour.malicious_send_positive_gossip_count >= 0:
+            self.broadcast_gossip_positive(self.dag.blocks_by_number[0])  # send genesis block malicious
+            self.behaviour.malicious_send_positive_gossip_count -= 1
+
         if current_block_number != self.last_expected_timeslot:
             should_wait = self.handle_timeslot_changed(previous_timeslot_number=self.last_expected_timeslot,
                                                        current_timeslot_number=current_block_number)

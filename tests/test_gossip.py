@@ -7,7 +7,6 @@ from node.block_signers import BlockSigners
 from node.node import Node
 from node.node_api import NodeApi
 from node.validators import Validators
-from crypto.keys import Keys
 from crypto.private import Private
 from tools.time import Time
 from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGossipTransaction, \
@@ -482,7 +481,7 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
 
-    def test_penalty_gossip_process(self):
+    def test_maliciously_send_negative_gossip(self):
         # проверить мемпул, блок, стейк
         # пенальтизация самого себя ? %%% скорее всего просто нельзя
         Time.use_test_time()
@@ -507,8 +506,7 @@ class TestGossip(unittest.TestCase):
 
         network.register_node(node0)
 
-        behavior = Behaviour()  # this node malicious skip block
-        behavior.malicious_skip_block = True  # TODO create behaviours for gossip sending
+        behavior = Behaviour()  # this node maliciously send negative gossip
         node1 = Node(genesis_creation_time=1,
                      node_id=1,
                      network=network,
@@ -549,7 +547,137 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
+        # TODO implement
 
+    @unittest.skip('not implemented')
+    def test_maliciously_send_positive_gossip(self):
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
+        network = NodeApi()
+
+        node0 = Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        network.register_node(node0)
+
+        behavior = Behaviour()  # this node maliciously send positive gossip
+        node1 = Node(genesis_creation_time=1,
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators,
+                     behaviour=behavior)
+        network.register_node(node1)
+
+        node2 = Node(genesis_creation_time=1,
+                     node_id=2,
+                     network=network,
+                     block_signer=private_keys[2],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node2)
+
+        node3 = Node(genesis_creation_time=1,
+                     node_id=3,
+                     network=network,
+                     block_signer=private_keys[3],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node3)
+
+        node4 = Node(genesis_creation_time=1,
+                     node_id=4,
+                     network=network,
+                     block_signer=private_keys[4],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node4)
+
+        node5 = Node(genesis_creation_time=1,
+                     node_id=5,
+                     network=network,
+                     block_signer=private_keys[5],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node5)
+
+    @unittest.skip('not implemented')
+    def test_maliciously_send_negative_and_positive_gossip(self):
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
+        network = NodeApi()
+
+        node0 = Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        network.register_node(node0)
+
+        behavior = Behaviour()  # this node maliciously send positive and negative gossip
+        node1 = Node(genesis_creation_time=1,
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators,
+                     behaviour=behavior)
+        network.register_node(node1)
+
+        node2 = Node(genesis_creation_time=1,
+                     node_id=2,
+                     network=network,
+                     block_signer=private_keys[2],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node2)
+
+        node3 = Node(genesis_creation_time=1,
+                     node_id=3,
+                     network=network,
+                     block_signer=private_keys[3],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node3)
+
+        node4 = Node(genesis_creation_time=1,
+                     node_id=4,
+                     network=network,
+                     block_signer=private_keys[4],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node4)
+
+        node5 = Node(genesis_creation_time=1,
+                     node_id=5,
+                     network=network,
+                     block_signer=private_keys[5],
+                     validators=validators,
+                     behaviour=Behaviour())
+        network.register_node(node5)
 
     # -------------------------------------------------------------------
     # Internal

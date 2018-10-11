@@ -10,7 +10,6 @@ class Behaviour:
 
         self.malicious_send_negative_gossip_count = -1
         self.malicious_send_positive_gossip_count = -1
-        self.malicious_send_penalty_gossip_count = -1
 
         # behavior flag for create block but not broadcast it
         # added as temporary fast solution
