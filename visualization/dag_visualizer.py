@@ -46,4 +46,5 @@ class DagVisualizer:
                 dot.edge(block_hash.hex()[0:6], prev_hash.hex()[0:6], constraint='true')
         #set view to True to instantly render and open pdf
         #Note, that you will need 'graphviz' package installed
+        dot.format = "png"
         dot.render('visualization/dag.dot', view=view_immediately) 
