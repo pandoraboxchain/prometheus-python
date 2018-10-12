@@ -148,11 +148,6 @@ class Dag:
         assert result, ("Cant find tx by hash", tx_hash)  # TODO remove ?
         return result
 
-    def pop_tx_by_hash(self, tx_hash):
-        result = self.transactions_by_hash.pop(tx_hash)
-        assert result, ("Cant pop tx by hash", tx_hash)  # TODO remove ?
-        return result
-
     def get_txs_by_type(self, tx_type):
         result = []
         for tx_hash, tx in self.transactions_by_hash:

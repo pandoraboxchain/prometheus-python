@@ -189,7 +189,7 @@ class TestDag(unittest.TestCase):
         block1 = BlockFactory.create_block_with_timestamp([dag.genesis_block().get_hash()], BLOCK_TIME)
         tx1 = TransactionFactory.create_negative_gossip_transaction(1, private)
         tx2 = TransactionFactory.create_positive_gossip_transaction(block1.get_hash(), private)
-        tx3 = TransactionFactory.create_penalty_gossip_transaction(tx1.get_hash(), tx2.get_hash(), private)
+        tx3 = TransactionFactory.create_penalty_gossip_transaction({tx1.get_hash(): tx2.get_hash()}, private)
         not_appended_tx = TransactionFactory.create_public_key_transaction(Private.generate(), private)
         block1.system_txs.append(tx1)
         block1.system_txs.append(tx2)
@@ -212,9 +212,3 @@ class TestDag(unittest.TestCase):
         # dag.get_tx_by_hash(not_appended_tx.get_hash())
         # AssertionError('Cant find tx by hash', not_appended_tx.get_hash()))
 
-        # test pop dag.tx_by_hash
-        result = dag.pop_tx_by_hash(tx1.get_hash())
-        self.assertTrue(result == tx1)
-        self.assertFalse(set(dag.transactions_by_hash).issuperset({tx1.get_hash(): tx1}))
-        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx2.get_hash(): tx2}))
-        self.assertTrue(set(dag.transactions_by_hash).issuperset({tx3.get_hash(): tx3}))

@@ -32,7 +32,6 @@ from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGo
 
 class TestGossip(unittest.TestCase):
 
-    @unittest.skip('test penalty gossip logic')
     def test_parse_pack_gossip_positive(self):
         private = Private.generate()
         original = PositiveGossipTransaction()
@@ -49,7 +48,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('test penalty gossip logic')
     def test_parse_pack_gossip_negative(self):
         private = Private.generate()
         original = NegativeGossipTransaction()
@@ -64,7 +62,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('test penalty gossip logic')
     def test_pack_parse_penalty_gossip_transaction(self):
         private = Private.generate()
         original = PenaltyGossipTransaction()
@@ -94,7 +91,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('test penalty gossip logic')
     def test_send_negative_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -158,7 +154,6 @@ class TestGossip(unittest.TestCase):
         system_txs = node0.dag.blocks_by_number[2][0].block.system_txs
         self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
 
-    @unittest.skip('test penalty gossip logic')
     def test_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -259,7 +254,6 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
         # assert that next block is correctly created by next node
 
-    @unittest.skip('test penalty gossip logic')
     def test_send_negative_gossip_by_validator(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -347,7 +341,6 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node1.dag.blocks_by_number) == 5, True)
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
 
-    @unittest.skip('test penalty gossip logic')
     # perform testing ZETA by malicious_skip_block in network of min nodes < ZETA
     def test_negative_gossip_by_zeta(self):
         Time.use_test_time()
@@ -483,7 +476,6 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
 
-    @unittest.skip('test penalty gossip logic')
     def test_maliciously_send_negative_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -610,7 +602,6 @@ class TestGossip(unittest.TestCase):
         # validate new block by node2
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
 
-    @unittest.skip('test penalty gossip logic')
     def test_maliciously_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -824,7 +815,8 @@ class TestGossip(unittest.TestCase):
         # validate tx by hash is empty
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+        # validate 2 public key tx
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 1)
 
         # on one step sends +and- (add test for different steps ?)
         node1.step()  # ! maliciously sand positive and negative gossip (request by genesis 0 block)
@@ -833,7 +825,7 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         # all nodes has 1-gossip and 6+gossips (1-gossip and 6+gossip from (0,1,2,3,4,5))
         self.list_validator(network.nodes, ['mempool.gossips.length'], 7)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 1)
 
         node2.step()
         node3.step()
@@ -842,7 +834,7 @@ class TestGossip(unittest.TestCase):
         # after all steps situation same
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 7)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 1)
 
         Time.advance_to_next_timeslot()  # current block number 2
         node0.step()  # do nothing
@@ -882,28 +874,27 @@ class TestGossip(unittest.TestCase):
         # verify that node1 is steel in validators list until epoch end
         self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
 
-        for i in range(5, 20):
+        for i in range(5, 22):
             Time.advance_to_next_timeslot()
+            if i == 21:
+                node0.step()
             node0.step()
             node1.step()
             node2.step()
             node3.step()
             node4.step()
-            if i == 14:
-                # TODO debug node5 step (i=14 node 5 broadcast block, handling block verify)
-                # exception rice in block_acceptor line 59
-                # all nodes do not insert blocks to dag
-                node5.step()
+            node5.step()
+            if i == 21:
+                # ! chek up validators list on new epoch upcoming
+                self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i-1)
+                self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 19)
+                # TODO nodes recalculates 2 times ?
+                self.list_validator(network.nodes, ['permissions.epoch_validators.epoch0.length'], 19)  # maybe 20?
+                self.list_validator(network.nodes, ['permissions.epoch_validators.epoch1.length'], 19)
+                # !
             else:
-                node5.step()
-            # validate new block by node2
-            self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i)
-            # verify that node1 is steel in validators list until epoch end
-            self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
-
-        # TODO test new epoch validators and tx count and block count
-
-        point = ''
+                self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i)
+                self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
 
     # -------------------------------------------------------------------
     # Internal
@@ -928,5 +919,12 @@ class TestGossip(unittest.TestCase):
                 validators_list = node.permissions.epoch_validators
                 validators_list = next(iter(validators_list.values()))
                 self.assertEqual(len(validators_list), value)
-
+            if 'permissions.epoch_validators.epoch0.length' in functions:
+                validators_list = node.permissions.epoch_validators
+                validators_list = next(iter(validators_list.values()))
+                self.assertEqual(len(validators_list), value)
+            if 'permissions.epoch_validators.epoch1.length' in functions:
+                validators_list = node.permissions.epoch_validators
+                validators_list = next(iter(validators_list.values()))
+                self.assertEqual(len(validators_list), value)
 
