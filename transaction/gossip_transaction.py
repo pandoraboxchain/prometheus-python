@@ -42,8 +42,6 @@ class NegativeGossipTransaction:
         self.timestamp = None
         # expected block number
         self.number_of_block = None
-        # anchor block hash
-        self.anchor_block_hash = None
         # tx length
         self.len = None
 
@@ -53,7 +51,6 @@ class NegativeGossipTransaction:
         self.pubkey = deserializer.parse_pubkey()
         self.timestamp = deserializer.parse_timestamp()
         self.number_of_block = deserializer.parse_u32()
-        self.anchor_block_hash = deserializer.parse_hash()
         self.len = deserializer.get_len()
 
     def pack(self):
@@ -63,8 +60,7 @@ class NegativeGossipTransaction:
     def pack_fields(self):
         return self.pubkey + \
                Serializer.write_timestamp(self.timestamp) + \
-               Serializer.write_u32(self.number_of_block) + \
-               self.anchor_block_hash
+               Serializer.write_u32(self.number_of_block)
 
     def get_len(self):
         return self.len

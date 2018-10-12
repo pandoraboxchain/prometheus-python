@@ -6,6 +6,7 @@ from crypto.public import Public
 
 from transaction.secret_sharing_transactions import PrivateKeyTransaction
 
+
 class AcceptionException(Exception):
     def __init__(self, message):
         self.message = message

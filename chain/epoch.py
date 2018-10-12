@@ -69,16 +69,6 @@ class Epoch:
         if epoch_number == 0: return 0
         epoch_start_block = Epoch.get_epoch_start_block_number(epoch_number)
         return epoch_start_block + Epoch.get_duration() - 1
-        
-    def get_epoch_hash(self, epoch_number):
-        if epoch_number == 0:
-            return None
-        if epoch_number == 1:
-            return self.dag.genesis_block().get_hash()
-
-        previous_era_last_block_number = self.get_epoch_start_block_number(epoch_number) - 1
-        era_identifier_block = self.dag.blocks_by_number[previous_era_last_block_number][0]
-        return era_identifier_block.block.get_hash()
     
     def calculate_validators_indexes(self, epoch_hash, validators_count, entropy_source):
         epoch_seed = self.calculate_epoch_seed(epoch_hash)

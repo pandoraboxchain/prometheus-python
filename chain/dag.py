@@ -1,13 +1,16 @@
 import random
 from chain.block import Block
 from chain.signed_block import SignedBlock
+from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction, \
+    PenaltyGossipTransaction
 
 class Dag:
     
     def __init__(self, genesis_creation_time):
         self.genesis_creation_time = genesis_creation_time
-        self.blocks_by_hash = {} #just hash map hash:block
-        self.blocks_by_number = {} #key is timeslot number, value is a list of blocks in this timeslot
+        self.blocks_by_hash = {}  # just hash map hash:block
+        self.blocks_by_number = {}  # key is timeslot number, value is a list of blocks in this timeslot
+        self.transactions_by_hash = {}  # key is tx_hash, value is tx
         self.existing_links = []
         self.tops = {}
         self.new_block_listeners = []
@@ -21,6 +24,9 @@ class Dag:
         block.prev_hashes = []
         return block
 
+    # ------------------------------
+    # block methods
+    # ------------------------------
     def add_signed_block(self, index, block):
         block_hash = block.block.get_hash()
         if block_hash in self.blocks_by_hash:
@@ -41,6 +47,8 @@ class Dag:
         self.existing_links += prev_hashes
         if not block_hash in self.existing_links:
             self.tops[block_hash] = block
+
+        self.add_txs_by_hash(block.block.system_txs)
 
         for listener in self.new_block_listeners:
             listener.on_new_block_added(block)
@@ -134,6 +142,43 @@ class Dag:
 
         return top_hashes
 
+    # ------------------------------
+    # transaction methods
+    # ------------------------------
+    def add_txs_by_hash(self, system_txs):
+        for tx in system_txs:
+            self.transactions_by_hash[tx.get_hash()] = tx
+        return self.transactions_by_hash
+
+    def get_tx_by_hash(self, tx_hash):
+        result = self.transactions_by_hash.get(tx_hash)
+        assert result, ("Cant find tx by hash", tx_hash)  # TODO remove ?
+        return result
+
+    def get_txs_by_type(self, tx_type):
+        result = []
+        for tx_hash, tx in self.transactions_by_hash:
+            if isinstance(tx_type, NegativeGossipTransaction):
+                if isinstance(tx, NegativeGossipTransaction):
+                    result.append(tx)
+            if isinstance(tx_type, PositiveGossipTransaction):
+                if isinstance(tx, PositiveGossipTransaction):
+                    result.append(tx)
+            if isinstance(tx_type, PenaltyGossipTransaction):
+                if isinstance(tx, PenaltyGossipTransaction):
+                    result.append(tx)
+        return result
+
+    def get_negative_gossips(self):
+        return self.get_txs_by_type(NegativeGossipTransaction())
+
+    def get_positive_gossips(self):
+        return self.get_txs_by_type(PositiveGossipTransaction())
+
+    def get_penalty_gossips(self):
+        return self.get_txs_by_type(PenaltyGossipTransaction())
+
+
 # iterator over DAG, which uses first children only principle when traversing
 # first argument is starting point
 # returns None if block is skipped in the chain and block if it's present
@@ -149,7 +194,7 @@ class ChainIter:
     def __iter__(self):
         return self
 
-    #in real implementation this method should return pair like (block number, block or None)
+    # in real implementation this method should return pair like (block number, block or None)
     def __next__(self):
         if self.time_to_stop:
             raise StopIteration()

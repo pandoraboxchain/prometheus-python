@@ -1,12 +1,11 @@
-import random
-
 from chain.epoch import Epoch
 from chain.params import Round
+from transaction.gossip_transaction import PenaltyGossipTransaction
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from node.validators import Validator, Validators
 from node.stake_manager import StakeManager
 from crypto.keys import Keys
-from crypto.entropy import Source, Entropy
+from crypto.entropy import Source
 from chain.params import SECRET_SHARE_PARTICIPANTS_COUNT
 
 
@@ -87,9 +86,8 @@ class Permissions:
         return self.randomizers_indexes[epoch_hash]
 
     def get_validators(self, epoch_hash):
-        if not epoch_hash in self.epoch_validators:
+        if epoch_hash not in self.epoch_validators:
             self.calculate_validators_for_epoch(epoch_hash)
-
         return self.epoch_validators[epoch_hash]
 
     def calculate_validators_for_epoch(self, epoch_hash):
@@ -140,13 +138,6 @@ class Permissions:
             validators.append(selected_epoch_validators[index])
 
         return validators
-    
-    def get_block_validator(self, block_hash):
-        block_number = self.epoch.dag.get_block_number(block_hash)
-        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
-        epoch_hash = self.epoch.find_epoch_hash_for_block(block_hash)
-        assert epoch_hash, "Can't find epoch hash for block"
-        return self.get_sign_permission(epoch_hash, epoch_block_number)
 
     # this method modifies list, but also returns it for API consistency
     def apply_stake_actions(self, validators, actions):
@@ -155,22 +146,48 @@ class Permissions:
                 for conflict in action.conflicts:
                     culprit = self.get_block_validator(conflict)
                     self.release_stake(validators, Keys.to_bytes(culprit.public_key))
+            elif isinstance(action, PenaltyGossipTransaction):
+                culprit = self.get_conflict_gossip_sender(action)
+                self.release_stake(validators, Keys.to_bytes(culprit))
             elif isinstance(action, StakeHoldTransaction):
                 self.hold_stake(validators, action.pubkey, action.amount)
             elif isinstance(action, StakeReleaseTransaction):
                 self.release_stake(validators, action.pubkey)
         return validators
-                
-    def hold_stake(self, validators, pubkey, stake):
+
+    # --------------------------------------
+    # Culprit finders
+    # --------------------------------------
+    def get_block_validator(self, block_hash):
+        block_number = self.epoch.dag.get_block_number(block_hash)
+        epoch_block_number = self.epoch.convert_to_epoch_block_number(block_number)
+        epoch_hash = self.epoch.find_epoch_hash_for_block(block_hash)
+        assert epoch_hash, "Can't find epoch hash for block"
+        return self.get_sign_permission(epoch_hash, epoch_block_number)
+
+    def get_conflict_gossip_sender(self, action):
+        positive_gossip = self.epoch.dag.get_tx_by_hash(action.conflicts[0])
+        negative_gossip = self.epoch.dag.get_tx_by_hash(action.conflicts[1])
+        if (positive_gossip.pubkey == negative_gossip.pubkey) and \
+                (negative_gossip.number_of_block == self.epoch.dag.get_block_number(positive_gossip.block_hash)):
+            return negative_gossip.pubkey
+
+    # --------------------------------------
+    # Stake methods
+    # --------------------------------------
+    @staticmethod
+    def hold_stake(validators, pubkey, stake):
         validators.append(Validator(Keys.from_bytes(pubkey), stake))
 
-    def release_stake(self, validators, pubkey):
+    @staticmethod
+    def release_stake(validators, pubkey):
         for i in range(len(validators)):
             if validators[i].public_key == Keys.from_bytes(pubkey):
                 del validators[i]
                 break
 
-    def sort_by_stake(self, validators):
+    @staticmethod
+    def sort_by_stake(validators):
         return sorted(validators, key=attrgetter("stake"), reverse=True)
 
     def get_committer_index_from_public_key(self, public_key, epoch_hash):

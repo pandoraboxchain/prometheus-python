@@ -1,6 +1,7 @@
 from serialization.serializer import Serializer, Deserializer
 from hashlib import sha256
 
+
 class CommitRandomTransaction:
 
     def __init__(self):

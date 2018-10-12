@@ -5,19 +5,27 @@ from chain.dag import Dag
 from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
-from chain.params import Round, Duration, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS
+from chain.params import Round, Duration, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.merger import Merger
+from chain.transaction_factory import TransactionFactory
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
 from tools.time import Time
-from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction
+from transaction.gossip_transaction import NegativeGossipTransaction, \
+                                           PositiveGossipTransaction, \
+                                           PenaltyGossipTransaction
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
-from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
-from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction,  PenaltyTransaction
-from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
+from transaction.secret_sharing_transactions import PublicKeyTransaction, \
+                                                    PrivateKeyTransaction, \
+                                                    SplitRandomTransaction
+from transaction.stake_transaction import StakeHoldTransaction, \
+                                          StakeReleaseTransaction,  \
+                                          PenaltyTransaction
+from transaction.commit_transactions import CommitRandomTransaction, \
+                                            RevealRandomTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
 from verification.block_acceptor import BlockAcceptor
@@ -63,9 +71,10 @@ class Node:
     def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):
         self.last_expected_timeslot = current_timeslot_number
         if previous_timeslot_number not in self.dag.blocks_by_number:
-            # get all tops and hashes for sending negative gossip
-            for previous_hash in self.dag.get_top_blocks_hashes():
-                self.broadcast_gossip_negative(previous_timeslot_number, previous_hash)
+            negative_by_block = self.mempool.get_negative_gossips_by_block(previous_timeslot_number)
+            if len(negative_by_block) < ZETA:  # validate count of negative gossip by block
+                self.broadcast_gossip_negative(previous_timeslot_number)
+            # even if do not broadcast negative gossip perform wait by one step
             return True
         return False
 
@@ -101,6 +110,15 @@ class Node:
         if self.behaviour.wants_to_release_stake:
             self.broadcast_stakerelease_transaction()
             self.behaviour.wants_to_release_stake = False
+
+        if self.behaviour.malicious_send_negative_gossip_count > 0:
+            self.broadcast_gossip_negative(self.last_expected_timeslot)
+            self.behaviour.malicious_send_negative_gossip_count -= 1
+        if self.behaviour.malicious_send_positive_gossip_count > 0:
+            # send genesis block malicious
+            zero_block = self.dag.blocks_by_number[0][0].block
+            self.broadcast_gossip_positive(zero_block.get_hash())
+            self.behaviour.malicious_send_positive_gossip_count -= 1
 
         if current_block_number != self.last_expected_timeslot:
             should_wait = self.handle_timeslot_changed(previous_timeslot_number=self.last_expected_timeslot,
@@ -143,6 +161,10 @@ class Node:
         # skip non valid transactions
         verifier = InBlockTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         transactions = [t for t in transactions if verifier.check_if_valid(t)]
+        # get gossip conflicts hashes (validate_gossip() ---> [gossip_negative_hash, gossip_positive_hash])
+        conflicts_gossip = self.validate_gossip(self.dag, self.mempool)
+        gossip_mempool_txs = self.mempool.pop_current_gossips()  # POP gossips to block
+        transactions += gossip_mempool_txs
 
         merger = Merger(self.dag)
         top, conflicts = merger.get_top_and_conflicts()
@@ -155,6 +177,13 @@ class Node:
         if conflicts:
             penalty = self.form_penalize_violators_transaction(conflicts)
             transactions.append(penalty)
+
+        if conflicts_gossip:
+            for conflict in conflicts_gossip:
+                penalty_gossip_tx = \
+                    TransactionFactory.create_penalty_gossip_transaction(conflict=conflict,
+                                                                         node_private=self.block_signer.private_key)
+                transactions.append(penalty_gossip_tx)
 
         current_top_blocks = [top]
         if conflicts:
@@ -393,7 +422,14 @@ class Node:
         transaction = TransactionParser.parse(raw_gossip)
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         if verifier.check_if_valid(transaction):
-            self.mempool.add_transaction(transaction)
+            self.mempool.append_gossip_tx(transaction)  # append negative gossip exclude duplicates
+            current_gossips = self.mempool.get_negative_gossips_by_block(transaction.number_of_block)
+            # check if current node send negative gossip ?
+            for gossip in current_gossips:
+                # negative gossip already send by node, skip positive gossip searching and broadcasting
+                if gossip.pubkey == Private.publickey(self.block_signer.private_key):
+                    return
+
             if self.dag.has_block_number(transaction.number_of_block):
                 signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
                 self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
@@ -410,13 +446,15 @@ class Node:
         transaction = TransactionParser.parse(raw_gossip)
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         if verifier.check_if_valid(transaction):
-            self.mempool.add_transaction(transaction)  # is need to add tx to self.mempool() ---> ?
-            if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> !!! make request ONLY if block
-                                                                            # in timeslot (and may be by anchor hash)
+            self.mempool.append_gossip_tx(transaction)
+            if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> ! make request ONLY if block in timeslot
                 self.network.get_block_by_hash(receiver_node_id=node_id,  # request TO ----> receiver_node_id
                                                block_hash=transaction.block_hash)
         else:
             self.logger.error("Received gossip positive tx is invalid")
+
+    def handle_gossip_penalty(self, node_id, raw_gossip):
+        pass
 
     # -------------------------------------------------------------------------------
     # Broadcast
@@ -438,15 +476,16 @@ class Node:
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
-    def broadcast_gossip_negative(self, block_number, previous_block_hash):
+    def broadcast_gossip_negative(self, block_number):
         tx = NegativeGossipTransaction()
         node_private = self.block_signer.private_key
         tx.pubkey = Private.publickey(node_private)
         tx.timestamp = Time.get_current_time()
         tx.number_of_block = block_number
-        tx.anchor_block_hash = previous_block_hash
         tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted negative gossip transaction")
+
+        self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_positive(self, signed_block_hash):
@@ -457,7 +496,12 @@ class Node:
         tx.block_hash = signed_block_hash
         tx.signature = Private.sign(tx.get_hash(), node_private)
         self.logger.info("Broadcasted positive gossip transaction")
+
+        self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
+
+    def broadcast_gossip_penalty(self, negative_gossip_hash, positive_gossip_hash):
+        pass
 
     # -------------------------------------------------------------------------------
     # Targeted request
@@ -508,4 +552,36 @@ class Node:
 
         assert len(allowed_signers) > 0, "No signers allowed to sign block"
         return allowed_signers
+
+    @staticmethod
+    def validate_gossip(dag, mempool):
+        result = []
+
+        # -------------- mempool validation
+        mem_negative_gossips = mempool.get_all_negative_gossips()
+        # for every negative in mempool get authors and positives
+        for negative in mem_negative_gossips:  # we can have many negatives by not existing block
+            negative_author = negative.pubkey
+            # get block by negative number
+            # skip another validations (if current validator have no block)
+            if dag.has_block_number(negative.number_of_block):
+                # get block hash
+                blocks_by_negative = dag.blocks_by_number[negative.number_of_block]
+                for block in blocks_by_negative:  # we can have more than one block by number
+                    positives_for_negative = \
+                        mempool.get_positive_gossips_by_block_hash(block.get_hash())
+                    # if have no positives for negative - do nothing
+                    for positive in positives_for_negative:
+                        if positive.pubkey == negative_author:
+                            # add to conflict result positive and negative gossips hash with same author
+                            result.append([positive.get_hash(), negative.get_hash()])
+
+        # -------------- dag validation
+        # provide penalty for standalone positive gossip (without negative) ?
+        # what else we can validate by tx_by_hash ?
+        # dag_negative_gossips = dag.get_negative_gossips()
+        # dag_positive_gossips = dag.get_positive_gossips()
+        # dag_penalty_gossips = dag.get_penalty_gossips()
+        return result
+
 
