@@ -91,16 +91,15 @@ class TestMerger(unittest.TestCase):
         merger = Merger(dag)
         res = merger.merge(dag.get_top_hashes())
 
-        self.assertEqual(res[0], dag.blocks_by_number[0][0])
-        self.assertEqual(res[1], dag.blocks_by_number[1][0])
-        self.assertEqual(res[2], dag.blocks_by_number[3][0])
-        self.assertEqual(res[3], dag.blocks_by_number[4][0])
-        self.assertEqual(res[4], dag.blocks_by_number[6][0])
-        self.assertEqual(res[5], dag.blocks_by_number[9][0])
-        self.assertEqual(res[6], dag.blocks_by_number[2][0]) #TODO find out why is this 2 here
-        self.assertEqual(res[7], dag.blocks_by_number[7][0])
-        self.assertEqual(res[8], dag.blocks_by_number[8][0])
-        self.assertEqual(res[9], dag.blocks_by_number[5][0])
+        self.assertEqual(res[0], dag.blocks_by_number[1][0])
+        self.assertEqual(res[1], dag.blocks_by_number[3][0])
+        self.assertEqual(res[2], dag.blocks_by_number[4][0])
+        self.assertEqual(res[3], dag.blocks_by_number[6][0])
+        self.assertEqual(res[4], dag.blocks_by_number[9][0])
+        self.assertEqual(res[5], dag.blocks_by_number[2][0]) #TODO find out why is this 2 here
+        self.assertEqual(res[6], dag.blocks_by_number[7][0])
+        self.assertEqual(res[7], dag.blocks_by_number[8][0])
+        self.assertEqual(res[8], dag.blocks_by_number[5][0])
 
     def test_two_tops_on_epoch_end(self):
         # generate two blocks on epoch end

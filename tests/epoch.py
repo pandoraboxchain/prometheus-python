@@ -42,7 +42,7 @@ class TestEpoch(unittest.TestCase):
             signer = signers[signer_index]
             pubkey_tx = PublicKeyTransaction()
             pubkey_tx.generated_pubkey = Private.publickey(private)
-            pubkey_tx.pubkey = Private.publickey(signer)
+            pubkey_tx.pubkey_index = signer_index
             pubkey_tx.signature = Private.sign(pubkey_tx.get_hash(), signer)
 
             block = Block()
@@ -69,6 +69,7 @@ class TestEpoch(unittest.TestCase):
             splits = split_secret(random_bytes, 2, 3)
             encoded_splits = encode_splits(splits, public_keys)
             split_random_tx.pieces = encoded_splits
+            split_random_tx.pubkey_index = 0
             expected_random_pieces.append(split_random_tx.pieces)
             split_random_tx.signature = Private.sign(pubkey_tx.get_hash(), dummy_private)
             block = Block()
@@ -315,15 +316,14 @@ class TestEpoch(unittest.TestCase):
     @staticmethod
     def create_dummy_commit_reveal(random_bytes, epoch_hash):
         node_private = Private.generate()
-        node_public = Private.publickey(node_private)
-        
+
         private = Private.generate()
 
         encoded = Private.encrypt(random_bytes, private)
 
         commit = CommitRandomTransaction()
         commit.rand = encoded
-        commit.pubkey = Keys.to_bytes(node_public)
+        commit.pubkey_index = 10
         commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
 
         reveal = RevealRandomTransaction()

@@ -105,25 +105,17 @@ class Merger:
         return chain_diff
 
     # done in deterministic manner, should yield exact same result on every node
+    # returns indexes 
     @staticmethod
     def sort_deterministically(sizes):
         dict_sizes = dict(enumerate(sizes))
-        deterministic_ordering = []
-        while dict_sizes:
-            m = max(dict_sizes.values())
-            indexes = [key for key,value in dict_sizes.items() if value==m]
-            if len(indexes) == 1:
-                dict_sizes.pop(indexes[0])
-                deterministic_ordering.append(indexes[0])
-            else:
-                for item in indexes:
-                    dict_sizes.pop(item)
-                random.shuffle(indexes)
-                deterministic_ordering += indexes
-        return deterministic_ordering
+        sorted_dict = sorted(dict_sizes.items(), key=lambda kv: kv[1], reverse=True)
+        sorted_keys = [key for key,value in sorted_dict]
+        return sorted_keys
         
     def merge(self, tops):
-        chains = [FlatChain.from_top_hash(self.dag, top) for top in tops]
+        common_ancestor = self.get_multiple_common_ancestor(tops)
+        chains = [FlatChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
         deterministic_order = Merger.sort_deterministically(sizes)
         sorted_chains = [chains[index] for index in deterministic_order]
@@ -132,6 +124,16 @@ class Merger:
         mp = active.get_merging_point()
         active_merged_point = FlatChain(active[:mp])
         merged_chain = FlatChain(active[:mp])
+
+        # for chain in chains:
+        #     chain_str = ""
+        #     for block in chain:
+        #         if block:
+        #             chain_str += block.get_hash().hex()[0:6]
+        #         else:
+        #             chain_str += "None"
+        #         chain_str += " "
+        #     print(chain_str)
 
         for chain in sorted_chains[1:]:
             diffchain = active_merged_point.get_diff(chain)

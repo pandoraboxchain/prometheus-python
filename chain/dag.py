@@ -1,8 +1,8 @@
+import random
 from chain.block import Block
 from chain.signed_block import SignedBlock
 from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction, \
     PenaltyGossipTransaction
-
 
 class Dag:
     
@@ -11,6 +11,8 @@ class Dag:
         self.blocks_by_hash = {}  # just hash map hash:block
         self.blocks_by_number = {}  # key is timeslot number, value is a list of blocks in this timeslot
         self.transactions_by_hash = {}  # key is tx_hash, value is tx
+        self.existing_links = []
+        self.tops = {}
         self.new_block_listeners = []
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
@@ -34,6 +36,17 @@ class Dag:
             self.blocks_by_number[index].append(block)
         else:
             self.blocks_by_number[index] = [block]
+        
+        #determine if block shadows previous top block
+        prev_hashes = block.block.prev_hashes
+        for prev_hash in prev_hashes:
+            if prev_hash in self.tops:
+                del self.tops[prev_hash]
+
+        #determine if block should be top block
+        self.existing_links += prev_hashes
+        if not block_hash in self.existing_links:
+            self.tops[block_hash] = block
 
         self.add_txs_by_hash(block.block.system_txs)
 
@@ -41,16 +54,7 @@ class Dag:
             listener.on_new_block_added(block)
     
     def get_top_blocks(self):
-        links = []
-        for _, signed_block in self.blocks_by_hash.items():
-            links += signed_block.block.prev_hashes
-        
-        top_blocks = self.blocks_by_hash.copy()
-        for link in links:
-            if link in top_blocks:
-                del top_blocks[link]
-
-        return top_blocks
+        return self.tops
     
     def get_top_blocks_hashes(self):
         return list(self.get_top_blocks().keys())
@@ -94,8 +98,11 @@ class Dag:
             result = result or self.is_ancestor(prev_hash, hash_to_find)
         return result
 
-    # TODO randomly choose one chain if there are two with the same length
+    #returns longest chain and chooses randomly if there are equal length longest chains
     def get_longest_chain_top_block(self, top_blocks):
+        randgen = random.SystemRandom() #crypto secure random
+        randgen.shuffle(top_blocks) #randomly shuffle tops so same length chains won't be chosen deterministically
+
         max_length = 0
         max_length_index = 0
         for i in range(0, len(top_blocks)):

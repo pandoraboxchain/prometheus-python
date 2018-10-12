@@ -6,20 +6,20 @@ class CommitRandomTransaction:
 
     def __init__(self):
         self.rand = None
-        self.pubkey = None
+        self.pubkey_index = None
         self.signature = None
         self.len = None
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.rand = deserializer.parse_encrypted_data()
-        self.pubkey = deserializer.parse_pubkey()
+        self.pubkey_index = deserializer.parse_u32()
         self.signature = deserializer.parse_signature()
         self.len = deserializer.get_len()
     
     def pack(self):
         return Serializer.write_encrypted_data(self.rand) + \
-               self.pubkey + \
+               Serializer.write_u32(self.pubkey_index) + \
                Serializer.write_signature(self.signature)
     
     def get_len(self):
@@ -27,7 +27,7 @@ class CommitRandomTransaction:
 
     # this hash includes epoch_hash for checking if random wasn't reused
     def get_signing_hash(self, epoch_hash):
-        return sha256(self.rand + self.pubkey + epoch_hash).digest()
+        return sha256(self.rand + Serializer.write_u32(self.pubkey_index) + epoch_hash).digest()
     
     # this hash is for linking this transaction from reveal
     def get_hash(self):

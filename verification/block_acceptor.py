@@ -7,6 +7,8 @@ from crypto.keys import Keys
 from crypto.private import Private
 
 
+#TODO check if block don't have itself in prev_hashes
+
 class BlockAcceptor(Acceptor):
 
     def __init__(self, epoch, logger):

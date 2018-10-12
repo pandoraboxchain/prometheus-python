@@ -212,3 +212,5 @@ class TestDag(unittest.TestCase):
         # dag.get_tx_by_hash(not_appended_tx.get_hash())
         # AssertionError('Cant find tx by hash', not_appended_tx.get_hash()))
 
+    def test_top_blocks_in_range_out_of_range(self):
+        pass #TODO

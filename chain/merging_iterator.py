@@ -28,7 +28,8 @@ class MergingIter:
             # overwrite chain iterator with next block after merge
             # this way when merged blocks end we can continue iterating further
             last_merged_block = self.merged_chain[0]
-            self.chain_iter = ChainIter(self.chain_iter.dag, last_merged_block)
+            self.chain_iter = ChainIter(self.chain_iter.dag, last_merged_block.get_hash())
+            self.chain_iter.next() # immediately transfer to next block since last_merged was already popped from merged_chain
         
         return block
     
