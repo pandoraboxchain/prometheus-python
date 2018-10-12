@@ -481,9 +481,8 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
 
+    @unittest.skip('test penalty gossip logic')
     def test_maliciously_send_negative_gossip(self):
-        # проверить мемпул, блок, стейк
-        # пенальтизация самого себя ? %%% скорее всего просто нельзя
         Time.use_test_time()
         Time.set_current_time(1)
 
@@ -507,6 +506,7 @@ class TestGossip(unittest.TestCase):
         network.register_node(node0)
 
         behavior = Behaviour()  # this node maliciously send negative gossip
+        behavior.malicious_send_negative_gossip_count = 1
         node1 = Node(genesis_creation_time=1,
                      node_id=1,
                      network=network,
@@ -547,9 +547,68 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
-        # TODO implement
+        Time.advance_to_next_timeslot()  # current block number 1
+        node0.step()  # create and sign block
+        # validate block created and broadcasted
+        # validate mempool is empty
+        # validate tx by hash is empty
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
 
-    @unittest.skip('not implemented')
+        node1.step()  # ! maliciously sand negative gossip (request by genesis 0 block)
+        # all node receive negative gossip and send positive except node1
+        # ( - do not send positive gossip if your send negative)
+        # txs for now only in mempool (not in block)
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        # all nodes has 1-gossip and 5+gossips (1-gossip and 5+gossip from (0,2,3,4,5))
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 6)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # after all steps situation same
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 6)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        Time.advance_to_next_timeslot()  # current block number 2
+        node0.step()  # do nothing
+        node1.step()  # is validator by order (need to marge mempool and provide block)
+        # возможно добавить проверку на малишес скип блок в добавок ?
+        # (по идеи все должны еще раз обменятся госипами и уже не найти блок 2)
+        # (в таком случае следующий валидатор должен смерджить все и отправить блок)
+        # (нода 1 должна быть исключена из списка валидаторов ?)
+        # after node create and sign block all node clean its mem pool
+        # here we have 3 blocks, empty mem pools, and transactions in dag.transaction_by_hash
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        # 6 - gossips (1 negative 5 positive) and 3 - public keys = 9
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 9)
+
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # validate that all keeps the same
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 9)
+
+        Time.advance_to_next_timeslot()  # current block number 3
+        node0.step()  # do nothing
+        node1.step()  # do nothing
+        node2.step()  # provide block
+        node3.step()
+        node4.step()
+        node5.step()
+
+        # validate new block by node2
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
+
+    @unittest.skip('test penalty gossip logic')
     def test_maliciously_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -574,6 +633,7 @@ class TestGossip(unittest.TestCase):
         network.register_node(node0)
 
         behavior = Behaviour()  # this node maliciously send positive gossip
+        behavior.malicious_send_positive_gossip_count = 1
         node1 = Node(genesis_creation_time=1,
                      node_id=1,
                      network=network,
@@ -614,7 +674,66 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
-    @unittest.skip('not implemented')
+        Time.advance_to_next_timeslot()  # current block number 1
+        node0.step()  # create and sign block
+        # validate block created and broadcasted
+        # validate mempool is empty
+        # validate tx by hash is empty
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        node1.step()  # ! maliciously sand positive gossip (request by genesis 0 block)
+        # all node receive positive gossip
+        # txs for now only in mempool (not in block)
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        # all nodes has 1+gossips
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 1)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # after all steps situation same
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 1)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        Time.advance_to_next_timeslot()  # current block number 2
+        node0.step()  # do nothing
+        node1.step()  # is validator by order (need to marge mempool and provide block)
+        # возможно добавить проверку на малишес скип блок в добавок ?
+        # (по идеи все должны еще раз обменятся госипами и уже не найти блок 2)
+        # (в таком случае следующий валидатор должен смерджить все и отправить блок)
+        # (нода 1 должна быть исключена из списка валидаторов ?)
+        # after node create and sign block all node clean its mem pool
+        # here we have 3 blocks, empty mem pools, and transaction in dag.transaction_by_hash
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        # 1 positive gossip and 3 - public keys = 4 txs
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 4)
+
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # validate that all keeps the same
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 4)
+
+        Time.advance_to_next_timeslot()  # current block number 3
+        node0.step()  # do nothing
+        node1.step()  # do nothing
+        node2.step()  # provide block
+        node3.step()
+        node4.step()
+        node5.step()
+
+        # validate new block by node2
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
+
     def test_maliciously_send_negative_and_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -639,6 +758,8 @@ class TestGossip(unittest.TestCase):
         network.register_node(node0)
 
         behavior = Behaviour()  # this node maliciously send positive and negative gossip
+        behavior.malicious_send_negative_gossip_count = 1
+        behavior.malicious_send_positive_gossip_count = 1
         node1 = Node(genesis_creation_time=1,
                      node_id=1,
                      network=network,
@@ -679,6 +800,94 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
+        Time.advance_to_next_timeslot()  # current block number 1
+        node0.step()  # create and sign block
+        # validate block created and broadcasted
+        # validate mempool is empty
+        # validate tx by hash is empty
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        # on one step sends +and- (add test for different steps ?)
+        node1.step()  # ! maliciously sand positive and negative gossip (request by genesis 0 block)
+        # all node receive positive gossip
+        # txs for now only in mempool (not in block)
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        # all nodes has 1-gossip and 6+gossips (1-gossip and 6+gossip from (0,1,2,3,4,5))
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 7)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # after all steps situation same
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 7)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
+
+        Time.advance_to_next_timeslot()  # current block number 2
+        node0.step()  # do nothing
+        node1.step()  # is validator by order (need to marge mempool and provide block)
+        # TODO in current case node will penaltize SELF !!!
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        # tx_s
+        # 3 - public key tx
+        # 1 - negative gossip tx
+        # 6 - positive gossip txs
+        # 1 - penalty tx
+        # total = 11 txs
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 11)
+
+        node2.step()
+        node3.step()
+        node4.step()
+        node5.step()
+        # validate that all keeps the same
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 11)
+        # verify that node1 is steel in validators list
+        self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
+
+        Time.advance_to_next_timeslot()  # current block number 3
+        node0.step()  # do nothing
+        node1.step()  # do nothing
+        node2.step()  # provide block
+        node3.step()
+        node4.step()
+        node5.step()
+
+        # validate new block by node2
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
+        # verify that node1 is steel in validators list until epoch end
+        self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
+
+        for i in range(5, 20):
+            Time.advance_to_next_timeslot()
+            node0.step()
+            node1.step()
+            node2.step()
+            node3.step()
+            node4.step()
+            if i == 14:
+                # TODO debug node5 step (i=14 node 5 broadcast block, handling block verify)
+                # exception rice in block_acceptor line 59
+                # all nodes do not insert blocks to dag
+                node5.step()
+            else:
+                node5.step()
+            # validate new block by node2
+            self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i)
+            # verify that node1 is steel in validators list until epoch end
+            self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
+
+        # TODO test new epoch validators and tx count and block count
+
+        point = ''
+
     # -------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------
@@ -696,5 +905,11 @@ class TestGossip(unittest.TestCase):
                 self.assertTrue(len(node.mempool.gossips) == value, True)
             if 'dag.blocks_by_number.length' in functions:
                 self.assertTrue(len(node.dag.blocks_by_number) == value, True)
+            if 'dag.transactions_by_hash.length' in functions:
+                self.assertTrue(len(node.dag.transactions_by_hash) == value, True)
+            if 'permissions.epoch_validators.length' in functions:
+                validators_list = node.permissions.epoch_validators
+                validators_list = next(iter(validators_list.values()))
+                self.assertTrue(len(validators_list) == value, True)
 
 

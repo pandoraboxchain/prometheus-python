@@ -129,6 +129,13 @@ class Mempool:
                     continue
         return result
 
+    def get_all_negative_gossips(self):
+        """
+            Method for get all negatives
+            :return: all currnt negatives from mempool
+        """
+        return self.get_gossips_by_type(NegativeGossipTransaction())
+
     def get_negative_gossips_by_block(self, block_number):
         """
             Method return all gossips in current mempool by gossip tx type negative for block_number
@@ -142,16 +149,16 @@ class Mempool:
                 result.append(gossip)
         return result
 
-    def get_positive_gossips_by_block(self, block_number):
+    def get_positive_gossips_by_block_hash(self, block_hash):
         """
-            Method return all gossips in current mempool by gossip tx type positive for block_number
+            Method return all gossips in current mempool by gossip tx type positive by block hash
             :param block_number: gossip tx_type for filtering gossip list
             :return: typed gossip list by block number
         """
         result = []
         typed_gossips = self.get_gossips_by_type(PositiveGossipTransaction())
         for gossip in typed_gossips:
-            if gossip.number_of_block == block_number:
+            if gossip.block_hash == block_hash:
                 result.append(gossip)
         return result
 
