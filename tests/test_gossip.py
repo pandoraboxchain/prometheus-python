@@ -902,14 +902,14 @@ class TestGossip(unittest.TestCase):
         """
         for node in node_list:
             if 'mempool.gossips.length' in functions:
-                self.assertTrue(len(node.mempool.gossips) == value, True)
+                self.assertEqual(len(node.mempool.gossips), value)
             if 'dag.blocks_by_number.length' in functions:
-                self.assertTrue(len(node.dag.blocks_by_number) == value, True)
+                self.assertEqual(len(node.dag.blocks_by_number), value)
             if 'dag.transactions_by_hash.length' in functions:
-                self.assertTrue(len(node.dag.transactions_by_hash) == value, True)
+                self.assertEqual(len(node.dag.transactions_by_hash), value)
             if 'permissions.epoch_validators.length' in functions:
                 validators_list = node.permissions.epoch_validators
                 validators_list = next(iter(validators_list.values()))
-                self.assertTrue(len(validators_list) == value, True)
+                self.assertEqual(len(validators_list), value)
 
 
