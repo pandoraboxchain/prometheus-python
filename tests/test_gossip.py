@@ -1,8 +1,10 @@
 import unittest
+import logging
 
 from node.behaviour import Behaviour
 from chain.block_factory import BlockFactory
 from chain.epoch import Epoch
+from chain.params import Round
 from node.block_signers import BlockSigners
 from node.node import Node
 from node.node_api import NodeApi
@@ -746,14 +748,24 @@ class TestGossip(unittest.TestCase):
         validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
+        signer_index = 0
+        for i in Epoch.get_round_range(1, Round.PRIVATE):
+            validators.signers_order[i] = signer_index
+            signer_index += 1
+
         network = NodeApi()
+
+        # set up logging to file - see previous section for more details
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
                      network=network,
                      block_signer=private_keys[0],
                      validators=validators,
-                     behaviour=Behaviour())
+                     behaviour=Behaviour(),
+                     logger=logging.getLogger("0"))
 
         network.register_node(node0)
 
@@ -765,7 +777,8 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[1],
                      validators=validators,
-                     behaviour=behavior)
+                     behaviour=behavior,
+                     logger=logging.getLogger("1"))
         network.register_node(node1)
 
         node2 = Node(genesis_creation_time=1,
@@ -773,7 +786,8 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[2],
                      validators=validators,
-                     behaviour=Behaviour())
+                     behaviour=Behaviour(),
+                     logger=logging.getLogger("2"))
         network.register_node(node2)
 
         node3 = Node(genesis_creation_time=1,
@@ -781,7 +795,8 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[3],
                      validators=validators,
-                     behaviour=Behaviour())
+                     behaviour=Behaviour(),
+                     logger=logging.getLogger("3"))
         network.register_node(node3)
 
         node4 = Node(genesis_creation_time=1,
@@ -789,7 +804,8 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[4],
                      validators=validators,
-                     behaviour=Behaviour())
+                     behaviour=Behaviour(),
+                     logger=logging.getLogger("4"))
         network.register_node(node4)
 
         node5 = Node(genesis_creation_time=1,
@@ -797,7 +813,8 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[5],
                      validators=validators,
-                     behaviour=Behaviour())
+                     behaviour=Behaviour(),
+                     logger=logging.getLogger("5"))
         network.register_node(node5)
 
         Time.advance_to_next_timeslot()  # current block number 1
