@@ -102,7 +102,7 @@ class TestConfirmationRequirement(unittest.TestCase):
 
         block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 11)
         
-        DagVisualizer.visualize(dag, True) # take a look to understand what's going on
+        # DagVisualizer.visualize(dag, True) # take a look to understand what's going on
 
         #not affected by small skip
         confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)

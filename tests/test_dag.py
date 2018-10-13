@@ -1,4 +1,7 @@
 import unittest
+
+from hashlib import sha256
+
 from chain.block_factory import BlockFactory
 from chain.transaction_factory import TransactionFactory
 from chain.dag import Dag
@@ -190,7 +193,10 @@ class TestDag(unittest.TestCase):
         tx1 = TransactionFactory.create_negative_gossip_transaction(1, private)
         tx2 = TransactionFactory.create_positive_gossip_transaction(block1.get_hash(), private)
         tx3 = TransactionFactory.create_penalty_gossip_transaction({tx1.get_hash(): tx2.get_hash()}, private)
-        not_appended_tx = TransactionFactory.create_public_key_transaction(Private.generate(), private)
+        not_appended_tx = TransactionFactory.create_public_key_transaction(generated_private=Private.generate(),
+         epoch_hash=sha256(b'epoch_hash').digest(),
+         validator_index=1,
+         node_private=private)
         block1.system_txs.append(tx1)
         block1.system_txs.append(tx2)
         block1.system_txs.append(tx3)

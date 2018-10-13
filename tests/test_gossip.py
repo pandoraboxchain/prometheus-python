@@ -1,5 +1,4 @@
 import unittest
-import logging
 
 from node.behaviour import Behaviour
 from chain.block_factory import BlockFactory
@@ -100,7 +99,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0] + [1] * Epoch.get_duration()
+        validators.signers_order = [0, 1] * (Epoch.get_duration() // 2)
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
@@ -163,7 +162,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0] + [1] + [2] * Epoch.get_duration()
+        validators.signers_order = [0,1,2] * 10
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
@@ -485,7 +484,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
+        validators.signers_order = [0,1,2,3,4,5] * 4
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
@@ -548,7 +547,6 @@ class TestGossip(unittest.TestCase):
         # validate tx by hash is empty
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
 
         node1.step()  # ! maliciously sand negative gossip (request by genesis 0 block)
         # all node receive negative gossip and send positive except node1
@@ -557,7 +555,6 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         # all nodes has 1-gossip and 5+gossips (1-gossip and 5+gossip from (0,2,3,4,5))
         self.list_validator(network.nodes, ['mempool.gossips.length'], 6)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
 
         node2.step()
         node3.step()
@@ -566,7 +563,6 @@ class TestGossip(unittest.TestCase):
         # after all steps situation same
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 6)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
 
         Time.advance_to_next_timeslot()  # current block number 2
         node0.step()  # do nothing
@@ -580,7 +576,6 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
         # 6 - gossips (1 negative 5 positive) and 3 - public keys = 9
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 9)
 
         node2.step()
         node3.step()
@@ -589,7 +584,6 @@ class TestGossip(unittest.TestCase):
         # validate that all keeps the same
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 9)
 
         Time.advance_to_next_timeslot()  # current block number 3
         node0.step()  # do nothing
@@ -611,7 +605,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
+        validators.signers_order = [0,1,2,3,4,5] * 4
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
@@ -671,10 +665,8 @@ class TestGossip(unittest.TestCase):
         node0.step()  # create and sign block
         # validate block created and broadcasted
         # validate mempool is empty
-        # validate tx by hash is empty
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
 
         node1.step()  # ! maliciously sand positive gossip (request by genesis 0 block)
         # all node receive positive gossip
@@ -682,7 +674,6 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         # all nodes has 1+gossips
         self.list_validator(network.nodes, ['mempool.gossips.length'], 1)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
 
         node2.step()
         node3.step()
@@ -691,7 +682,6 @@ class TestGossip(unittest.TestCase):
         # after all steps situation same
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 2)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 1)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 0)
 
         Time.advance_to_next_timeslot()  # current block number 2
         node0.step()  # do nothing
@@ -704,8 +694,6 @@ class TestGossip(unittest.TestCase):
         # here we have 3 blocks, empty mem pools, and transaction in dag.transaction_by_hash
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
-        # 1 positive gossip and 3 - public keys = 4 txs
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 4)
 
         node2.step()
         node3.step()
@@ -714,7 +702,6 @@ class TestGossip(unittest.TestCase):
         # validate that all keeps the same
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 4)
 
         Time.advance_to_next_timeslot()  # current block number 3
         node0.step()  # do nothing
@@ -746,17 +733,12 @@ class TestGossip(unittest.TestCase):
 
         network = NodeApi()
 
-        # set up logging to file - see previous section for more details
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
-
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
                      network=network,
                      block_signer=private_keys[0],
                      validators=validators,
-                     behaviour=Behaviour(),
-                     logger=logging.getLogger("0"))
+                     behaviour=Behaviour())
 
         network.register_node(node0)
 
@@ -768,8 +750,7 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[1],
                      validators=validators,
-                     behaviour=behavior,
-                     logger=logging.getLogger("1"))
+                     behaviour=behavior)
         network.register_node(node1)
 
         node2 = Node(genesis_creation_time=1,
@@ -777,8 +758,7 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[2],
                      validators=validators,
-                     behaviour=Behaviour(),
-                     logger=logging.getLogger("2"))
+                     behaviour=Behaviour())
         network.register_node(node2)
 
         node3 = Node(genesis_creation_time=1,
@@ -786,8 +766,7 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[3],
                      validators=validators,
-                     behaviour=Behaviour(),
-                     logger=logging.getLogger("3"))
+                     behaviour=Behaviour())
         network.register_node(node3)
 
         node4 = Node(genesis_creation_time=1,
@@ -795,8 +774,7 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[4],
                      validators=validators,
-                     behaviour=Behaviour(),
-                     logger=logging.getLogger("4"))
+                     behaviour=Behaviour())
         network.register_node(node4)
 
         node5 = Node(genesis_creation_time=1,
@@ -804,8 +782,7 @@ class TestGossip(unittest.TestCase):
                      network=network,
                      block_signer=private_keys[5],
                      validators=validators,
-                     behaviour=Behaviour(),
-                     logger=logging.getLogger("5"))
+                     behaviour=Behaviour())
         network.register_node(node5)
 
         Time.advance_to_next_timeslot()  # current block number 1

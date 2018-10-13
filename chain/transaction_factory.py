@@ -77,11 +77,11 @@ class TransactionFactory:
         return tx
 
     @staticmethod
-    def create_public_key_transaction(generated_private, node_private):
+    def create_public_key_transaction(generated_private, epoch_hash, validator_index, node_private):
         tx = PublicKeyTransaction()
         tx.generated_pubkey = Private.publickey(generated_private)
-        tx.pubkey = Private.publickey(node_private)
-        tx.signature = Private.sign(tx.get_hash(), node_private)
+        tx.pubkey_index = validator_index
+        tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
         return tx
 
     @staticmethod
