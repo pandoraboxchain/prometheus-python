@@ -70,4 +70,42 @@ class TestConfirmationRequirement(unittest.TestCase):
         confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
         self.assertEqual(confirmation_requirement, 3)
 
+    def test_skips_and_restoring(self):
+        dag = Dag(0)
+        conf_req = ConfirmationRequirement(dag)
+
+        genesis_hash = dag.genesis_block().get_hash()
+
+        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        conf_req.blocks[block_hash] = 5
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 5)
+
+        # confirmation requirement decreases because we have large skip 
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 4)
+
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 6)
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 7)
+
+        #we still have 4 here
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 4)
+
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 8)
+        
+        #but we have restored to 5 here, because of 3 previous consecutive blocks
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 5)
+
+        #let's skip one
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 10)
+
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 11)
+        
+        DagVisualizer.visualize(dag, True) # take a look to understand what's going on
+
+        #not affected by small skip
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 5)
+
     #TODO complex cases
