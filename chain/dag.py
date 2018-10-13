@@ -142,6 +142,10 @@ class Dag:
 
         return top_hashes
 
+    def get_links(self, block_hash):
+        assert block_hash in self.blocks_by_hash, "No block with such hash found"
+        return self.blocks_by_hash[block_hash].block.prev_hashes
+
     # ------------------------------
     # transaction methods
     # ------------------------------

@@ -47,3 +47,13 @@ class TestChainGenerator:
             prev_hash = block.get_hash()
         
         return prev_hash
+
+    @staticmethod
+    def insert_dummy(dag, prev_hashes, position):
+        dummy_private = Private.generate()
+        dummy_time_offset = len(dag.blocks_by_number.get(position, []))
+        assert dummy_time_offset <= BLOCK_TIME, "This much blocks in one timeslot may lead to problems"
+        block = BlockFactory.create_block_with_timestamp(prev_hashes, BLOCK_TIME * position + dummy_time_offset)
+        signed_block = BlockFactory.sign_block(block, dummy_private)
+        dag.add_signed_block(position, signed_block)
+        return block.get_hash()

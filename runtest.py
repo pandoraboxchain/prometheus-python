@@ -13,5 +13,6 @@ from tests.random import *
 from tests.immutability import *
 from tests.node import *
 from tests.merging_iterator import *
+from tests.confirmation_requirement import *
 
 unittest.main()
