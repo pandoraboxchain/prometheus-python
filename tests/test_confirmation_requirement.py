@@ -1,11 +1,11 @@
 import unittest
 
-from chain.dag import Dag
 from chain.block_factory import BlockFactory
 from chain.confirmation_requirement import ConfirmationRequirement
+from chain.dag import Dag
 from crypto.private import Private
-from visualization.dag_visualizer import DagVisualizer
 from tests.test_chain_generator import TestChainGenerator
+from visualization.dag_visualizer import DagVisualizer
 
 
 class TestConfirmationRequirement(unittest.TestCase):
@@ -48,3 +48,26 @@ class TestConfirmationRequirement(unittest.TestCase):
         conf_req.blocks[last_block_in_seq_hash] = 4
         best_requirement = conf_req.choose_next_best_requirement(block_hash)
         self.assertEqual(best_requirement, 5)
+
+    def test_recursive_sequence_skips(self):
+        dag = Dag(0)
+        conf_req = ConfirmationRequirement(dag)
+
+        genesis_hash = dag.genesis_block().get_hash()
+
+        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        conf_req.blocks[block_hash] = 5
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 5)
+
+        # confirmation requirement decreases because we have large skip 
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 4)
+
+        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 9)
+
+        # DagVisualizer.visualize(dag, True) # take a look to understand what's going on
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 3)
+
+    #TODO complex cases

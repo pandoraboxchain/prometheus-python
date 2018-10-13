@@ -25,19 +25,16 @@ class ConfirmationRequirement:
         # if this_block_confirmation_requirement != None:
         #     self.tops[block_hash] = this_block_confirmation_requirement
 
-        prev_block_hash = block.block.prev_hashes[0]
-        block_number = self.dag.get_block_number(block_hash)
-        prev_block_number = self.dag.get_block_number(prev_block_hash)
-
         #TODO think if attack is possible here
-        skip_count = block_number - prev_block_number
-        zeta_decrease = skip_count // ZETA_CHANGE_CONST
-        prev_zeta = self.get_confirmation_requirement(prev_block_hash)
-        current_zeta = prev_zeta - zeta_decrease
 
-        # if skip_count == 0:
+        req = self.choose_next_best_requirement(block_hash)
+        if req == -1:
+            closest_prev_hash, skip_count = self.choose_shortest_skip(block_hash)
+            zeta_decrease = skip_count // ZETA_CHANGE_CONST
+            prev_zeta = self.get_confirmation_requirement(closest_prev_hash)
+            req = prev_zeta - zeta_decrease
 
-        current_zeta = max(ZETA_MIN, min(current_zeta, ZETA_MAX))
+        current_zeta = max(ZETA_MIN, min(req, ZETA_MAX))
 
         # for block in iterator:
             # if block:
@@ -57,6 +54,21 @@ class ConfirmationRequirement:
     def get_confirmation_requirement(self, block_hash):
         assert block_hash in self.blocks
         return self.blocks[block_hash]
+
+    def choose_shortest_skip(self, block_hash):
+        prev_hashes = self.dag.get_links(block_hash)
+        closest_prev_hash = prev_hashes[0]
+        block_number = self.dag.get_block_number(block_hash)
+        prev_block_number = self.dag.get_block_number(closest_prev_hash)
+        shortest_skip = block_number - prev_block_number
+        for prev_hash in prev_hashes[1:]:
+            prev_block_number = self.dag.get_block_number(prev_hash)
+            skip_count = block_number - prev_block_number
+            if skip_count < shortest_skip:
+                shortest_skip = skip_count
+                closest_prev_hash = prev_hash
+        
+        return closest_prev_hash, shortest_skip
 
     # chooses maximum previous zeta
     # considers possibility of zeta to be increased
