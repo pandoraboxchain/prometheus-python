@@ -33,7 +33,8 @@ class TestEpoch(unittest.TestCase):
         private_keys = []
 
         block_number = 1
-        prev_hash = dag.genesis_block().get_hash()
+        genesis_hash = dag.genesis_block().get_hash()
+        prev_hash = genesis_hash
         signer_index = 0
         for i in Epoch.get_round_range(1, Round.PUBLIC):
             private = Private.generate()
@@ -43,7 +44,7 @@ class TestEpoch(unittest.TestCase):
             pubkey_tx = PublicKeyTransaction()
             pubkey_tx.generated_pubkey = Private.publickey(private)
             pubkey_tx.pubkey_index = signer_index
-            pubkey_tx.signature = Private.sign(pubkey_tx.get_hash(), signer)
+            pubkey_tx.signature = Private.sign(pubkey_tx.get_signing_hash(genesis_hash), signer)
 
             block = Block()
             block.timestamp = i * BLOCK_TIME

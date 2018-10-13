@@ -214,12 +214,11 @@ class Node:
             
         node_pubkey = Private.publickey(self.block_signer.private_key)
         
-        pubkey_publishers = []
-        for _, epoch_hash in self.epoch.get_epoch_hashes().items():
-            pubkey_publishers += self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
-
-        for publisher in pubkey_publishers:
-            if node_pubkey == publisher.public_key:
+        epoch_hashes = self.epoch.get_epoch_hashes()
+        for _, epoch_hash in epoch_hashes.items():
+            allowed_round_validators = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
+            pubkey_publishers_pubkeys = [validator.public_key for validator in allowed_round_validators]
+            if node_pubkey in pubkey_publishers_pubkeys:
                 node_private = self.block_signer.private_key
                 node_public = Private.publickey(node_private)
                 pubkey_index = self.permissions.get_signer_index_from_public_key(node_public, epoch_hash)
@@ -227,9 +226,8 @@ class Node:
                 generated_private = Private.generate()
                 tx = PublicKeyTransaction()
                 tx.generated_pubkey = Private.publickey(generated_private)
-
                 tx.pubkey_index = pubkey_index
-                tx.signature = Private.sign(tx.get_hash(), node_private)
+                tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
                 if self.behaviour.malicious_wrong_signature:
                     tx.signature += 1
                     

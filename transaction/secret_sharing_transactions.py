@@ -9,8 +9,17 @@ class PublicKeyTransaction:
         self.signature = None
         self.len = None
 
+    def pack_unsigned(self):
+        raw = self.generated_pubkey 
+        raw += Serializer.write_u32(self.pubkey_index)
+        return raw
+
     def get_hash(self):
-        return sha256(self.generated_pubkey + Serializer.write_u32(self.pubkey_index)).digest()
+        assert self.signature, "This method is for referencing. Use get_signing_hash if you have to sign a transaction"
+        return sha256(self.pack()).digest()
+    
+    def get_signing_hash(self, epoch_hash):
+        return sha256(self.pack_unsigned() + epoch_hash).digest()
 
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
@@ -88,4 +97,5 @@ class SplitRandomTransaction:
         return sha256(self.pack_pieces() + epoch_hash).digest()
 
     def get_hash(self):
+        assert self.signature, "This method is for referencing. Use get_signing_hash if you have to sign a transaction"
         return sha256(self.pack()).digest()

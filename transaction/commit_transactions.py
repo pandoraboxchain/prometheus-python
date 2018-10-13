@@ -31,6 +31,7 @@ class CommitRandomTransaction:
     
     # this hash is for linking this transaction from reveal
     def get_hash(self):
+        assert self.signature, "This method is for referencing. Use get_signing_hash if you have to sign a transaction"
         return sha256(self.pack()).digest()
 
 
