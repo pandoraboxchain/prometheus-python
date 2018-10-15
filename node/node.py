@@ -14,8 +14,6 @@ from node.permissions import Permissions
 from node.validators import Validators
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
-from transaction.commit_transactions import CommitRandomTransaction, \
-                                            RevealRandomTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
 from verification.block_acceptor import BlockAcceptor
@@ -54,6 +52,9 @@ class Node:
         self.reveals_to_send = {}
         self.sent_shares_epochs = []  # epoch hashes of secret shares
         self.last_expected_timeslot = 0
+        # TODO may be refactor needed
+        # temporary solution (not send anothre block by same timeslot)
+        self.last_signed_block_number = 0
 
     def start(self):
         pass
@@ -141,7 +142,12 @@ class Node:
                 self.epoch_private_keys.clear()
                 self.logger.info("Maliciously skiped block")
             else:
-                self.sign_block(current_block_number)
+                if self.last_signed_block_number < current_block_number:
+                    self.last_signed_block_number = current_block_number
+                    self.sign_block(current_block_number)
+                else:
+                    # skip once more block broadcast in same timeslot
+                    pass
 
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
@@ -214,11 +220,6 @@ class Node:
                 pubkey_index = self.permissions.get_signer_index_from_public_key(node_public, epoch_hash)
 
                 generated_private = Private.generate()
-                # tx = PublicKeyTransaction()
-                # tx.generated_pubkey = Private.publickey(generated_private)
-                # tx.pubkey_index = pubkey_index
-                # tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
-
                 tx = TransactionFactory.create_public_key_transaction(generated_private=generated_private,
                                                                       epoch_hash=epoch_hash,
                                                                       validator_index=pubkey_index,
@@ -268,8 +269,6 @@ class Node:
             del self.reveals_to_send[epoch_hash]
 
     def form_private_key_reveal_transaction(self):
-        # tx = PrivateKeyTransaction()
-        # tx.key = Keys.to_bytes(self.epoch_private_keys.pop(0))
         tx = TransactionFactory.create_private_key_transaction(self.epoch_private_keys.pop(0))
         return tx
 
@@ -282,9 +281,6 @@ class Node:
         self.logger.info(conflict.hex())
         node_private = self.block_signer.private_key
 
-        # penalty = PenaltyTransaction()
-        # penalty.conflicts = conflicts
-        # penalty.signature = Private.sign(penalty.get_hash(), self.block_signer.private_key)
         tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
         return tx
 
@@ -318,10 +314,6 @@ class Node:
         node_public = Private.publickey(node_private)
         pubkey_index = self.permissions.get_secret_sharer_from_public_key(node_public, epoch_hash)
 
-        # tx = SplitRandomTransaction()
-        # tx.pieces = encoded_splits
-        # tx.pubkey_index = pubkey_index
-        # tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), self.block_signer.private_key)
         tx = TransactionFactory.create_split_random_transaction(encoded_splits, pubkey_index, epoch_hash, node_private)
         return tx
 
@@ -457,36 +449,18 @@ class Node:
     # -------------------------------------------------------------------------------
     def broadcast_stakehold_transaction(self):
         node_private = self.block_signer.private_key
-
-        # tx = StakeHoldTransaction()
-        # tx.amount = 1000
-        # tx.pubkey = Private.publickey(node_private)
-        # tx.signature = Private.sign(tx.get_hash(), node_private)
-
         tx = TransactionFactory.create_stake_hold_transaction(1000, node_private)
         self.logger.info("Broadcasted StakeHold transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_stakerelease_transaction(self):
         node_private = self.block_signer.private_key
-
-        # tx = StakeReleaseTransaction()
-        # tx.pubkey = Private.publickey(node_private)
-        # tx.signature = Private.sign(tx.get_hash(), node_private)
-
         tx = TransactionFactory.create_stake_release_transaction(node_private)
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_negative(self, block_number):
         node_private = self.block_signer.private_key
-
-        # tx = NegativeGossipTransaction()
-        # tx.pubkey = Private.publickey(node_private)
-        # tx.timestamp = Time.get_current_time()
-        # tx.number_of_block = block_number
-        # tx.signature = Private.sign(tx.get_hash(), node_private)
-
         tx = TransactionFactory.create_negative_gossip_transaction(block_number, node_private)
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.logger.info("Broadcasted negative gossip transaction")
@@ -494,13 +468,6 @@ class Node:
 
     def broadcast_gossip_positive(self, signed_block_hash):
         node_private = self.block_signer.private_key
-
-        # tx = PositiveGossipTransaction()
-        # tx.pubkey = Private.publickey(node_private)
-        # tx.timestamp = Time.get_current_time()
-        # tx.block_hash = signed_block_hash
-        # tx.signature = Private.sign(tx.get_hash(), node_private)
-
         tx = TransactionFactory.create_positive_gossip_transaction(signed_block_hash, node_private)
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.logger.info("Broadcasted positive gossip transaction")
