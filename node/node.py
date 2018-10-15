@@ -252,7 +252,8 @@ class Node:
                 allowed_to_commit_list = self.permissions.get_commiters_pubkeys(epoch_hash)
                 if pubkey not in allowed_to_commit_list:
                     continue
-                commit, reveal = self.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), epoch_hash)
+                pubkey_index = self.permissions.get_committer_index_from_public_key(pubkey, epoch_hash)
+                commit, reveal = TransactionFactory.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), pubkey_index, epoch_hash)
                 self.reveals_to_send[epoch_hash] = reveal
                 self.logger.info("Broadcasting commit")
                 self.mempool.add_transaction(commit)
@@ -516,23 +517,6 @@ class Node:
     # -------------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------------
-    def create_commit_reveal_pair(self, node_private, random_bytes, epoch_hash):
-        private = Private.generate()
-        public = Keys.to_bytes(Private.publickey(node_private))
-        encoded = Private.encrypt(random_bytes, private)
-
-        pubkey_index = self.permissions.get_committer_index_from_public_key(public, epoch_hash)
-
-        commit = CommitRandomTransaction()
-        commit.rand = encoded
-        commit.pubkey_index = pubkey_index
-        commit.signature = Private.sign(commit.get_signing_hash(epoch_hash), node_private)
-
-        reveal = RevealRandomTransaction()
-        reveal.commit_hash = commit.get_hash()
-        reveal.key = Keys.to_bytes(private)
-
-        return commit, reveal
 
     def get_allowed_signers_for_block_number(self, block_number):
         prev_epoch_number = self.epoch.get_epoch_number(block_number) - 1

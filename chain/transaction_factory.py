@@ -53,22 +53,20 @@ class TransactionFactory:
         tx.signature = Private.sign(tx.get_hash(), node_private)
         return tx
 
-    # TODO duplicate logic in node.py (node.create_commit_reveal_pair())
-    def create_commit_reveal_pair(self, node_private, random_bytes, pubkey_index, epoch_hash):
+    @staticmethod
+    def create_commit_reveal_pair(node_private, random_bytes, pubkey_index, epoch_hash):
         private = Private.generate()
-        public = Private.publickey(node_private)
         encoded = Private.encrypt(random_bytes, private)
 
-        commit = self.create_commit_random_transaction(encoded, public, pubkey_index, epoch_hash, node_private)
-        reveal = self.create_reveal_random_transaction(commit.get_hash(), private)
+        commit = TransactionFactory.create_commit_random_transaction(encoded, pubkey_index, epoch_hash, node_private)
+        reveal = TransactionFactory.create_reveal_random_transaction(commit.get_hash(), private)
 
         return commit, reveal
 
     @staticmethod
-    def create_commit_random_transaction(rand, pubkey, pubkey_index, epoch_hash, node_private):
+    def create_commit_random_transaction(rand, pubkey_index, epoch_hash, node_private):
         tx = CommitRandomTransaction()
         tx.rand = rand
-        tx.pubkey = pubkey
         tx.pubkey_index = pubkey_index
         tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
         return tx
