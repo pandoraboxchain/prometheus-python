@@ -30,18 +30,25 @@ class Initializer:
             logging.basicConfig(level=logging.DEBUG,
                                 format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
 
-            Time.set_current_time(int(datetime.datetime.now().timestamp()))
+            discrete_mode = True
+
+            if discrete_mode:
+                Time.use_test_time()
+                Time.set_current_time(BLOCK_TIME)
+            else:
+                Time.set_current_time(int(datetime.datetime.now().timestamp()))
+
             genesis_creation_time = Time.get_current_time() - BLOCK_TIME  # so we start right from the first block
 
             private_keys = BlockSigners()
 
             network = NodeApi()
 
-            tasks = []
+            nodes = []
 
             logger = logging.getLogger("Announce")
             announcer = AnnouncerNode(genesis_creation_time, logger)
-            tasks.append(announcer.run())
+            nodes.append(announcer)
             
             for i in range(0, 20):
                 behaviour = Behaviour()
@@ -67,7 +74,7 @@ class Initializer:
                 if i == 0:
                     node_to_visualize_after_exit = node
                 network.register_node(node)
-                tasks.append(node.run())
+                nodes.append(node)
 
             # for i in range(19, 20):
             #     behaviour = Behaviour()
@@ -81,10 +88,16 @@ class Initializer:
             #                         logger=logger)
             #     network.register_node(keyless_node)
             #     tasks.append(keyless_node.run())
-
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(asyncio.gather(*tasks))       
-            loop.close()
+            if discrete_mode:
+                while True:
+                    for node in nodes:
+                        node.step()
+                    Time.advance_time(1)
+            else:
+                tasks = [node.run() for node in nodes] 
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(asyncio.gather(*tasks))       
+                loop.close()
         
         finally:
             if node_to_visualize_after_exit:
