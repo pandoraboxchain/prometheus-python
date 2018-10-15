@@ -10,6 +10,9 @@ from transaction.gossip_transaction import NegativeGossipTransaction, \
 from transaction.secret_sharing_transactions import PublicKeyTransaction, \
                                                     PrivateKeyTransaction, \
                                                     SplitRandomTransaction
+from transaction.stake_transaction import StakeHoldTransaction, \
+                                          StakeReleaseTransaction, \
+                                          PenaltyTransaction
 
 
 class TransactionFactory:
@@ -51,21 +54,22 @@ class TransactionFactory:
         return tx
 
     # TODO duplicate logic in node.py (node.create_commit_reveal_pair())
-    def create_commit_reveal_pair(self, node_private, random_bytes, epoch_hash):
+    def create_commit_reveal_pair(self, node_private, random_bytes, pubkey_index, epoch_hash):
         private = Private.generate()
         public = Private.publickey(node_private)
         encoded = Private.encrypt(random_bytes, private)
 
-        commit = self.create_commit_random_transaction(encoded, public, node_private, epoch_hash)
+        commit = self.create_commit_random_transaction(encoded, public, pubkey_index, epoch_hash, node_private)
         reveal = self.create_reveal_random_transaction(commit.get_hash(), private)
 
         return commit, reveal
 
     @staticmethod
-    def create_commit_random_transaction(rand, public, epoch_hash, node_private):
+    def create_commit_random_transaction(rand, pubkey, pubkey_index, epoch_hash, node_private):
         tx = CommitRandomTransaction()
         tx.rand = rand
-        tx.pubkey = Keys.to_bytes(public)
+        tx.pubkey = pubkey
+        tx.pubkey_index = pubkey_index
         tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
         return tx
 
@@ -91,10 +95,34 @@ class TransactionFactory:
         return tx
 
     @staticmethod
-    def create_split_random_transaction(encoded_splits, epoch_hash, node_private):
+    def create_split_random_transaction(encoded_splits, pubkey_index, epoch_hash, node_private):
         tx = SplitRandomTransaction()
         tx.pieces = encoded_splits
+        tx.pubkey_index = pubkey_index
         tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
         return tx
+
+    @staticmethod
+    def create_stake_hold_transaction(amount, node_private):
+        tx = StakeHoldTransaction()
+        tx.amount = amount
+        tx.pubkey = Private.sign(node_private)
+        tx.signature = Private.sign(tx.get_hash(), node_private)
+        return tx
+
+    @staticmethod
+    def create_stake_release_transaction(node_private):
+        tx = StakeReleaseTransaction()
+        tx.pubkey = Private.publickey(node_private)
+        tx.signature = Private.sign(tx.get_hash(), node_private)
+        return tx
+
+    @staticmethod
+    def create_penalty_transaction(conflicts, node_private):
+        tx = PenaltyTransaction()
+        tx.conflicts = conflicts
+        tx.signature = Private.sign(tx.get_hash(), node_private)
+        return tx
+
 
 

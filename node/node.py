@@ -5,7 +5,7 @@ from chain.dag import Dag
 from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
-from chain.params import Round, Duration, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
+from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.merger import Merger
 from chain.transaction_factory import TransactionFactory
 from node.behaviour import Behaviour
@@ -14,12 +14,6 @@ from node.permissions import Permissions
 from node.validators import Validators
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
-from transaction.secret_sharing_transactions import PublicKeyTransaction, \
-                                                    PrivateKeyTransaction, \
-                                                    SplitRandomTransaction
-from transaction.stake_transaction import StakeHoldTransaction, \
-                                          StakeReleaseTransaction,  \
-                                          PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, \
                                             RevealRandomTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
@@ -220,10 +214,15 @@ class Node:
                 pubkey_index = self.permissions.get_signer_index_from_public_key(node_public, epoch_hash)
 
                 generated_private = Private.generate()
-                tx = PublicKeyTransaction()
-                tx.generated_pubkey = Private.publickey(generated_private)
-                tx.pubkey_index = pubkey_index
-                tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
+                # tx = PublicKeyTransaction()
+                # tx.generated_pubkey = Private.publickey(generated_private)
+                # tx.pubkey_index = pubkey_index
+                # tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), node_private)
+
+                tx = TransactionFactory.create_public_key_transaction(generated_private=generated_private,
+                                                                      epoch_hash=epoch_hash,
+                                                                      validator_index=pubkey_index,
+                                                                      node_private=node_private)
                 if self.behaviour.malicious_wrong_signature:
                     tx.signature += 1
                     
@@ -249,9 +248,10 @@ class Node:
         pubkey = Private.publickey(self.block_signer.private_key)
         epoch_hashes = self.epoch.get_epoch_hashes().values()
         for epoch_hash in epoch_hashes:
-            if not epoch_hash in self.reveals_to_send:
+            if epoch_hash not in self.reveals_to_send:
                 allowed_to_commit_list = self.permissions.get_commiters_pubkeys(epoch_hash)
-                if not pubkey in allowed_to_commit_list: continue
+                if pubkey not in allowed_to_commit_list:
+                    continue
                 commit, reveal = self.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), epoch_hash)
                 self.reveals_to_send[epoch_hash] = reveal
                 self.logger.info("Broadcasting commit")
@@ -267,8 +267,9 @@ class Node:
             del self.reveals_to_send[epoch_hash]
 
     def form_private_key_reveal_transaction(self):
-        tx = PrivateKeyTransaction()
-        tx.key = Keys.to_bytes(self.epoch_private_keys.pop(0))
+        # tx = PrivateKeyTransaction()
+        # tx.key = Keys.to_bytes(self.epoch_private_keys.pop(0))
+        tx = TransactionFactory.create_private_key_transaction(self.epoch_private_keys.pop(0))
         return tx
 
     def form_penalize_violators_transaction(self, conflicts):
@@ -278,11 +279,13 @@ class Node:
         
         self.logger.info("Forming transaction with conflicting blocks")
         self.logger.info(conflict.hex())
+        node_private = self.block_signer.private_key
 
-        penalty = PenaltyTransaction()
-        penalty.conflicts = conflicts
-        penalty.signature = Private.sign(penalty.get_hash(), self.block_signer.private_key)
-        return penalty
+        # penalty = PenaltyTransaction()
+        # penalty.conflicts = conflicts
+        # penalty.signature = Private.sign(penalty.get_hash(), self.block_signer.private_key)
+        tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
+        return tx
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
         ordered_senders = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
@@ -314,10 +317,11 @@ class Node:
         node_public = Private.publickey(node_private)
         pubkey_index = self.permissions.get_secret_sharer_from_public_key(node_public, epoch_hash)
 
-        tx = SplitRandomTransaction()
-        tx.pieces = encoded_splits
-        tx.pubkey_index = pubkey_index
-        tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), self.block_signer.private_key)
+        # tx = SplitRandomTransaction()
+        # tx.pieces = encoded_splits
+        # tx.pubkey_index = pubkey_index
+        # tx.signature = Private.sign(tx.get_signing_hash(epoch_hash), self.block_signer.private_key)
+        tx = TransactionFactory.create_split_random_transaction(encoded_splits, pubkey_index, epoch_hash, node_private)
         return tx
 
     def get_allowed_signers_for_next_block(self, block):
@@ -451,19 +455,25 @@ class Node:
     # Broadcast
     # -------------------------------------------------------------------------------
     def broadcast_stakehold_transaction(self):
-        tx = StakeHoldTransaction()
-        tx.amount = 1000
         node_private = self.block_signer.private_key
-        tx.pubkey = Private.publickey(node_private)
-        tx.signature = Private.sign(tx.get_hash(), node_private)
+
+        # tx = StakeHoldTransaction()
+        # tx.amount = 1000
+        # tx.pubkey = Private.publickey(node_private)
+        # tx.signature = Private.sign(tx.get_hash(), node_private)
+
+        tx = TransactionFactory.create_stake_hold_transaction(1000, node_private)
         self.logger.info("Broadcasted StakeHold transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_stakerelease_transaction(self):
-        tx = StakeReleaseTransaction()
         node_private = self.block_signer.private_key
-        tx.pubkey = Private.publickey(node_private)
-        tx.signature = Private.sign(tx.get_hash(), node_private)
+
+        # tx = StakeReleaseTransaction()
+        # tx.pubkey = Private.publickey(node_private)
+        # tx.signature = Private.sign(tx.get_hash(), node_private)
+
+        tx = TransactionFactory.create_stake_release_transaction(node_private)
         self.logger.info("Broadcasted release stake transaction")
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
