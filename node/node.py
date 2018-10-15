@@ -12,10 +12,6 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
-from tools.time import Time
-from transaction.gossip_transaction import NegativeGossipTransaction, \
-                                           PositiveGossipTransaction, \
-                                           PenaltyGossipTransaction
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from transaction.secret_sharing_transactions import PublicKeyTransaction, \
@@ -451,9 +447,6 @@ class Node:
         else:
             self.logger.error("Received gossip positive tx is invalid")
 
-    def handle_gossip_penalty(self, node_id, raw_gossip):
-        pass
-
     # -------------------------------------------------------------------------------
     # Broadcast
     # -------------------------------------------------------------------------------
@@ -475,31 +468,32 @@ class Node:
         self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_negative(self, block_number):
-        tx = NegativeGossipTransaction()
         node_private = self.block_signer.private_key
-        tx.pubkey = Private.publickey(node_private)
-        tx.timestamp = Time.get_current_time()
-        tx.number_of_block = block_number
-        tx.signature = Private.sign(tx.get_hash(), node_private)
-        self.logger.info("Broadcasted negative gossip transaction")
 
+        # tx = NegativeGossipTransaction()
+        # tx.pubkey = Private.publickey(node_private)
+        # tx.timestamp = Time.get_current_time()
+        # tx.number_of_block = block_number
+        # tx.signature = Private.sign(tx.get_hash(), node_private)
+
+        tx = TransactionFactory.create_negative_gossip_transaction(block_number, node_private)
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
+        self.logger.info("Broadcasted negative gossip transaction")
         self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_positive(self, signed_block_hash):
-        tx = PositiveGossipTransaction()
         node_private = self.block_signer.private_key
-        tx.pubkey = Private.publickey(node_private)
-        tx.timestamp = Time.get_current_time()
-        tx.block_hash = signed_block_hash
-        tx.signature = Private.sign(tx.get_hash(), node_private)
-        self.logger.info("Broadcasted positive gossip transaction")
 
+        # tx = PositiveGossipTransaction()
+        # tx.pubkey = Private.publickey(node_private)
+        # tx.timestamp = Time.get_current_time()
+        # tx.block_hash = signed_block_hash
+        # tx.signature = Private.sign(tx.get_hash(), node_private)
+
+        tx = TransactionFactory.create_positive_gossip_transaction(signed_block_hash, node_private)
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
+        self.logger.info("Broadcasted positive gossip transaction")
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
-
-    def broadcast_gossip_penalty(self, negative_gossip_hash, positive_gossip_hash):
-        pass
 
     # -------------------------------------------------------------------------------
     # Targeted request
