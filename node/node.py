@@ -52,6 +52,7 @@ class Node:
         self.reveals_to_send = {}
         self.sent_shares_epochs = []  # epoch hashes of secret shares
         self.last_expected_timeslot = 0
+        # TODO may be refactor needed
         # temporary solution (not send anothre block by same timeslot)
         self.last_signed_block_number = 0
 
