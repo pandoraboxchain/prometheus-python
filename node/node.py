@@ -38,7 +38,6 @@ class Node:
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
         self.epoch.set_logger(self.logger)
-        self.dag.subscribe_to_new_block_notification(self.epoch)
         self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
         self.behaviour = behaviour

@@ -21,7 +21,6 @@ class TestStakeActions(unittest.TestCase):
         dag = Dag(0)
         epoch = Epoch(dag)
         permissions = Permissions(epoch)
-        dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
         initial_validators = Validators.read_genesis_validators_from_file()
@@ -59,7 +58,6 @@ class TestStakeActions(unittest.TestCase):
         dag = Dag(0)
         epoch = Epoch(dag)
         permissions = Permissions(epoch)
-        dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
         initial_validators = Validators.read_genesis_validators_from_file()
@@ -97,7 +95,6 @@ class TestStakeActions(unittest.TestCase):
         dag = Dag(0)
         epoch = Epoch(dag)
         permissions = Permissions(epoch)
-        dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
         initial_validators = Validators.read_genesis_validators_from_file()
@@ -168,7 +165,6 @@ class TestStakeActions(unittest.TestCase):
         dag = Dag(0)
         epoch = Epoch(dag)
         permissions = Permissions(epoch)
-        dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
         initial_validators = Validators.read_genesis_validators_from_file()
@@ -208,7 +204,6 @@ class TestStakeActions(unittest.TestCase):
         dag = Dag(0)
         epoch = Epoch(dag)
         permissions = Permissions(epoch)
-        dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
         initial_validators = Validators.read_genesis_validators_from_file()

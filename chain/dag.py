@@ -14,6 +14,7 @@ class Dag:
         self.existing_links = []
         self.tops = {}
         self.new_block_listeners = []
+        self.new_top_block_event_listeners = []
         signed_genesis_block = SignedBlock()
         signed_genesis_block.set_block(self.genesis_block())
         self.add_signed_block(0, signed_genesis_block)
@@ -47,6 +48,8 @@ class Dag:
         self.existing_links += prev_hashes
         if not block_hash in self.existing_links:
             self.tops[block_hash] = block
+            for listener in self.new_top_block_event_listeners:
+                listener.on_top_block_added(block)
 
         self.add_txs_by_hash(block.block.system_txs)
 
@@ -115,6 +118,9 @@ class Dag:
 
     def subscribe_to_new_block_notification(self, listener):
         self.new_block_listeners.append(listener)
+    
+    def subscribe_to_new_top_block_notification(self, listener):
+        self.new_top_block_event_listeners.append(listener)
 
     def collect_next_blocks(self, block_hash):
         next_blocks = []

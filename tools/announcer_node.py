@@ -12,7 +12,6 @@ class AnnouncerNode:
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
         self.epoch.set_logger(self.logger)
-        self.dag.subscribe_to_new_block_notification(self.epoch)
         self.logger.info("Starting announcer node")
         self.last_announced_round = None
 

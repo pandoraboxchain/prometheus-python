@@ -16,6 +16,7 @@ class Epoch:
     def __init__(self, dag):
         self.dag = dag
         self.tops_and_epochs = { dag.genesis_block().get_hash() : dag.genesis_block().get_hash() }
+        self.dag.subscribe_to_new_top_block_notification(self)
         self.current_epoch = 1
 
     def set_logger(self, logger):
@@ -274,7 +275,7 @@ class Epoch:
     def get_epoch_hashes(self):
         return self.tops_and_epochs
 
-    def on_new_block_added(self, block):
+    def on_top_block_added(self, block):
         block_hash = block.get_hash()
         previous_top_epoch_hash = None
         for prev_hash in block.block.prev_hashes:
@@ -285,8 +286,10 @@ class Epoch:
                     previous_top_epoch_hash = self.tops_and_epochs[prev_hash]
                 del self.tops_and_epochs[prev_hash]
         
-        if previous_top_epoch_hash or not self.tops_and_epochs:
-            self.tops_and_epochs[block_hash] = previous_top_epoch_hash
+        if not previous_top_epoch_hash:
+            previous_top_epoch_hash = self.find_epoch_hash_for_block(block_hash)
+            
+        self.tops_and_epochs[block_hash] = previous_top_epoch_hash
         
     # this method should be called before posibility of adding any new block, so it can recalculate epoch hashes
     def is_new_epoch_upcoming(self, upcoming_block_number):

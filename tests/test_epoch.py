@@ -228,7 +228,6 @@ class TestEpoch(unittest.TestCase):
     def test_top_blocks(self):
         dag = Dag(0)
         epoch = Epoch(dag)
-        dag.subscribe_to_new_block_notification(epoch)
         private = Private.generate()
         
         epoch_hash = dag.genesis_block().get_hash()
@@ -277,7 +276,6 @@ class TestEpoch(unittest.TestCase):
     def test_private_keys_extraction(self):
         dag = Dag(0)
         epoch = Epoch(dag)
-        dag.subscribe_to_new_block_notification(epoch)
         node_private = Private.generate()
 
         prev_hash = dag.genesis_block().get_hash()
