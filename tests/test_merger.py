@@ -1,12 +1,10 @@
 import unittest
 from chain.block_factory import BlockFactory
 from chain.dag import Dag
-from chain.params import Round
 from crypto.private import Private
-from chain.epoch import BLOCK_TIME, Epoch
+from chain.epoch import BLOCK_TIME
 from chain.merger import Merger
 from tests.test_chain_generator import TestChainGenerator
-from visualization.dag_visualizer import DagVisualizer
 
 
 class TestMerger(unittest.TestCase):
@@ -96,7 +94,7 @@ class TestMerger(unittest.TestCase):
         self.assertEqual(res[2], dag.blocks_by_number[4][0])
         self.assertEqual(res[3], dag.blocks_by_number[6][0])
         self.assertEqual(res[4], dag.blocks_by_number[9][0])
-        self.assertEqual(res[5], dag.blocks_by_number[2][0]) #TODO find out why is this 2 here
+        self.assertEqual(res[5], dag.blocks_by_number[2][0])  # TODO find out why is this 2 here
         self.assertEqual(res[6], dag.blocks_by_number[7][0])
         self.assertEqual(res[7], dag.blocks_by_number[8][0])
         self.assertEqual(res[8], dag.blocks_by_number[5][0])
