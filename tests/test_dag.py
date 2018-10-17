@@ -220,3 +220,71 @@ class TestDag(unittest.TestCase):
 
     def test_top_blocks_in_range_out_of_range(self):
         pass #TODO
+
+    def test_two_tops_on_epoch_end(self):
+        # generate two blocks on epoch end
+        # 1 --- [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+        # 2 --- [ , , ,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+        epoch_range = range(1, 20)
+        epoch_range_2 = range(3, 20)
+        dag = Dag(0)
+        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+                                                       prev_hash=dag.genesis_block().get_hash(),
+                                                       range=epoch_range,
+                                                       indices_to_skip=[])
+        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+                                                       prev_hash=dag.blocks_by_number[2][0].get_hash(),
+                                                       range=epoch_range_2,
+                                                       indices_to_skip=[])
+        # DagVisualizer.visualize(dag)  # uncomment for discover in visualization folder
+        tops = dag.get_top_blocks_hashes()
+        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1]])
+        expected_intersection = dag.blocks_by_number[2][0].get_hash()
+
+        self.assertEqual(expected_intersection, found_intersection)
+
+    def test_two_tops_on_next_epoch_middle(self):
+        # generate two blocks on epoch end
+        # 1 --- [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,27,29]
+        # 2 --- [ , , ,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,27,29]
+        epoch_range = range(1, 30)
+        epoch_range_2 = range(3, 30)
+        dag = Dag(0)
+        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+                                                       prev_hash=dag.genesis_block().get_hash(),
+                                                       range=epoch_range,
+                                                       indices_to_skip=[])
+        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+                                                       prev_hash=dag.blocks_by_number[2][0].get_hash(),
+                                                       range=epoch_range_2,
+                                                       indices_to_skip=[])
+        # DagVisualizer.visualize(dag)  # uncomment for discover in visualization folder
+        tops = dag.get_top_blocks_hashes()
+        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1]])
+        expected_intersection = dag.blocks_by_number[2][0].get_hash()
+
+        self.assertEqual(expected_intersection, found_intersection)
+
+    def test_common_ancestor(self):
+        dag = TestChainGenerator.generate_two_chains(5)
+        expected_intersection = dag.blocks_by_number[1][0].get_hash()
+        
+        tops = dag.get_top_blocks_hashes()
+        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1]])
+
+        self.assertEqual(expected_intersection, found_intersection)
+
+    def test_multiple_chain_common_ancestor(self):
+        dag = Dag(0)
+        genesis_hash = dag.genesis_block().get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,10), [2,5,7,8])
+        first_block = dag.blocks_by_number[1][0].get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, first_block, range(2,10), [3,4,6,7,8,9])
+        second_block = dag.blocks_by_number[2][0].get_hash()
+        TestChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
+        expected_intersection = dag.blocks_by_number[1][0].get_hash()
+        
+        tops = dag.get_top_blocks_hashes()
+        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1], tops[2]])
+
+        self.assertEqual(expected_intersection, found_intersection)

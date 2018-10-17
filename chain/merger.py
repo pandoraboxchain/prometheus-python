@@ -36,29 +36,9 @@ class Merger:
         return top, conflicts
 
     # TODO may be move to DAG ----> ?
-    def get_common_ancestor(self, first_chain, second_chain):
-        first_blocks = []
-        second_blocks = []
-        first_iter = ChainIter(self.dag, first_chain)
-        second_iter = ChainIter(self.dag, second_chain)
-        while True: # TODO sane exit condition
-            first_chain_block = first_iter.next()
-            if first_chain_block:
-                block_hash = first_chain_block.get_hash()
-                if block_hash in second_blocks:
-                    return block_hash
-                first_blocks.append(block_hash)
-            second_chain_block = second_iter.next()
-            if second_chain_block:
-                block_hash = second_chain_block.get_hash()
-                if block_hash in first_blocks:
-                    return block_hash
-                second_blocks.append(block_hash)
-
-    # TODO may be move to DAG ----> ?
     # returns part of of second chain where they diverge
     def get_difference(self, first_chain, second_chain):
-        common_ancestor = self.get_common_ancestor(first_chain, second_chain)
+        common_ancestor = self.get_multiple_common_ancestor([first_chain, second_chain])
 
         chain_diff = []
         chain_iter = ChainIter(self.dag, second_chain)
