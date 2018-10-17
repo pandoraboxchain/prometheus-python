@@ -9,7 +9,7 @@ from chain.conflict_finder import ConflictFinder
 
 class TestConflictFinder(unittest.TestCase):
 
-    def test_find_conflicts(self):
+    def test_find_conflicts_longest_chain(self):
         dag = Dag(0)
         # generate test case
         # time_slot [0, 1, 2, 3, 4, 5, 6]
@@ -48,9 +48,7 @@ class TestConflictFinder(unittest.TestCase):
         top, conflicts = conflict_finder.find_conflicts(top_blocks)
         self.assertEqual(determinated_top_hash, top)
         # test conflicts
-        self.assertEqual(len(conflicts[0]), 2)
-        self.assertEqual(len(conflicts[1]), 3)
-        self.assertEqual(len(conflicts[2]), 3)
+        self.assertEqual(len(conflicts), 8)
 
 
 

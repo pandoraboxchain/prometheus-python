@@ -1,16 +1,15 @@
-from chain.merger import Merger
 
 
 class ConflictFinder:
 
     def __init__(self, dag):
         self.dag = dag
-        self.merger = Merger(dag)
 
     def find_conflicts(self, top_blocks):
         conflicts = []
+        conflicts_list = []
         # get ancestor
-        ancestor_for_top = self.merger.get_multiple_common_ancestor(top_blocks)
+        ancestor_for_top = self.dag.get_multiple_common_ancestor(top_blocks)
         # get ancestor block number
         ancestor_block_number = self.dag.get_block_number(ancestor_for_top)
 
@@ -22,7 +21,12 @@ class ConflictFinder:
         for block_number in range(ancestor_block_number + 1, top_block_number):
             conflicts.append(self.dag.blocks_by_number[block_number])
 
-        return top_block_hash, conflicts
+        # make conflicts as list
+        for conflict in conflicts:
+            for block in conflict:
+                conflicts_list.append(block)
+
+        return top_block_hash, conflicts_list
 
     # ------------------------------------------------------------
     # internal methods
