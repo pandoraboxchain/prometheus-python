@@ -238,7 +238,7 @@ class TestDag(unittest.TestCase):
                                                        indices_to_skip=[])
         # DagVisualizer.visualize(dag)  # uncomment for discover in visualization folder
         tops = dag.get_top_blocks_hashes()
-        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1]])
+        found_intersection = dag.get_common_ancestor([tops[0], tops[1]])
         expected_intersection = dag.blocks_by_number[2][0].get_hash()
 
         self.assertEqual(expected_intersection, found_intersection)
@@ -260,7 +260,7 @@ class TestDag(unittest.TestCase):
                                                        indices_to_skip=[])
         # DagVisualizer.visualize(dag)  # uncomment for discover in visualization folder
         tops = dag.get_top_blocks_hashes()
-        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1]])
+        found_intersection = dag.get_common_ancestor([tops[0], tops[1]])
         expected_intersection = dag.blocks_by_number[2][0].get_hash()
 
         self.assertEqual(expected_intersection, found_intersection)
@@ -270,7 +270,7 @@ class TestDag(unittest.TestCase):
         expected_intersection = dag.blocks_by_number[1][0].get_hash()
         
         tops = dag.get_top_blocks_hashes()
-        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1]])
+        found_intersection = dag.get_common_ancestor([tops[0], tops[1]])
 
         self.assertEqual(expected_intersection, found_intersection)
 
@@ -285,6 +285,6 @@ class TestDag(unittest.TestCase):
         expected_intersection = dag.blocks_by_number[1][0].get_hash()
         
         tops = dag.get_top_blocks_hashes()
-        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1], tops[2]])
+        found_intersection = dag.get_common_ancestor([tops[0], tops[1], tops[2]])
 
         self.assertEqual(expected_intersection, found_intersection)

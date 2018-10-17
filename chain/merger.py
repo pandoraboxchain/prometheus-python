@@ -35,10 +35,10 @@ class Merger:
 
         return top, conflicts
 
-    # TODO may be move to DAG ----> ?
+    # TODO deprecated
     # returns part of of second chain where they diverge
     def get_difference(self, first_chain, second_chain):
-        common_ancestor = self.get_multiple_common_ancestor([first_chain, second_chain])
+        common_ancestor = self.dag.get_common_ancestor([first_chain, second_chain])
 
         chain_diff = []
         chain_iter = ChainIter(self.dag, second_chain)
@@ -64,7 +64,7 @@ class Merger:
         return sorted_keys
         
     def merge(self, tops, conflicts=[]):
-        common_ancestor = self.dag.get_multiple_common_ancestor(tops)
+        common_ancestor = self.dag.get_common_ancestor(tops)
         chains = [MergedChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
         deterministic_order = Merger.sort_deterministically(sizes)

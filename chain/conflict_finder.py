@@ -17,7 +17,7 @@ class ConflictFinder:
         """
         all_conflicts = []
         # get ancestor
-        ancestor_for_top = self.dag.get_multiple_common_ancestor(top_blocks)
+        ancestor_for_top = self.dag.get_common_ancestor(top_blocks)
         # get ancestor block number
         ancestor_block_number = self.dag.get_block_number(ancestor_for_top)
 

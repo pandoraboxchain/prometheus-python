@@ -119,8 +119,6 @@ class TestNode(unittest.TestCase):
         node0.dag = TestChainGenerator.generate_two_chains(19)
         tops = node0.dag.get_top_hashes()
 
-        from visualization.dag_visualizer import DagVisualizer
-        DagVisualizer.visualize(node0.dag, True)
         # assign pseudo generated list of validators to cache for each epoch
 
         # same validators

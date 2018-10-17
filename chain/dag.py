@@ -153,7 +153,7 @@ class Dag:
         assert block_hash in self.blocks_by_hash, "No block with such hash found"
         return self.blocks_by_hash[block_hash].block.prev_hashes
 
-    def get_multiple_common_ancestor(self, chain_list):
+    def get_common_ancestor(self, chain_list):
         chains_blocks_lists = []
         iters = []
         length = len(chain_list)
