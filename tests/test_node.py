@@ -90,6 +90,59 @@ class TestNode(unittest.TestCase):
 
         self.assertEqual(len(pubkeys), 1)
 
+    def test_allowed_signers_by_block_number(self):
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0, 1, 2] * 10
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
+        validators_pubkeys = [validator.public_key for validator in validators.validators]
+
+        network = NodeApi()
+        node0 = Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators)
+        network.register_node(node0)
+                    
+        allowed_signers = node0.get_allowed_signers_for_block_number(3)
+        self.assertEqual(allowed_signers[0], validators_pubkeys[2]) #simple case
+
+        # generate two branches resulting in two epoch_hashes
+        node0.dag = TestChainGenerator.generate_two_chains(19)
+        tops = node0.dag.get_top_hashes()
+
+        from visualization.dag_visualizer import DagVisualizer
+        DagVisualizer.visualize(node0.dag, True)
+        # assign pseudo generated list of validators to cache for each epoch
+
+        # same validators
+        node0.permissions.epoch_validators[tops[0]] = validators.validators
+        # different order
+        node0.permissions.signers_indexes[tops[0]] = [1,1,1] * 10
+
+        # same validators
+        node0.permissions.epoch_validators[tops[1]] = validators.validators
+        # different order
+        node0.permissions.signers_indexes[tops[1]] = [5,5,5] * 10
+
+        allowed_signers = node0.get_allowed_signers_for_block_number(21)
+        self.assertEqual(len(allowed_signers), 2)
+        self.assertIn(validators_pubkeys[1], allowed_signers)
+        self.assertIn(validators_pubkeys[5], allowed_signers)
+
+
+        
+
+        
+
         
 
 

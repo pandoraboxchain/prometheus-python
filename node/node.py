@@ -491,7 +491,7 @@ class Node:
         
         # this will extract every unconnected block in epoch, which is practically epoch hash
         # TODO maybe consider blocks to be epoch hashes if they are in final round and consider everything else is orphan
-        epoch_hashes = self.dag.get_branches_for_timeslot_range(prev_epoch_start, prev_epoch_end)
+        epoch_hashes = self.dag.get_branches_for_timeslot_range(prev_epoch_start, prev_epoch_end + 1)
         
         if prev_epoch_number == 0:
             epoch_hashes = [self.dag.genesis_block().get_hash()]
