@@ -15,5 +15,6 @@ from tests.test_random import *
 from tests.test_secret_sharing import *
 from tests.test_stake_transaction import *
 from tests.test_transaction import *
+from tests.test_conflict_finder import *
 
 unittest.main()

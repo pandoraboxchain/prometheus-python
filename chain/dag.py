@@ -4,6 +4,7 @@ from chain.signed_block import SignedBlock
 from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction, \
     PenaltyGossipTransaction
 
+
 class Dag:
     
     def __init__(self, genesis_creation_time):
@@ -101,10 +102,10 @@ class Dag:
             result = result or self.is_ancestor(prev_hash, hash_to_find)
         return result
 
-    #returns longest chain and chooses randomly if there are equal length longest chains
+    # returns longest chain and chooses randomly if there are equal length longest chains
     def get_longest_chain_top_block(self, top_blocks):
-        randgen = random.SystemRandom() #crypto secure random
-        randgen.shuffle(top_blocks) #randomly shuffle tops so same length chains won't be chosen deterministically
+        randgen = random.SystemRandom()  # crypto secure random
+        randgen.shuffle(top_blocks)  # randomly shuffle tops so same length chains won't be chosen deterministically
 
         max_length = 0
         max_length_index = 0
@@ -151,6 +152,38 @@ class Dag:
     def get_links(self, block_hash):
         assert block_hash in self.blocks_by_hash, "No block with such hash found"
         return self.blocks_by_hash[block_hash].block.prev_hashes
+
+    def get_multiple_common_ancestor(self, chain_list):
+        chains_blocks_lists = []
+        iters = []
+        length = len(chain_list)
+        for i in range(length):
+            chains_blocks_lists.append([])
+            iterator = ChainIter(self, chain_list[i])
+            iters.append(iterator)
+
+        while True:  # TODO sane exit condition
+            this_round_blocks = []
+            for i in range(length):
+                try:
+                    block = iters[i].next()
+                    if block:
+                        block_hash = block.get_hash()
+                        chains_blocks_lists.append(block_hash)
+                        this_round_blocks.append(block_hash)
+                except StopIteration:
+                    pass
+
+            for block in this_round_blocks:
+                count = 0
+                for block_list in chains_blocks_lists:
+                    if block in block_list:
+                        count += 1
+                if count == length:
+                    return block
+
+        assert False, "No common ancestor found"
+        return None
 
     # ------------------------------
     # transaction methods

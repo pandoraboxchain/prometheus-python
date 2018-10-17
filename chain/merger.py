@@ -8,6 +8,7 @@ class Merger:
     def __init__(self, dag):
         self.dag = dag
 
+    # TODO @deprecated ?
     # returns longest chain top hash and the rest of top block hashes
     def get_top_and_conflicts(self):
         top_blocks = list(self.dag.get_top_blocks().keys())
@@ -34,12 +35,13 @@ class Merger:
 
         return top, conflicts
 
+    # TODO may be move to DAG ----> ?
     def get_common_ancestor(self, first_chain, second_chain):
         first_blocks = []
         second_blocks = []
         first_iter = ChainIter(self.dag, first_chain)
         second_iter = ChainIter(self.dag, second_chain)
-        while True: #TODO sane exit condition
+        while True: # TODO sane exit condition
             first_chain_block = first_iter.next()
             if first_chain_block:
                 block_hash = first_chain_block.get_hash()
@@ -53,40 +55,8 @@ class Merger:
                     return block_hash
                 second_blocks.append(block_hash)
 
-    def get_multiple_common_ancestor(self, chain_list):
-        chains_blocks_lists = []
-        iters = []
-        length = len(chain_list)
-        for i in range(length):
-            chains_blocks_lists.append([])
-            iterator = ChainIter(self.dag, chain_list[i])
-            iters.append(iterator)
-        
-        while True: #TODO sane exit condition
-            this_round_blocks = []
-            for i in range(length):
-                try:
-                    block = iters[i].next()
-                    if block:
-                        block_hash = block.get_hash()
-                        chains_blocks_lists.append(block_hash)
-                        this_round_blocks.append(block_hash)
-                except StopIteration:
-                    pass
-            
-            for block in this_round_blocks:
-                count = 0
-                for block_list in chains_blocks_lists:
-                    if block in block_list:
-                        count += 1
-                if count == length:
-                    return block
-        
-        assert False, "No common ancestor found"
-        return None
-        
-
-    #returns part of of second chain where they diverge
+    # TODO may be move to DAG ----> ?
+    # returns part of of second chain where they diverge
     def get_difference(self, first_chain, second_chain):
         common_ancestor = self.get_common_ancestor(first_chain, second_chain)
 
@@ -114,7 +84,7 @@ class Merger:
         return sorted_keys
         
     def merge(self, tops):
-        common_ancestor = self.get_multiple_common_ancestor(tops)
+        common_ancestor = self.dag.get_multiple_common_ancestor(tops)
         chains = [FlatChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
         deterministic_order = Merger.sort_deterministically(sizes)
