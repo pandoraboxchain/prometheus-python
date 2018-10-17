@@ -45,6 +45,7 @@ class ConflictFinder:
                                            top_block_hash,
                                            ancestor_for_top,
                                            conflicts):
+        # сделать проще, убрать весь выбранный топ чейн на фильтрации и постараться обойтись только хешами
         conflicts_list_result = []  # result
         top_blocks_by_number = self.dag.blocks_by_number[top_block_number]
         block_last_timeslot = []

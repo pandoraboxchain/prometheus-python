@@ -1,5 +1,6 @@
 import unittest
 
+from chain.confirmation_requirement import ConfirmationRequirement
 from chain.dag import Dag
 from crypto.private import Private
 from tests.test_chain_generator import TestChainGenerator
@@ -272,4 +273,42 @@ class TestConflictFinder(unittest.TestCase):
         # EXCLUDE flatten top chain from list of conflict block hashes
         self.assertEqual(len(conflicts), 17)
 
+    def test_merged_dag(self):
+        dag = Dag(0)
+        # generate test case
+        # time_slot [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        # ----------------------------------------
+        # 1 ------- [0, 1, 2, 3, 4]
+        # 2 ------- [ ,  , 2, s, s]
+        # 3 ------- [ ,  , 2, s, s]
+        # 4 ------- [ ,  , 2, 3, s]
+        # s - same block (merged)
+        conf_req = ConfirmationRequirement(dag)
+
+        genesis_hash = dag.genesis_block().get_hash()
+
+        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        conf_req.blocks[block_hash] = 2
+        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        conf_req.blocks[block_hash] = 3
+        block_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 2)
+        conf_req.blocks[block_hash] = 3
+        last_block_in_seq_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        conf_req.blocks[last_block_in_seq_hash] = 3
+        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        conf_req.blocks[block_hash] = 3
+        block_hash = TestChainGenerator.insert_dummy(dag, [last_block_in_seq_hash, block_hash], 2)
+        conf_req.blocks[block_hash] = 4
+        block_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 3)
+        conf_req.blocks[block_hash] = 4
+        top_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 4)
+
+        DagVisualizer.visualize(dag)
+
+        conflict_finder = ConflictFinder(dag)
+        top_blocks = list(dag.get_top_blocks().keys())
+        top, conflicts = conflict_finder.find_conflicts(top_blocks)
+        self.assertEqual(top, top_hash)  # strong determined top
+        # CHAIN ALREADY MERGED
+        self.assertEqual(len(conflicts), 0)
 
