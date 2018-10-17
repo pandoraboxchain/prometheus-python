@@ -33,7 +33,7 @@ class TestChainGenerator:
         return TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range, [], dummy_private)
   
     @staticmethod
-    def fill_with_dummies_and_skips(dag, prev_hash, range, indices_to_skip, dummy_private):
+    def fill_with_dummies_and_skips(dag, prev_hash, range, indices_to_skip, dummy_private=Private.generate()):
         prev_hash_number = dag.get_block_number(prev_hash)
         assert range.start > prev_hash_number, "First block timeslot should be later than anchoring previous block"
 

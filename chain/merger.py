@@ -84,7 +84,7 @@ class Merger:
         return sorted_keys
         
     def merge(self, tops):
-        common_ancestor = self.get_multiple_common_ancestor(tops)
+        common_ancestor = self.dag.get_multiple_common_ancestor(tops)
         chains = [FlatChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
         deterministic_order = Merger.sort_deterministically(sizes)

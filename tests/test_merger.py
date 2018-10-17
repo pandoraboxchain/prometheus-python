@@ -59,7 +59,7 @@ class TestMerger(unittest.TestCase):
         
         merger = Merger(dag)
         tops = dag.get_top_blocks_hashes()
-        found_intersection = merger.get_multiple_common_ancestor([tops[0], tops[1], tops[2]])
+        found_intersection = dag.get_multiple_common_ancestor([tops[0], tops[1], tops[2]])
 
         self.assertEqual(expected_intersection, found_intersection)
 

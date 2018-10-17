@@ -239,7 +239,7 @@ class TestConflictFinder(unittest.TestCase):
             TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[3][1].get_hash(),
                                                            range=range(4, 11, 1),
-                                                           indices_to_skip=[5, 7, 10],
+                                                           indices_to_skip=[5, 8, 10],
                                                            dummy_private=private4)
 
         top_hash_5 = \
