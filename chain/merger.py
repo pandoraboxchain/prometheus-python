@@ -1,7 +1,7 @@
 import random
 from chain.immutability import Immutability
 from chain.dag import ChainIter
-from chain.flat_chain import FlatChain
+from chain.MergedChain import MergedChain
 
 class Merger:
 
@@ -85,15 +85,15 @@ class Merger:
         
     def merge(self, tops):
         common_ancestor = self.dag.get_multiple_common_ancestor(tops)
-        chains = [FlatChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
+        chains = [MergedChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
         deterministic_order = Merger.sort_deterministically(sizes)
         sorted_chains = [chains[index] for index in deterministic_order]
 
         active = sorted_chains[0]
         mp = active.get_merging_point()
-        active_merged_point = FlatChain(active[:mp])
-        merged_chain = FlatChain(active[:mp])
+        active_merged_point = MergedChain(active[:mp])
+        merged_chain = MergedChain(active[:mp])
 
         # for chain in chains:
         #     chain_str = ""
