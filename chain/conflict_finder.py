@@ -20,6 +20,7 @@ class ConflictFinder:
 
         for block_number in range(ancestor_block_number + 1, top_block_number):
             conflicts.append(self.dag.blocks_by_number[block_number])
+        conflicts.append(self.check_conflicts_for_determined_top(top_block_number, top_block_hash))
 
         # make conflicts as list
         for conflict in conflicts:
@@ -38,5 +39,13 @@ class ConflictFinder:
         else:  # determinate current top (if tops=1)
             top = top_blocks[0]
         return top
+
+    def check_conflicts_for_determined_top(self, top_block_number, top_block_hash):
+        result = []
+        blocks_in_top = self.dag.blocks_by_number[top_block_number]
+        for block in blocks_in_top:
+            if block.get_hash() != top_block_hash:
+                result.append(block)
+        return result
 
 
