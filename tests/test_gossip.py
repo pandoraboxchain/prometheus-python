@@ -863,6 +863,7 @@ class TestGossip(unittest.TestCase):
             node5.step()
             if i == 21:
                 # ! chek up validators list on new epoch upcoming
+                # TODO sometimes fall for unknoun reason
                 self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i-1)
                 self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 19)
                 # TODO nodes recalculates 2 times ?

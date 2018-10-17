@@ -48,8 +48,8 @@ class TestConflictFinder(unittest.TestCase):
         top, conflicts = conflict_finder.find_conflicts(top_blocks)
         # assert determined top
         self.assertEqual(determinated_top_hash, top)
-        # test conflicts
-        self.assertEqual(len(conflicts), 8)
+        # test conflicts [3],[4,4],[5,5] EXCLUDE flatten top chain from list of conflict block hashes
+        self.assertEqual(len(conflicts), 5)
 
     def test_find_conflicts_random_chain(self):
         dag = Dag(0)
@@ -93,8 +93,8 @@ class TestConflictFinder(unittest.TestCase):
         tops = [top_hash_1, top_hash_2, top_hash_3]
         self.assertIn(top, tops)
         # test conflicts
-        # conflicts include all [3,3],[4,4,4],[5,5] excluding!!! determined top
-        self.assertEqual(len(conflicts), 7)
+        # conflicts include all [3],[4,4],[5,5] EXCLUDE flatten top chain from list of conflict block hashes
+        self.assertEqual(len(conflicts), 5)
 
     def test_conflicts_with_skips(self):
         dag = Dag(0)
@@ -137,9 +137,21 @@ class TestConflictFinder(unittest.TestCase):
         # assert determined top (it can be one of top_hash1,2,3)
         tops = [top_hash_1, top_hash_2, top_hash_3]
         self.assertIn(top, tops)
-        # test conflicts
-        # conflicts include all [3,3],[4,4],[5,5],[6,6,6],[7,7],[8,8] excluding!!! determined top (one of 8)
-        self.assertEqual(len(conflicts), 13)
+        if top == top_hash_1:
+            # test conflicts
+            # conflicts include all [3],[4,4],[5],[6,6],[7],[8,8]
+            # EXCLUDE flatten top chain from list of conflict block hashes
+            self.assertEqual(len(conflicts), 9)
+        if top == top_hash_2:
+            # test conflicts
+            # conflicts include all [3],[4],[5,5],[6,6],[7],[8,8]
+            # EXCLUDE flatten top chain from list of conflict block hashes
+            self.assertEqual(len(conflicts), 9)
+        if top == top_hash_3:
+            # test conflicts
+            # conflicts include all [3],[4],[5],[6,6],[7,7],[8,8]
+            # EXCLUDE flatten top chain from list of conflict block hashes
+            self.assertEqual(len(conflicts), 9)
 
     def test_complicated_dag_with_skips(self):
         dag = Dag(0)
@@ -190,12 +202,13 @@ class TestConflictFinder(unittest.TestCase):
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
         top, conflicts = conflict_finder.find_conflicts(top_blocks)
-        # assert determined top (it can be one of top_hash_1,2,3,4)
-        tops = [top_hash_1, top_hash_2, top_hash_3, top_hash_4]
+        # assert determined top (it can be one of longest top_hash_3,4)
+        tops = [top_hash_3, top_hash_4]
         self.assertIn(top, tops)
         # test conflicts
-        # conflicts include all [2,2],[3,3],[4,4,4],[5,5,5],[6,6,6],[7,7],[8,8,8] excluding!!! determined top (one of 8)
-        self.assertEqual(len(conflicts), 18)
+        # conflicts include all [2],[3],[4,4],[5,5,5],[6,6],[7],[8,8,8]
+        # EXCLUDE flatten top chain from list of conflict block hashes
+        self.assertEqual(len(conflicts), 13)
 
     def test_complicated_dag_with_skips_and_determined_top(self):
         dag = Dag(0)
@@ -255,8 +268,8 @@ class TestConflictFinder(unittest.TestCase):
         top_blocks = list(dag.get_top_blocks().keys())
         top, conflicts = conflict_finder.find_conflicts(top_blocks)
         self.assertEqual(top, top_hash_1)  # strong determined top (longest chain in current case) min. skipped blocks
-        # test conflicts
-        # conflicts include all [2,2],[3,3],[4,4,4],[5,5],[6,6,6],[7],[8,8,8,8],[9,9,9,9,9],[10]
-        self.assertEqual(len(conflicts), 23)
+        # conflicts include all [2],[3],[4,4],[5],[6,6,6],[7,7],[8,8],[9,9,9,9],[10]
+        # EXCLUDE flatten top chain from list of conflict block hashes
+        self.assertEqual(len(conflicts), 17)
 
 
