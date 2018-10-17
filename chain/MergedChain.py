@@ -4,7 +4,9 @@ from chain.params import ZETA
 
 # from chain.merger import Merger #it should be cyclic dependency, so I just  
 
-class FlatChain(list):
+
+# TODO possibly deprecated
+class MergedChain(list):
 
     def __init__(self, other):
         for i in other:
@@ -35,29 +37,7 @@ class FlatChain(list):
 
         flat_chain.append(dag.blocks_by_hash[to_hash])
 
-        return FlatChain(list(reversed(flat_chain)))
-
-    @staticmethod
-    def get_flatten_by_block_hash(dag, from_hash, to_hash):
-        flat_chain = []
-        chain_iter = ChainIter(dag, from_hash)
-        block = chain_iter.next()
-        block_hash = block.get_hash()
-        while block_hash != to_hash:
-            if not block:
-                flat_chain.append(None)
-            else:
-                flat_chain.append(block)
-
-            block = chain_iter.next()
-            if block:
-                block_hash = block.get_hash()
-            else:
-                block_hash = None
-
-        flat_chain.append(dag.blocks_by_hash[to_hash])
-
-        return FlatChain(list(reversed(flat_chain)))
+        return MergedChain(list(reversed(flat_chain)))
 
     def get_chain_size(self):
         count = 0
@@ -74,7 +54,7 @@ class FlatChain(list):
             if not stop:
                 i+=1
         dpoint = i
-        return FlatChain(another[dpoint:])
+        return MergedChain(another[dpoint:])
 
     def get_merging_point(self):
         i = 0
