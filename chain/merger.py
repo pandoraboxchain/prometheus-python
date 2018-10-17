@@ -1,7 +1,7 @@
 import random
 from chain.immutability import Immutability
 from chain.dag import ChainIter
-from chain.MergedChain import MergedChain
+from chain.merged_chain import MergedChain
 
 class Merger:
 
