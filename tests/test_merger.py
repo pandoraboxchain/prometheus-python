@@ -1,10 +1,11 @@
 import unittest
 from chain.block_factory import BlockFactory
 from chain.dag import Dag
-from crypto.private import Private
 from chain.epoch import BLOCK_TIME
 from chain.merger import Merger
+from crypto.private import Private
 from tests.test_chain_generator import TestChainGenerator
+from visualization.dag_visualizer import DagVisualizer
 
 
 class TestMerger(unittest.TestCase):
@@ -144,4 +145,51 @@ class TestMerger(unittest.TestCase):
         expected_intersection = dag.blocks_by_number[2][0].get_hash()
 
         self.assertEqual(expected_intersection, found_intersection)
+
+    def test_merge_with_conflict_simplest(self):
+        dag = Dag(0)
+
+        genesis_hash = dag.genesis_block().get_hash()
+
+        block_hash1 = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash2 = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+
+        # DagVisualizer.visualize(dag, True)  # uncomment for discover in visualization folder
+
+        conflicts = [block_hash1]
+
+        merger = Merger(dag)
+        res = merger.merge(dag.get_top_hashes(), conflicts)
+
+        self.assertEqual(res[0].get_hash(), genesis_hash)
+        self.assertEqual(res[1].get_hash(), block_hash2)
+
+    def test_merge_with_conflict_simple(self):
+        dag = Dag(0)
+
+        genesis_hash = dag.genesis_block().get_hash()
+
+        block_hash1 = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        
+        conflicting_block_hash1 = TestChainGenerator.insert_dummy(dag, [block_hash1], 2)
+        conflicting_block_hash2 = TestChainGenerator.insert_dummy(dag, [block_hash1], 2)
+
+        block_hash3 = TestChainGenerator.insert_dummy(dag, [conflicting_block_hash2], 3)
+
+        # DagVisualizer.visualize(dag, True)  # uncomment for discover in visualization folder
+
+        conflicts = [conflicting_block_hash1]
+ 
+        merger = Merger(dag)
+        res = merger.merge(dag.get_top_hashes(), conflicts)
+
+        # self.assertEqual(res[0].get_hash(), genesis_hash) #no genesis hash since common ancestor is first block
+        self.assertEqual(res[0].get_hash(), block_hash1)
+        self.assertEqual(res[1].get_hash(), conflicting_block_hash2)
+        self.assertEqual(res[2].get_hash(), block_hash3)
+
+
+
+
+
 

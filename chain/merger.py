@@ -83,7 +83,7 @@ class Merger:
         sorted_keys = [key for key,value in sorted_dict]
         return sorted_keys
         
-    def merge(self, tops):
+    def merge(self, tops, conflicts=[]):
         common_ancestor = self.dag.get_multiple_common_ancestor(tops)
         chains = [MergedChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
@@ -109,17 +109,21 @@ class Merger:
             diffchain = active_merged_point.get_diff(chain)
             for block in diffchain:
                 if block:
-                    if not diffchain.is_block_mutable(block.get_hash()):
-                        if not block in merged_chain:
-                            merged_chain.append(block)
+                    block_hash = block.get_hash()
+                    if block_hash not in conflicts:
+                        if not diffchain.is_block_mutable(block.get_hash()):
+                            if not block in merged_chain:
+                                merged_chain.append(block)
         
         for chain in sorted_chains:
             diffchain = active_merged_point.get_diff(chain)
             for block in diffchain:
                 if block:
-                    if diffchain.is_block_mutable(block.get_hash()):
-                        if not block in merged_chain:
-                            merged_chain.append(block)
+                    block_hash = block.get_hash()
+                    if block_hash not in conflicts:
+                        if diffchain.is_block_mutable(block.get_hash()):
+                            if not block in merged_chain:
+                                merged_chain.append(block)
 
         return merged_chain
 

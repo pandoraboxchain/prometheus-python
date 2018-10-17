@@ -6,8 +6,8 @@ from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
-from chain.merger import Merger
 from chain.transaction_factory import TransactionFactory
+from chain.conflict_finder import ConflictFinder
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
@@ -38,7 +38,6 @@ class Node:
         self.dag = Dag(genesis_creation_time)
         self.epoch = Epoch(self.dag)
         self.epoch.set_logger(self.logger)
-        self.dag.subscribe_to_new_block_notification(self.epoch)
         self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
         self.behaviour = behaviour
@@ -162,8 +161,10 @@ class Node:
         gossip_mempool_txs = self.mempool.pop_current_gossips()  # POP gossips to block
         transactions += gossip_mempool_txs
 
-        merger = Merger(self.dag)
-        top, conflicts = merger.get_top_and_conflicts()
+        tops = self.dag.get_top_blocks_hashes()
+        conflict_finder = ConflictFinder(self.dag)
+        chosen_top, conflicts = conflict_finder.find_conflicts(tops)
+        conflicting_tops = [top for top in tops if top != chosen_top]
         
         if current_round_type == Round.PRIVATE:
             if self.epoch_private_keys:
@@ -181,9 +182,7 @@ class Node:
                                                                          node_private=self.block_signer.private_key)
                 transactions.append(penalty_gossip_tx)
 
-        current_top_blocks = [top]
-        if conflicts:
-            current_top_blocks += conflicts
+        current_top_blocks = [chosen_top] + conflicting_tops #first link in dag is not considered conflict, the rest is.
         
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = transactions
