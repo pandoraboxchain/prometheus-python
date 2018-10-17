@@ -132,7 +132,6 @@ class Epoch:
                         random_pieces_list.append(tx.pieces)
 
         random_pieces_list = list(reversed(random_pieces_list))
-        # unique_randoms = Epoch.make_unique_list(random_pieces_list)
         return random_pieces_list
 
     def get_commits_for_epoch(self, block_hash):
@@ -251,14 +250,6 @@ class Epoch:
         epoch_number = Epoch.get_epoch_number(global_block_number)
         epoch_start_block_number = Epoch.get_epoch_start_block_number(epoch_number)
         return global_block_number - epoch_start_block_number
-
-    @staticmethod
-    def make_unique_list(list):  # TODO move into separate file
-        unique_list = [] 
-        for item in list:       
-            if not item in unique_list:
-                unique_list.append(item)
-        return unique_list
     
     def find_epoch_hash_for_block(self, block_hash):
         chain_iter = ChainIter(self.dag, block_hash)

@@ -13,20 +13,7 @@ class ConfirmationRequirement:
     def on_new_block_added(self, block):
         block_hash = block.get_hash()
 
-        # this_block_confirmation_requirement = None
-        # for prev_hash in block.prev_hashes:
-        #     if prev_hash in self.tops:
-        #         prev_top_conf_req = self.tops[prev_hash]
-        #         del self.tops[prev_hash]
-        #         if (not this_block_confirmation_requirement) or \
-        #             (prev_top_conf_req > this_block_conf_req): #TODO make sure if we need to choose highest one
-        #             this_block_conf_req = prev_top_conf_req
-        
-        # if this_block_confirmation_requirement != None:
-        #     self.tops[block_hash] = this_block_confirmation_requirement
-
         #TODO think if attack is possible here
-
         req = self.choose_next_best_requirement(block_hash)
         if req == -1:
             closest_prev_hash, skip_count = self.choose_shortest_skip(block_hash)
@@ -35,16 +22,6 @@ class ConfirmationRequirement:
             req = prev_zeta - zeta_decrease
 
         current_zeta = max(ZETA_MIN, min(req, ZETA_MAX))
-
-        # for block in iterator:
-            # if block:
-                # consecutive_blocks += 1
-            # else:
-                # consecutive_skips += 1
-            # 
-            # count += 1
-            # if count == LOOKBACK_CONST:
-                # break
 
         self.blocks[block.get_hash()] = current_zeta
 
@@ -95,7 +72,6 @@ class ConfirmationRequirement:
             prev_block_number = self.dag.get_block_number(prev_hash)
             if block_number - prev_block_number > 1: continue  # don't count interrupted  sequences    
             prev_req = self.get_confirmation_requirement(prev_hash)
-            print("looking at", prev_hash.hex()[0:6], "its req is", prev_req, "count", lookback_count)
             if prev_req == initial_req_value:
                 if lookback_count == ZETA_CHANGE_CONST - 1: # minus one here because our initial block is already known
                     return True
