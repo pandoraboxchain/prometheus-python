@@ -151,15 +151,15 @@ class Node:
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
         
-        transactions = self.mempool.pop_round_system_transactions(current_round_type)
+        system_txs = self.mempool.pop_round_system_transactions(current_round_type)
 
-        # skip non valid transactions
+        # skip non valid system_txs
         verifier = InBlockTransactionsAcceptor(self.epoch, self.permissions, self.logger)
-        transactions = [t for t in transactions if verifier.check_if_valid(t)]
+        system_txs = [t for t in system_txs if verifier.check_if_valid(t)]
         # get gossip conflicts hashes (validate_gossip() ---> [gossip_negative_hash, gossip_positive_hash])
         conflicts_gossip = self.validate_gossip(self.dag, self.mempool)
         gossip_mempool_txs = self.mempool.pop_current_gossips()  # POP gossips to block
-        transactions += gossip_mempool_txs
+        system_txs += gossip_mempool_txs
 
         tops = self.dag.get_top_blocks_hashes()
         conflict_finder = ConflictFinder(self.dag)
@@ -169,23 +169,23 @@ class Node:
         if current_round_type == Round.PRIVATE:
             if self.epoch_private_keys:
                 key_reveal_tx = self.form_private_key_reveal_transaction()
-                transactions.append(key_reveal_tx)
+                system_txs.append(key_reveal_tx)
 
         if conflicts:
             penalty = self.form_penalize_violators_transaction(conflicts)
-            transactions.append(penalty)
+            system_txs.append(penalty)
 
         if conflicts_gossip:
             for conflict in conflicts_gossip:
                 penalty_gossip_tx = \
                     TransactionFactory.create_penalty_gossip_transaction(conflict=conflict,
                                                                          node_private=self.block_signer.private_key)
-                transactions.append(penalty_gossip_tx)
+                system_txs.append(penalty_gossip_tx)
 
         current_top_blocks = [chosen_top] + conflicting_tops #first link in dag is not considered conflict, the rest is.
         
         block = BlockFactory.create_block_dummy(current_top_blocks)
-        block.system_txs = transactions
+        block.system_txs = system_txs
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
         if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
