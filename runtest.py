@@ -16,5 +16,6 @@ from tests.test_secret_sharing import *
 from tests.test_stake_transaction import *
 from tests.test_transaction import *
 from tests.test_conflict_finder import *
+from tests.test_utxo import *
 
 unittest.main()

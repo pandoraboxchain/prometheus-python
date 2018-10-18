@@ -12,7 +12,7 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
-from node.utxo import Utxo
+from node.utxo import Utxo, COINBASE_IDENTIFIER
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from transaction.payment_transaction import PaymentTransaction
@@ -217,7 +217,7 @@ class Node:
         node_public = Private.publickey(self.block_signer.private_key)
         pseudo_address = sha256(node_public).digest()
         block_reward = PaymentTransaction()
-        block_reward.input = b'0' * 32
+        block_reward.input = COINBASE_IDENTIFIER
         block_reward.number = block_number # randomness provider against collisions
         block_reward.outputs = [pseudo_address]
         block_reward.amounts = [BLOCK_REWARD]
