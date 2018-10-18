@@ -26,13 +26,11 @@ class TestBlock(unittest.TestCase):
 
         original_block.system_txs = [tx, pktx]
 
-        dummy_private = Private.generate()
         payment = PaymentTransaction()
-        payment.from_tx = os.urandom(32)
-        payment.amount = 123
-        payment.to_tx = os.urandom(32)
-        payment.pubkey = Private.publickey(dummy_private)
-        payment.signature = Private.sign(payment.get_hash(), dummy_private)
+        payment.input = b'0' * 32
+        payment.number = 0
+        payment.outputs = [os.urandom(32)]
+        payment.amounts = [15]
 
         original_block.payment_txs = [payment]
 

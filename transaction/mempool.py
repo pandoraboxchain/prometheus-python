@@ -5,7 +5,7 @@ from transaction.gossip_transaction import NegativeGossipTransaction, \
 from transaction.secret_sharing_transactions import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
-from transaction.payment_transaction import PaymentTransaction, BlockReward
+from transaction.payment_transaction import PaymentTransaction
 
 class Mempool:
 
@@ -44,8 +44,7 @@ class Mempool:
     # remove all occurences of given transaction
     def remove_transaction(self, tx):
         if isinstance(tx, PrivateKeyTransaction) or \
-               isinstance(tx, PenaltyTransaction) or \
-               isinstance(tx, BlockReward):  # should only be as part of the block
+               isinstance(tx, PenaltyTransaction):  # should only be as part of the block
                 pass
         elif isinstance(tx, PublicKeyTransaction):
             self.public_keys = [a for a in self.public_keys if a.get_hash() != tx.get_hash()]

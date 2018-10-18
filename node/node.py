@@ -5,22 +5,25 @@ from chain.dag import Dag
 from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
-from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
+from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA, BLOCK_REWARD
 from chain.transaction_factory import TransactionFactory
 from chain.conflict_finder import ConflictFinder
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
+from node.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
-from transaction.payment_transaction import BlockReward
+from transaction.payment_transaction import PaymentTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
 from verification.block_acceptor import BlockAcceptor
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
+from hashlib import sha256
+
 
 
 class DummyLogger(object):
@@ -41,6 +44,7 @@ class Node:
         self.epoch.set_logger(self.logger)
         self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
+        self.utxo = Utxo()
         self.behaviour = behaviour
 
         self.block_signer = block_signer
@@ -153,7 +157,7 @@ class Node:
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
         
         system_txs = self.get_system_transactions_for_signing(current_round_type)
-        payment_txs = self.get_payment_transactions_for_signing()
+        payment_txs = self.get_payment_transactions_for_signing(current_block_number)
 
         tops = self.dag.get_top_blocks_hashes()
         conflict_finder = ConflictFinder(self.dag)
@@ -167,6 +171,7 @@ class Node:
         block.payment_txs = payment_txs
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
+        self.utxo.apply_payments(payment_txs)
         if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
             self.logger.debug("Broadcasting signed block number %s", current_block_number)
             self.network.broadcast_block(self.node_id, signed_block.pack())
@@ -208,9 +213,14 @@ class Node:
         
         return system_txs
 
-    def get_payment_transactions_for_signing(self):
-        block_reward = BlockReward()
-        block_reward.address = os.urandom(32) #random address just for testing purposes
+    def get_payment_transactions_for_signing(self, block_number):
+        node_public = Private.publickey(self.block_signer.private_key)
+        pseudo_address = sha256(node_public).digest()
+        block_reward = PaymentTransaction()
+        block_reward.input = b'0' * 32
+        block_reward.number = block_number # randomness provider against collisions
+        block_reward.outputs = [pseudo_address]
+        block_reward.amounts = [BLOCK_REWARD]
         payment_txs = [block_reward] + self.mempool.pop_payment_transactions()
         return payment_txs
 
@@ -372,6 +382,7 @@ class Node:
                 current_block_number = self.epoch.get_current_timeframe_block_number()
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
+                self.utxo.apply_payments(block.payment_txs)
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
@@ -400,7 +411,8 @@ class Node:
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 self.dag.add_signed_block(block_number, signed_block)
-                self.mempool.remove_transactions(signed_block.block.system_txs)
+                self.mempool.remove_transactions(block.system_txs)
+                self.utxo.apply_payments(block.payment_txs)
                 self.logger.error("Added block out of timeslot")
             else:
                 self.logger.error("Block was not added. Considered invalid")
