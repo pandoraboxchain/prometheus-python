@@ -17,5 +17,6 @@ from tests.test_stake_transaction import *
 from tests.test_transaction import *
 from tests.test_conflict_finder import *
 from tests.test_utxo import *
+from tests.test_resolver import *
 
 unittest.main()
