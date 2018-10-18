@@ -113,6 +113,11 @@ class Mempool:
         self.reveals.clear()
         # don't remove payments here
 
+    def pop_payment_transactions(self):
+        payments = self.payments.copy()
+        self.payments.clear()
+        return payments
+
     # -------------------------------------------------------------------------------
     # Gossip tx
     # -------------------------------------------------------------------------------
