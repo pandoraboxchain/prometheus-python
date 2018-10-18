@@ -62,7 +62,7 @@ class TestTransaction(unittest.TestCase):
         original = PaymentTransaction()
         original.from_tx = os.urandom(32)
         original.amount = 123
-        original.to = os.urandom(32)
+        original.to_tx = os.urandom(32)
         original.pubkey = Private.publickey(dummy_private)
         original.signature = Private.sign(original.get_hash(), dummy_private)
 

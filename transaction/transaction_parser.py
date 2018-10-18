@@ -3,6 +3,7 @@ from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGo
     PenaltyGossipTransaction
 from transaction.stake_transaction import StakeHoldTransaction, PenaltyTransaction, StakeReleaseTransaction
 from transaction.secret_sharing_transactions import PublicKeyTransaction, PrivateKeyTransaction, SplitRandomTransaction
+from transaction.payment_transaction import PaymentTransaction
 
 from serialization.serializer import Serializer, Deserializer
 
@@ -19,6 +20,8 @@ class Type:
     NEGATIVE_GOSSIP = 8
     POSITIVE_GOSSIP = 9
     PENALTY_GOSSIP = 10
+
+    PAYMENT = 11
 
 
 class TransactionParser:
@@ -51,6 +54,9 @@ class TransactionParser:
             tx = PositiveGossipTransaction()
         elif tx_type == Type.PENALTY_GOSSIP:
             tx = PenaltyGossipTransaction()
+        
+        elif tx_type == Type.PAYMENT:
+            tx = PaymentTransaction()
         else:
             assert False, "Cannot parse unknown transaction type"
         tx.parse(deserializer.data)
@@ -84,6 +90,8 @@ class TransactionParser:
             raw += Serializer.write_u8(Type.POSITIVE_GOSSIP)
         elif isinstance(tx, PenaltyGossipTransaction):
             raw += Serializer.write_u8(Type.PENALTY_GOSSIP)
+        elif isinstance(tx, PaymentTransaction):
+            raw += Serializer.write_u8(Type.PAYMENT)
         else:
             assert False, "Cannot pack unknown transaction type"
         raw += tx.pack()

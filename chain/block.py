@@ -9,6 +9,7 @@ class Block:
         self.timestamp = None
         self.prev_hashes = []
         self.system_txs = []
+        self.payment_txs = []
 
     def get_hash(self):
         return sha256(self.pack()).digest()
@@ -32,6 +33,13 @@ class Block:
             self.system_txs.append(tx)
             deserializer.read_and_move(tx.get_len() + 1)  # one byte for type
 
+        payment_tx_count = deserializer.parse_u8()
+        self.payment_txs = []
+        for i in range(0, payment_tx_count):
+            tx = TransactionParser.parse(deserializer.data) # TODO: (is) Better to deserialize passing deserializer directly
+            self.payment_txs.append(tx)
+            deserializer.read_and_move(tx.get_len() + 1)  # one byte for type
+
     def pack(self):
         raw_block = Serializer.write_u32(self.timestamp)
 
@@ -39,13 +47,13 @@ class Block:
         for prev_hash in self.prev_hashes:
             raw_block += prev_hash
 
-        if hasattr(self, 'system_txs'):
-            raw_block += Serializer.write_u8(len(self.system_txs))
+        raw_block += Serializer.write_u8(len(self.system_txs))
+        for tx in self.system_txs:
+            raw_block += TransactionParser.pack(tx)
 
-            for tx in self.system_txs:
-                raw_block += TransactionParser.pack(tx)
-        else:
-            raw_block += Serializer.write_u8(0)
+        raw_block += Serializer.write_u8(len(self.payment_txs))
+        for tx in self.payment_txs:
+            raw_block += TransactionParser.pack(tx)
 
         return raw_block
 

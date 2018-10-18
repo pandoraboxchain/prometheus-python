@@ -6,7 +6,7 @@ class PaymentTransaction:
     def __init__(self):
         self.from_tx = None  # transaction hash
         self.amount = None
-        self.to = None  # public key hash
+        self.to_tx = None  # transaction hash
         self.pubkey = None
         self.signature = None
         self.len = None
@@ -19,7 +19,7 @@ class PaymentTransaction:
         deserializer = Deserializer(raw_data)
         self.from_tx = deserializer.parse_hash()
         self.amount = deserializer.parse_u32()
-        self.to = deserializer.parse_hash()
+        self.to_tx = deserializer.parse_hash()
         self.pubkey = deserializer.parse_pubkey()
         self.signature = deserializer.parse_signature()
         self.len = deserializer.len
@@ -32,7 +32,7 @@ class PaymentTransaction:
     def pack_unsigned(self):
         raw = self.from_tx
         raw += Serializer.write_u32(self.amount)
-        raw += self.to 
+        raw += self.to_tx 
         raw += self.pubkey
         return raw
 
