@@ -5,14 +5,14 @@ from chain.dag import Dag
 from chain.epoch import Epoch
 from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
-from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA, BLOCK_REWARD
+from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.transaction_factory import TransactionFactory
 from chain.conflict_finder import ConflictFinder
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
-from node.utxo import Utxo, COINBASE_IDENTIFIER
+from node.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from transaction.payment_transaction import PaymentTransaction
@@ -56,9 +56,8 @@ class Node:
         self.reveals_to_send = {}
         self.sent_shares_epochs = []  # epoch hashes of secret shares
         self.last_expected_timeslot = 0
-        # TODO may be refactor needed
-        # temporary solution (not send anothre block by same timeslot)
         self.last_signed_block_number = 0
+        self.owned_utxos = []
 
     def start(self):
         pass
@@ -216,11 +215,8 @@ class Node:
     def get_payment_transactions_for_signing(self, block_number):
         node_public = Private.publickey(self.block_signer.private_key)
         pseudo_address = sha256(node_public).digest()
-        block_reward = PaymentTransaction()
-        block_reward.input = COINBASE_IDENTIFIER
-        block_reward.number = block_number # randomness provider against collisions
-        block_reward.outputs = [pseudo_address]
-        block_reward.amounts = [BLOCK_REWARD]
+        block_reward = TransactionFactory.create_block_reward(pseudo_address, block_number)
+        self.owned_utxos.append(block_reward.get_hash()) 
         payment_txs = [block_reward] + self.mempool.pop_payment_transactions()
         return payment_txs
 

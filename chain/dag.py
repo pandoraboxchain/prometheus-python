@@ -26,6 +26,9 @@ class Dag:
         block.prev_hashes = []
         return block
 
+    def genesis_hash(self):
+        return self.genesis_block().get_hash()
+
     # ------------------------------
     # block methods
     # ------------------------------
