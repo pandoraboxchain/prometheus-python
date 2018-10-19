@@ -69,4 +69,4 @@ class TestChainGenerator:
         block.payment_txs = [block_reward] + payments
         signed_block = BlockFactory.sign_block(block, dummy_private)
         dag.add_signed_block(position, signed_block)
-        return block.get_hash()
+        return block.get_hash(), block_reward.get_hash()

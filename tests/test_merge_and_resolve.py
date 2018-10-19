@@ -33,6 +33,35 @@ class TestMergeAndResolve(unittest.TestCase):
         self.assertIn(Entry(block2_reward.get_hash(), 0), unspent)
         self.assertIn(Entry(payment.get_hash(), 0), unspent)
 
+    def test_merged(self):
+        """Test merged chain but non confilcting transactions
+        """
+        dag = Dag(0)
+
+        block_hash, block_reward = TestChainGenerator.insert_dummy_with_payments(dag, [dag.genesis_hash()], [], 1)
+
+        payment1 = TransactionFactory.create_payment(block_reward, 0, [os.urandom(32)], [15])
+        block2_hash, block2_reward = TestChainGenerator.insert_dummy_with_payments(dag, [block_hash], [payment1], 2)
+
+        payment2 = TransactionFactory.create_payment(block2_reward, 0, [os.urandom(32)], [15])
+        block3_hash, block3_reward = TestChainGenerator.insert_dummy_with_payments(dag, [block_hash], [payment2], 3)
+
+        block4_hash, block4_reward = TestChainGenerator.insert_dummy_with_payments(dag, [block2_hash, block3_hash], [], 4)
+
+        iterator = MergingIter(dag, block4_hash)
+        payments = [block.block.payment_txs for block in iterator if block != None]
+        payments = list(reversed(payments))
+
+        spent, unspent = Resolver.resolve(payments)
+
+        self.assertEqual(len(spent), 0)
+
+        self.assertEqual(len(unspent), 4)
+
+        self.assertIn(Entry(block3_reward, 0), unspent)
+        self.assertIn(Entry(block4_reward, 0), unspent)
+        self.assertIn(Entry(payment1.get_hash(), 0), unspent)
+        self.assertIn(Entry(payment2.get_hash(), 0), unspent)
 
 
 
