@@ -1,3 +1,5 @@
+from transaction.utxo import COINBASE_IDENTIFIER
+
 class Entry():
     def __init__(self, tx, number):
         self.tx = tx
@@ -14,14 +16,15 @@ class Resolver:
         internally_spent = [] #this list is append only
         for payment_list in ordered_payment_lists:
             for payment in payment_list:
-                entry = Entry(payment.input, payment.number)
-                if entry in spent or entry in internally_spent:
-                    continue # transaction conflict: already spent
-                if entry in unspent:
-                    internally_spent.append(entry)
-                    unspent.remove(entry)
-                else:
-                    spent.append(entry)
+                if payment.input != COINBASE_IDENTIFIER: #only add outputs if it is coinbase transaction
+                    entry = Entry(payment.input, payment.number)
+                    if entry in spent or entry in internally_spent:
+                        continue # transaction conflict: already spent
+                    if entry in unspent:
+                        internally_spent.append(entry)
+                        unspent.remove(entry)
+                    else:
+                        spent.append(entry)
                 
                 for i in range(len(payment.outputs)):
                     unspent.append(Entry(payment.get_hash(), i))

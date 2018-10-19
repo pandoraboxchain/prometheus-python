@@ -2,9 +2,29 @@ import unittest
 import os
 
 from transaction.payment_transaction import PaymentTransaction
+from chain.transaction_factory import TransactionFactory
 from chain.resolver import Resolver, Entry
 
 class TestResolver(unittest.TestCase):
+
+    def test_ignore_coinbase(self):
+        block_reward = TransactionFactory.create_block_reward(os.urandom(32), 0)
+        
+        payment = PaymentTransaction()
+        payment.input = block_reward.get_hash()
+        payment.number = 0
+        payment.outputs = [os.urandom(32), os.urandom(32)]
+        payment.amounts = [129, 23423]
+
+        spent, unspent = Resolver.resolve([[block_reward, payment]])
+        
+        #nothing spent since block reward just creates outputs
+        self.assertEqual(len(spent), 0)
+
+        #block reward was split in two ouputs by payment transaction
+        self.assertEqual(len(unspent), 2)
+        self.assertIn(Entry(payment.get_hash(), 0), unspent)
+        self.assertIn(Entry(payment.get_hash(), 1), unspent)
 
     def test_simple(self):
         input1 = os.urandom(32)

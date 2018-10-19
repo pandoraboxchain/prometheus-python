@@ -126,11 +126,17 @@ class TransactionFactory:
 
     @staticmethod
     def create_block_reward(address, block_number):
-        block_reward = PaymentTransaction()
-        block_reward.input = COINBASE_IDENTIFIER
-        block_reward.number = block_number # randomness provider against collisions
-        block_reward.outputs = [address]
-        block_reward.amounts = [BLOCK_REWARD]
-        return block_reward
+        #block number is random data provider against hash collisions
+        return TransactionFactory.create_payment(COINBASE_IDENTIFIER, block_number, [address], [BLOCK_REWARD])
+
+    @staticmethod
+    def create_payment(input, number, outputs, amounts):
+        tx = PaymentTransaction()
+        tx.input = input
+        tx.number = number
+        tx.outputs = outputs
+        tx.amounts = amounts
+        return tx
+
 
 
