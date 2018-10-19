@@ -39,3 +39,34 @@ class TestResolver(unittest.TestCase):
         self.assertIn(Entry(payment2_hash, 0), unspent)
         self.assertIn(Entry(payment2_hash, 1), unspent)
 
+    def test_conflict(self):
+        input1 = os.urandom(32)
+        payment1 = PaymentTransaction()
+        payment1.input = input1
+        payment1.number = 0
+        payment1.outputs = [os.urandom(32), os.urandom(32)]
+        payment1.amounts = [123, 999]
+
+        payment1_hash = payment1.get_hash()
+
+        # trying to spend the same input
+        payment2 = PaymentTransaction()
+        payment2.input = input1
+        payment2.number = 0
+        payment2.outputs = [os.urandom(32), os.urandom(32)]
+        payment2.amounts = [1, 1]
+
+        spent, unspent = Resolver.resolve([[payment1, payment2]]) #TODO is it okay that conflicting transactions are in the same block
+
+        #zero input of random transaction should be marked as spent
+        self.assertEqual(len(spent), 1)
+        self.assertEqual(spent[0].tx, input1)
+        self.assertEqual(spent[0].number, 0)
+
+        #transaction spending the same output is rejected
+        self.assertEqual(len(unspent), 2)
+        self.assertIn(Entry(payment1_hash, 0), unspent)
+        self.assertIn(Entry(payment1_hash, 1), unspent)
+
+
+
