@@ -1,15 +1,14 @@
 import unittest
-import os
 
 from node.node import Node
 from node.node_api import NodeApi
 from node.block_signers import BlockSigners
 from node.validators import Validators
 from chain.epoch import Epoch
-from node.behaviour import Behaviour
 from tests.test_chain_generator import TestChainGenerator
 from tools.time import Time
-from crypto.private import Private
+
+from chain.params import BLOCK_TIME, ROUND_DURATION
 
 
 class TestNode(unittest.TestCase):
@@ -18,11 +17,12 @@ class TestNode(unittest.TestCase):
 
         Time.use_test_time()
 
-        Time.set_current_time(7)
-        self.assertEqual(Time.get_current_time(), 7)
+        time_value = 7  # for example
+        Time.set_current_time(time_value)
+        self.assertEqual(Time.get_current_time(), time_value)
         
         Time.advance_to_next_timeslot()
-        self.assertEqual(Time.get_current_time(), 11)
+        self.assertEqual(Time.get_current_time(), time_value + BLOCK_TIME)
 
     def test_block_sign(self):
         Time.use_test_time()
@@ -31,12 +31,18 @@ class TestNode(unittest.TestCase):
         private_keys = BlockSigners()
         private_keys = private_keys.block_signers
 
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0] + [1] * Epoch.get_duration()
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
         network = NodeApi()
-        node_id = 14
+        node_id = 0
         node = Node(genesis_creation_time=1,
                     node_id=node_id,
                     network=network,
-                    block_signer=private_keys[node_id])
+                    block_signer=private_keys[node_id],
+                    validators=validators)
         network.register_node(node)
 
         dag = node.dag
@@ -116,7 +122,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(allowed_signers[0], validators_pubkeys[2]) #simple case
 
         # generate two branches resulting in two epoch_hashes
-        node0.dag = TestChainGenerator.generate_two_chains(19)
+        node0.dag = TestChainGenerator.generate_two_chains(ROUND_DURATION * 6 + 1)
         tops = node0.dag.get_top_hashes()
 
         # assign pseudo generated list of validators to cache for each epoch
@@ -131,7 +137,7 @@ class TestNode(unittest.TestCase):
         # different order
         node0.permissions.signers_indexes[tops[1]] = [5,5,5] * 10
 
-        allowed_signers = node0.get_allowed_signers_for_block_number(21)
+        allowed_signers = node0.get_allowed_signers_for_block_number(ROUND_DURATION * 6 + 2)
         self.assertEqual(len(allowed_signers), 2)
         self.assertIn(validators_pubkeys[1], allowed_signers)
         self.assertIn(validators_pubkeys[5], allowed_signers)

@@ -1,5 +1,6 @@
 from node.genesis_validators import GenesisValidators
 
+
 class Validator:
 
     def __init__(self, pubkey, stake):

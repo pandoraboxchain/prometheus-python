@@ -1,5 +1,6 @@
 from node.genesis_validators import GenesisValidators
 
+
 class BlockSigner:
 
     def __init__(self, private_key):
@@ -7,6 +8,7 @@ class BlockSigner:
 
     def set_private_key(self, private_key):
         self.private_key = private_key
+
 
 class BlockSigners:
 

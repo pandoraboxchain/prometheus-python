@@ -6,7 +6,9 @@ from node.validators import Validator, Validators
 from node.stake_manager import StakeManager
 from crypto.keys import Keys
 from crypto.entropy import Source
+
 from chain.params import SECRET_SHARE_PARTICIPANTS_COUNT
+from chain.params import ROUND_DURATION
 
 
 class Permissions:
@@ -27,7 +29,13 @@ class Permissions:
         if not initial_randomizers_indexes:
             initial_randomizers_indexes = self.epoch.calculate_validators_indexes(genesis_hash, validator_count, Source.RANDOMIZERS)
 
-        self.log("Initial signers:", initial_signers_indexes[0:3], initial_signers_indexes[3:6], initial_signers_indexes[6:9], initial_signers_indexes[9:12], initial_signers_indexes[12:15], initial_signers_indexes[15:19])
+        self.log("Initial signers:",
+                 initial_signers_indexes[0:ROUND_DURATION * 1],
+                 initial_signers_indexes[ROUND_DURATION * 1:ROUND_DURATION * 2],
+                 initial_signers_indexes[ROUND_DURATION * 2:ROUND_DURATION * 3],
+                 initial_signers_indexes[ROUND_DURATION * 3:ROUND_DURATION * 4],
+                 initial_signers_indexes[ROUND_DURATION * 4:ROUND_DURATION * 5],
+                 initial_signers_indexes[ROUND_DURATION * 5:ROUND_DURATION * 6 + 1])
         self.log("Initial randomizers:", initial_randomizers_indexes)
 
         # init validators list and indexes, so we can build list of future validators based on this
@@ -72,7 +80,13 @@ class Permissions:
             epoch_validators = self.get_validators(epoch_hash)
             self.log("Total signers count", len(epoch_validators))
             random_indexes = self.epoch.calculate_validators_indexes(epoch_hash, len(epoch_validators), Source.SIGNERS)
-            self.log("Calculated signers:", random_indexes[0:3], random_indexes[3:6], random_indexes[6:9], random_indexes[9:12], random_indexes[12:15], random_indexes[15:19])
+            self.log("Calculated signers:",
+                     random_indexes[0:ROUND_DURATION * 1],
+                     random_indexes[ROUND_DURATION * 1:ROUND_DURATION * 2],
+                     random_indexes[ROUND_DURATION * 2:ROUND_DURATION * 3],
+                     random_indexes[ROUND_DURATION * 3:ROUND_DURATION * 4],
+                     random_indexes[ROUND_DURATION * 4:ROUND_DURATION * 5],
+                     random_indexes[ROUND_DURATION * 5:ROUND_DURATION * 6 + 1])
             self.signers_indexes[epoch_hash] = random_indexes
         return self.signers_indexes[epoch_hash]
 
@@ -213,9 +227,6 @@ class Permissions:
                 return i
 
         assert False, "No secret sharer was found for this public key!"
-
-
-
 
     # ¯\_( )_/¯
     def log(self, *args):

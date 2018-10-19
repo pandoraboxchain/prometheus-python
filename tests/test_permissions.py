@@ -268,7 +268,8 @@ class TestStakeActions(unittest.TestCase):
         self.assertIn(genesis_validator_public, pub_keys)
 
         # produce epoch till end
-        for i in range(12, 21):
+        from chain.params import ROUND_DURATION
+        for i in range(12, (ROUND_DURATION * 6 + 4)):
             block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * i)
             signed_block = BlockFactory.sign_block(block, node_private)
             dag.add_signed_block(i, signed_block)

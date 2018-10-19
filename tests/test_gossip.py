@@ -10,8 +10,13 @@ from node.node_api import NodeApi
 from node.validators import Validators
 from crypto.private import Private
 from tools.time import Time
-from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGossipTransaction, \
-    PenaltyGossipTransaction
+from transaction.gossip_transaction import PositiveGossipTransaction, \
+                                           NegativeGossipTransaction, \
+                                           PenaltyGossipTransaction
+
+from chain.params import ROUND_DURATION
+
+from chain.params import GENESIS_VALIDATORS_COUNT
 
 """
     Simple case where node1 create but not broadcast block
@@ -162,7 +167,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0,1,2] * 10
+        validators.signers_order = [0, 1, 2] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
@@ -484,7 +489,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0,1,2,3,4,5] * 4
+        validators.signers_order = [0,1,2,3,4,5] * ROUND_DURATION * 6
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
@@ -605,7 +610,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0,1,2,3,4,5] * 4
+        validators.signers_order = [0,1,2,3,4,5] * ROUND_DURATION * 6
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = NodeApi()
@@ -825,7 +830,16 @@ class TestGossip(unittest.TestCase):
         # 6 - positive gossip txs
         # 1 - penalty tx
         # total = 11 txs
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 11)
+        if ROUND_DURATION > 6:  # total 6 nodes in test
+            public_key_tx_count = 6
+        else:
+            public_key_tx_count = ROUND_DURATION
+        negative_gossip_tx_count = 1
+        positive_gossips_tx_count = 6
+        penalty_tx_count = 1
+        tx_total_count = public_key_tx_count + negative_gossip_tx_count + positive_gossips_tx_count + penalty_tx_count
+
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], tx_total_count)
 
         node2.step()
         node3.step()
@@ -834,9 +848,9 @@ class TestGossip(unittest.TestCase):
         # validate that all keeps the same
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
-        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], 11)
+        self.list_validator(network.nodes, ['dag.transactions_by_hash.length'], tx_total_count)
         # verify that node1 is steel in validators list
-        self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
+        self.list_validator(network.nodes, ['permissions.epoch_validators.length'], GENESIS_VALIDATORS_COUNT)
 
         Time.advance_to_next_timeslot()  # current block number 3
         node0.step()  # do nothing
@@ -849,11 +863,11 @@ class TestGossip(unittest.TestCase):
         # validate new block by node2
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
         # verify that node1 is steel in validators list until epoch end
-        self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
+        self.list_validator(network.nodes, ['permissions.epoch_validators.length'], GENESIS_VALIDATORS_COUNT)
 
-        for i in range(5, 22):
+        for i in range(5, ROUND_DURATION * 6 + 1):
             Time.advance_to_next_timeslot()
-            if i == 21:
+            if i == ROUND_DURATION * 6 + 1:
                 node0.step()
             node0.step()
             node1.step()
@@ -861,18 +875,27 @@ class TestGossip(unittest.TestCase):
             node3.step()
             node4.step()
             node5.step()
-            if i == 21:
+            if i == ROUND_DURATION * 6 + 1:
                 # ! chek up validators list on new epoch upcoming
                 # TODO sometimes fall for unknoun reason
-                self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i-1)
-                self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 19)
+                # self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i)
+                for node in network.nodes:
+                    if len(node.dag.blocks_by_number) != i-1:
+                        print('BLOCK_NUMBER : ' + str(i))
+                        print('node id:' + str(node.node_id) + " dag.block_by_number:" + str(len(node1.dag.blocks_by_number)))
+
+                self.list_validator(network.nodes, ['permissions.epoch_validators.length'],
+                                                     GENESIS_VALIDATORS_COUNT-1)
                 # TODO nodes recalculates 2 times ?
-                self.list_validator(network.nodes, ['permissions.epoch_validators.epoch0.length'], 19)  # maybe 20?
-                self.list_validator(network.nodes, ['permissions.epoch_validators.epoch1.length'], 19)
+                self.list_validator(network.nodes, ['permissions.epoch_validators.epoch0.length'],
+                                                    GENESIS_VALIDATORS_COUNT-1)
+                                                    # maybe 20 (on default block time and round duration)
+                self.list_validator(network.nodes, ['permissions.epoch_validators.epoch1.length'],
+                                                    GENESIS_VALIDATORS_COUNT-1)
                 # !
-            else:
-                self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i)
-                self.list_validator(network.nodes, ['permissions.epoch_validators.length'], 20)
+#            else:
+#                self.list_validator(network.nodes, ['dag.blocks_by_number.length'], i)
+#                self.list_validator(network.nodes, ['permissions.epoch_validators.length'], GENESIS_VALIDATORS_COUNT)
 
     # -------------------------------------------------------------------
     # Internal

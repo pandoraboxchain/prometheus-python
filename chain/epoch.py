@@ -7,15 +7,14 @@ from crypto.private import Private
 from transaction.secret_sharing_transactions import PrivateKeyTransaction, SplitRandomTransaction, PublicKeyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
 from chain.dag import ChainIter
-from chain.params import Round, ROUND_DURATION
-BLOCK_TIME = 4
+from chain.params import Round, ROUND_DURATION, BLOCK_TIME
 
 
 class Epoch:
 
     def __init__(self, dag):
         self.dag = dag
-        self.tops_and_epochs = { dag.genesis_block().get_hash() : dag.genesis_block().get_hash() }
+        self.tops_and_epochs = {dag.genesis_block().get_hash(): dag.genesis_block().get_hash()}
         self.dag.subscribe_to_new_top_block_notification(self)
         self.current_epoch = 1
 
@@ -45,6 +44,7 @@ class Epoch:
 
     @staticmethod
     def get_round_by_block_number(current_block_number):
+        #
         epoch_block_number = Epoch.convert_to_epoch_block_number(current_block_number)
         round_number = int(epoch_block_number / ROUND_DURATION)
         if round_number == Round.INVALID: return Round.FINAL   # special case for last round being +1
@@ -86,11 +86,13 @@ class Epoch:
     # returns just tuple
     @staticmethod 
     def get_round_bounds(epoch_number, round_type):
+        #
         epoch_start = Epoch.get_epoch_start_block_number(epoch_number)
         round_start = epoch_start + round_type * ROUND_DURATION
         round_end = round_start + ROUND_DURATION - 1
-        if round_type == Round.FINAL: round_end += 1
-        return (round_start, round_end)
+        if round_type == Round.FINAL:
+            round_end += 1
+        return round_start, round_end
 
     def get_private_keys_for_epoch(self, block_hash):
         round_iter = RoundIter(self.dag, block_hash, Round.PRIVATE)

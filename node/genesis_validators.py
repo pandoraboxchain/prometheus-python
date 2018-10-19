@@ -1,13 +1,13 @@
 from crypto.private import Private
-
-GENESIS_VALIDATORS_COUNT = 20
+from chain.params import GENESIS_VALIDATORS_COUNT
 
 # super global list of genesis validators
 # do not write in this arrays from outside
 # to be replaced by real genesis validators in production
 # only public keys will be known tp everyone
 
-class GenesisValidators():
+
+class GenesisValidators:
     private_keys = []
     public_keys = []
 
