@@ -2,7 +2,7 @@ import unittest
 import os
 
 from transaction.payment_transaction import PaymentTransaction
-from node.utxo import Utxo, COINBASE_IDENTIFIER
+from transaction.utxo import Utxo, COINBASE_IDENTIFIER
 
 class TestUtxo(unittest.TestCase):
 

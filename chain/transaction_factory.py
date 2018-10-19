@@ -14,7 +14,7 @@ from transaction.stake_transaction import StakeHoldTransaction, \
                                           StakeReleaseTransaction, \
                                           PenaltyTransaction
 
-from node.utxo import Utxo, COINBASE_IDENTIFIER
+from transaction.utxo import Utxo, COINBASE_IDENTIFIER
 from chain.params import BLOCK_REWARD
 
 class TransactionFactory:

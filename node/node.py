@@ -12,7 +12,7 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
-from node.utxo import Utxo
+from transaction.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from transaction.payment_transaction import PaymentTransaction
