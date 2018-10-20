@@ -10,31 +10,31 @@ from transaction.commit_transactions import CommitRandomTransaction, RevealRando
 class Mempool:
 
     def __init__(self):
-        self.public_keys = []
-        self.stake_operations = []
-        self.commits = []
-        self.reveals = []
-        self.shares = []
-        self.gossips = []
+        self.public_keys = {}
+        self.stake_operations = {}
+        self.commits = {}
+        self.reveals = {}
+        self.shares = {}
+        self.gossips = {}
 
     def add_transaction(self, tx):
         if isinstance(tx, PublicKeyTransaction):
-            self.public_keys.append(tx)
+            self.public_keys[tx.get_hash()] = tx
         elif isinstance(tx, StakeHoldTransaction) or\
                 isinstance(tx, StakeReleaseTransaction):
-            self.stake_operations.append(tx)
+            self.stake_operations[tx.get_hash()] = tx
         elif isinstance(tx, CommitRandomTransaction):
-            self.commits.append(tx)
+            self.commits[tx.get_hash()] = tx
         elif isinstance(tx, RevealRandomTransaction):
-            self.reveals.append(tx)
+            self.reveals[tx.get_hash()] = tx
         elif isinstance(tx, SplitRandomTransaction):
-            self.shares.append(tx)
+            self.shares[tx.get_hash()] = tx
         elif isinstance(tx, NegativeGossipTransaction):
-            self.gossips.append(tx)
+            self.gossips[tx.get_hash()] = tx
         elif isinstance(tx, PositiveGossipTransaction):
-            self.gossips.append(tx)
+            self.gossips[tx.get_hash()] = tx
         elif isinstance(tx, PenaltyGossipTransaction):
-            self.gossips.append(tx)
+            self.gossips[tx.get_hash()] = tx
         else:
             assert False, "Can't add. Transaction type is unknown or should not be added to mempool"
 
@@ -44,22 +44,22 @@ class Mempool:
                isinstance(tx, PenaltyTransaction):  # should only be as part of the block
                 pass
         elif isinstance(tx, PublicKeyTransaction):
-            self.public_keys = [a for a in self.public_keys if a.get_hash() != tx.get_hash()]
+            del self.public_keys[tx.get_hash()]
         elif isinstance(tx, StakeHoldTransaction) or isinstance(tx, StakeReleaseTransaction):
-            self.stake_operations = [a for a in self.stake_operations if a.get_hash() != tx.get_hash()]
+            del self.stake_operations[tx.get_hash()]
         elif isinstance(tx, CommitRandomTransaction):
-            self.commits = [a for a in self.commits if a.get_hash() != tx.get_hash()]
+            del self.commits[tx.get_hash()]
         elif isinstance(tx, RevealRandomTransaction):
-            self.reveals = [a for a in self.reveals if a.get_hash() != tx.get_hash()]
+            del self.reveals[tx.get_hash()]
         elif isinstance(tx, SplitRandomTransaction):
-            self.shares = [a for a in self.shares if a.get_hash() != tx.get_hash()]
+            del self.shares[tx.get_hash()]
 
         elif isinstance(tx, NegativeGossipTransaction):
-            self.gossips = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
+            del self.gossips[tx.get_hash()]
         elif isinstance(tx, PositiveGossipTransaction):
-            self.gossips = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
+            del self.gossips[tx.get_hash()]
         elif isinstance(tx, PenaltyGossipTransaction):
-            self.gossips = [a for a in self.gossips if a.get_hash() != tx.get_hash()]
+            del self.gossips[tx.get_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"
 
@@ -75,19 +75,19 @@ class Mempool:
            round_type == Round.FINAL:
             return []
         elif round_type == Round.PUBLIC:
-            public_keys = self.public_keys.copy()
+            public_keys = list(self.public_keys.values())
             self.public_keys.clear()
             return public_keys
         elif round_type == Round.COMMIT:
-            commits = self.commits.copy()
+            commits = list(self.commits.values())
             self.commits.clear()
             return commits
         elif round_type == Round.REVEAL:
-            reveals = self.reveals.copy()
+            reveals = list(self.reveals.values())
             self.reveals.clear()
             return reveals
         elif round_type == Round.SECRETSHARE:
-            shares = self.shares.copy()
+            shares = list(self.shares.values())
             self.shares.clear()
             return shares
         else:
@@ -114,7 +114,7 @@ class Mempool:
             :return: typed gossip list
         """
         result = []
-        for gossip in self.gossips:
+        for gossip in self.gossips.values():
             if isinstance(tx_type, NegativeGossipTransaction):
                 if isinstance(gossip, NegativeGossipTransaction):
                     result.append(gossip)
@@ -181,8 +181,9 @@ class Mempool:
             :param tx: gossip transaction for adding to mempool
             :return: current mempool gossip list
         """
-        if tx not in self.gossips:
-            self.gossips.append(tx)
+        tx_hash = tx.get_hash()
+        if tx_hash not in self.gossips:
+            self.gossips[tx_hash] = tx
         return self.gossips
 
     def pop_current_gossips(self):
@@ -190,6 +191,6 @@ class Mempool:
             Return gossips list with delete
             :return: current gossips list
         """
-        result = self.gossips.copy()
+        result = list(self.gossips.values())
         self.gossips.clear()
         return result
