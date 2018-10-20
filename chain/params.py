@@ -1,11 +1,11 @@
 from enum import IntEnum
 
 # initial number ov validators
-GENESIS_VALIDATORS_COUNT = 61  # def 20
+GENESIS_VALIDATORS_COUNT = 20  # default 20
 # steps/seconds per block
-BLOCK_TIME = 10  # def 4
+BLOCK_TIME = 4  # default 4
 # blocks per round
-ROUND_DURATION = 10  # def 3
+ROUND_DURATION = 3  # default 3
 
 
 class Round(IntEnum):
