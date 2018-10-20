@@ -43,7 +43,8 @@ class Node:
         self.behaviour = behaviour
 
         self.block_signer = block_signer
-        self.logger.info("Public key is %s", Keys.to_visual_string(Private.publickey(block_signer.private_key)))
+        self.node_pubkey = Private.publickey(block_signer.private_key)
+        self.logger.info("Public key is %s", Keys.to_visual_string(self.node_pubkey))
         self.network = network
         self.node_id = node_id
         self.epoch_private_keys = []  # TODO make this single element
@@ -129,7 +130,7 @@ class Node:
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
             permission = self.permissions.get_sign_permission(epoch_hash, epoch_block_number)
-            if permission.public_key == Private.publickey(self.block_signer.private_key):
+            if permission.public_key == self.node_pubkey:
                 allowed_to_sign = True
                 break
 
@@ -206,17 +207,14 @@ class Node:
     def try_to_publish_public_key(self, current_block_number):
         if self.epoch_private_keys:
             return
-            
-        node_pubkey = Private.publickey(self.block_signer.private_key)
         
         epoch_hashes = self.epoch.get_epoch_hashes()
         for _, epoch_hash in epoch_hashes.items():
             allowed_round_validators = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
             pubkey_publishers_pubkeys = [validator.public_key for validator in allowed_round_validators]
-            if node_pubkey in pubkey_publishers_pubkeys:
+            if self.node_pubkey in pubkey_publishers_pubkeys:
                 node_private = self.block_signer.private_key
-                node_public = Private.publickey(node_private)
-                pubkey_index = self.permissions.get_signer_index_from_public_key(node_public, epoch_hash)
+                pubkey_index = self.permissions.get_signer_index_from_public_key(self.node_pubkey, epoch_hash)
 
                 generated_private = Private.generate()
                 tx = TransactionFactory.create_public_key_transaction(generated_private=generated_private,
@@ -233,26 +231,24 @@ class Node:
                 self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
     
     def try_to_share_random(self):
-        pubkey = Private.publickey(self.block_signer.private_key)
         epoch_hashes = self.epoch.get_epoch_hashes()
         for top, epoch_hash in epoch_hashes.items():
             if epoch_hash in self.sent_shares_epochs: continue
             allowed_to_share_random = self.permissions.get_secret_sharers_pubkeys(epoch_hash)
-            if not pubkey in allowed_to_share_random: continue
+            if not self.node_pubkey in allowed_to_share_random: continue
             split_random = self.form_split_random_transaction(top, epoch_hash)
             self.sent_shares_epochs.append(epoch_hash)
             self.mempool.add_transaction(split_random)
             self.network.broadcast_transaction(self.node_id, TransactionParser.pack(split_random))
 
     def try_to_commit_random(self):
-        pubkey = Private.publickey(self.block_signer.private_key)
         epoch_hashes = self.epoch.get_epoch_hashes().values()
         for epoch_hash in epoch_hashes:
             if epoch_hash not in self.reveals_to_send:
                 allowed_to_commit_list = self.permissions.get_commiters_pubkeys(epoch_hash)
-                if pubkey not in allowed_to_commit_list:
+                if self.node_pubkey not in allowed_to_commit_list:
                     continue
-                pubkey_index = self.permissions.get_committer_index_from_public_key(pubkey, epoch_hash)
+                pubkey_index = self.permissions.get_committer_index_from_public_key(self.node_pubkey, epoch_hash)
                 commit, reveal = TransactionFactory.create_commit_reveal_pair(self.block_signer.private_key, os.urandom(32), pubkey_index, epoch_hash)
                 self.reveals_to_send[epoch_hash] = reveal
                 self.logger.info("Broadcasting commit")
@@ -310,8 +306,7 @@ class Node:
         self.logger.info("Formed split random")
 
         node_private = self.block_signer.private_key
-        node_public = Private.publickey(node_private)
-        pubkey_index = self.permissions.get_secret_sharer_from_public_key(node_public, epoch_hash)
+        pubkey_index = self.permissions.get_secret_sharer_from_public_key(self.node_pubkey, epoch_hash)
 
         tx = TransactionFactory.create_split_random_transaction(encoded_splits, pubkey_index, epoch_hash, node_private)
         return tx
@@ -417,7 +412,7 @@ class Node:
             # check if current node send negative gossip ?
             for gossip in current_gossips:
                 # negative gossip already send by node, skip positive gossip searching and broadcasting
-                if gossip.pubkey == Private.publickey(self.block_signer.private_key):
+                if gossip.pubkey == self.node_pubkey:
                     return
 
             if self.dag.has_block_number(transaction.number_of_block):
