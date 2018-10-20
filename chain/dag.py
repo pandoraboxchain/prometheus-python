@@ -11,6 +11,7 @@ class Dag:
         self.genesis_creation_time = genesis_creation_time
         self.blocks_by_hash = {}  # just hash map hash:block
         self.blocks_by_number = {}  # key is timeslot number, value is a list of blocks in this timeslot
+        self.block_numbers_by_hash = {}
         self.transactions_by_hash = {}  # key is tx_hash, value is tx
         self.existing_links = []
         self.tops = {}
@@ -34,6 +35,7 @@ class Dag:
         if block_hash in self.blocks_by_hash:
             assert False, "Trying to add block with the hash which already exists"
         self.blocks_by_hash[block_hash] = block
+        self.block_numbers_by_hash[block_hash] = index
         if index in self.blocks_by_number:
             self.blocks_by_number[index].append(block)
         else:
@@ -71,12 +73,8 @@ class Dag:
         return number in self.blocks_by_number
 
     def get_block_number(self, block_hash):
-        for number, block_list_by_number in self.blocks_by_number.items():
-            for block_by_number in block_list_by_number:
-                if block_by_number.block.get_hash() == block_hash:
-                    return number
-        assert False, "Cannot find block number for hash %r" % block_hash.hex()
-        return -1
+        assert block_hash in self.block_numbers_by_hash
+        return self.block_numbers_by_hash[block_hash]
     
     def calculate_chain_length(self, top_block_hash):
         length = [0]
