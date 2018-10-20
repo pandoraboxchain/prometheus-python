@@ -1,7 +1,9 @@
 import seccure
 
 class Public:
+    #please note that following cache is shared across nodes and should not be implemented in production
     cache = {}
+    
     @staticmethod
     def encrypt(message, key):
         return seccure.encrypt(message, key)

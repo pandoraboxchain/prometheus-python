@@ -3,7 +3,9 @@ import os
 
 class Private:
 
-    cache = {}
+    #please note that following cache is shared across nodes and should not be implemented in production
+    pubkey_cache = {}
+    decrypt_cache = {}
 
     @staticmethod
     def generate():
@@ -20,12 +22,16 @@ class Private:
 
     @staticmethod
     def decrypt(message, key):
-        return seccure.decrypt(message, key, "secp256r1/nistp256")
+        args = (message, key)
+        if not args in Private.decrypt_cache:
+            result = seccure.decrypt(message, key, "secp256r1/nistp256")
+            Private.decrypt_cache[args] = result
+        return Private.decrypt_cache[args]
 
     @staticmethod
     def publickey(private):
-        if private not in Private.cache:
+        if private not in Private.pubkey_cache:
             public = seccure.passphrase_to_pubkey(private, "secp256r1/nistp256").to_bytes(seccure.SER_COMPACT)
-            Private.cache[private] = public
-        return Private.cache[private]
+            Private.pubkey_cache[private] = public
+        return Private.pubkey_cache[private]
 
