@@ -55,6 +55,7 @@ class Node:
         # TODO may be refactor needed
         # temporary solution (not send anothre block by same timeslot)
         self.last_signed_block_number = 0
+        self.tried_to_sign_current_block = False
 
     def start(self):
         pass
@@ -112,11 +113,14 @@ class Node:
             self.behaviour.malicious_send_positive_gossip_count -= 1
 
         if current_block_number != self.last_expected_timeslot:
+            self.tried_to_sign_current_block = False
             should_wait = self.handle_timeslot_changed(previous_timeslot_number=self.last_expected_timeslot,
                                                        current_timeslot_number=current_block_number)
             if should_wait:
                 return
-        self.try_to_sign_block(current_block_number)
+        if not self.tried_to_sign_current_block:
+            self.try_to_sign_block(current_block_number)
+            self.tried_to_sign_current_block = True # will reset in next timeslot
 
     async def run(self):
         while True:
@@ -134,8 +138,7 @@ class Node:
                 allowed_to_sign = True
                 break
 
-        block_has_not_been_signed_yet = not self.epoch.is_current_timeframe_block_present()
-        if allowed_to_sign and block_has_not_been_signed_yet:
+        if allowed_to_sign:
             should_skip_maliciously = self.behaviour.is_malicious_skip_block()
             # first_epoch_ever = self.epoch.get_epoch_number(current_block_number) == 1
             if should_skip_maliciously:  # and not first_epoch_ever: # skip first epoch check
