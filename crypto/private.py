@@ -3,6 +3,8 @@ import os
 
 class Private:
 
+    cache = {}
+
     @staticmethod
     def generate():
         return os.urandom(32)
@@ -22,5 +24,8 @@ class Private:
 
     @staticmethod
     def publickey(private):
-        return seccure.passphrase_to_pubkey(private, "secp256r1/nistp256").to_bytes(seccure.SER_COMPACT)
+        if private not in Private.cache:
+            public = seccure.passphrase_to_pubkey(private, "secp256r1/nistp256").to_bytes(seccure.SER_COMPACT)
+            Private.cache[private] = public
+        return Private.cache[private]
 
