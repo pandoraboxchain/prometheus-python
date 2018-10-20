@@ -17,6 +17,7 @@ class Epoch:
         self.tops_and_epochs = {dag.genesis_block().get_hash(): dag.genesis_block().get_hash()}
         self.dag.subscribe_to_new_top_block_notification(self)
         self.current_epoch = 1
+        self.genesis_timestamp = dag.genesis_block().timestamp
 
     def set_logger(self, logger):
         self.logger = logger
@@ -25,18 +26,8 @@ class Epoch:
         return self.get_block_number_from_timestamp(Time.get_current_time())
 
     def get_block_number_from_timestamp(self, timestamp):
-        time_diff = timestamp - self.dag.genesis_block().timestamp
+        time_diff = timestamp - self.genesis_timestamp
         return int(time_diff / BLOCK_TIME)
-
-    def is_current_timeframe_block_present(self):
-        genesis_timestamp = self.dag.genesis_block().timestamp
-        current_block_number = self.get_current_timeframe_block_number()
-        time_from = genesis_timestamp + current_block_number * BLOCK_TIME
-        time_to = genesis_timestamp + (current_block_number + 1) * BLOCK_TIME
-        for _, block in self.dag.blocks_by_hash.items():
-            if time_from <= block.block.timestamp < time_to:
-                return True
-        return False
 
     def get_current_round(self):
         current_block_number = self.get_current_timeframe_block_number()
