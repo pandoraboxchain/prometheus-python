@@ -259,8 +259,7 @@ class Epoch:
     def get_epoch_hashes(self):
         return self.tops_and_epochs
 
-    def on_top_block_added(self, block):
-        block_hash = block.get_hash()
+    def on_top_block_added(self, block, block_hash):
         previous_top_epoch_hash = None
         for prev_hash in block.block.prev_hashes:
             if prev_hash in self.tops_and_epochs:

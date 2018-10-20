@@ -52,7 +52,7 @@ class Dag:
         if not block_hash in self.existing_links:
             self.tops[block_hash] = block
             for listener in self.new_top_block_event_listeners:
-                listener.on_top_block_added(block)
+                listener.on_top_block_added(block, block_hash)
 
         self.add_txs_by_hash(block.block.system_txs)
 
