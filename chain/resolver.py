@@ -1,5 +1,7 @@
 from transaction.utxo import COINBASE_IDENTIFIER
 
+#TODO move this file to transactions folder
+
 class Entry():
     def __init__(self, tx, number):
         self.tx = tx

@@ -164,8 +164,7 @@ class Node:
         payment_txs = self.get_payment_transactions_for_signing(current_block_number)
 
         tops = self.dag.get_top_blocks_hashes()
-        conflict_finder = ConflictFinder(self.dag)
-        chosen_top, _ = conflict_finder.find_conflicts(tops)
+        chosen_top = self.dag.get_longest_chain_top(tops)
         conflicting_tops = [top for top in tops if top != chosen_top]
         
         current_top_blocks = [chosen_top] + conflicting_tops #first link in dag is not considered conflict, the rest is.
