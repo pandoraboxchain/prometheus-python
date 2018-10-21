@@ -15,12 +15,10 @@ class TestMergeAndResolve(unittest.TestCase):
     def test_simple(self):
         dag = Dag(0)
 
-        block_hash = TestChainGenerator.insert_dummy_with_payments(dag, [dag.genesis_hash()], [], 1)
-        block_reward = dag.blocks_by_hash[block_hash].block.payment_txs[0]
+        block_hash, block_reward = TestChainGenerator.insert_dummy_with_payments(dag, [dag.genesis_hash()], [], 1)
 
-        payment = TransactionFactory.create_payment(block_reward.get_hash(), 0, [os.urandom(32)], [12])
-        block2_hash = TestChainGenerator.insert_dummy_with_payments(dag, [block_hash], [payment], 2)
-        block2_reward = dag.blocks_by_hash[block2_hash].block.payment_txs[0]
+        payment = TransactionFactory.create_payment(block_reward, 0, [os.urandom(32)], [12])
+        block2_hash, block2_reward = TestChainGenerator.insert_dummy_with_payments(dag, [block_hash], [payment], 2)
 
         iterator = MergingIter(dag, block2_hash)
         payments = [block.block.payment_txs for block in iterator]
@@ -30,7 +28,7 @@ class TestMergeAndResolve(unittest.TestCase):
 
         self.assertEqual(len(spent), 0)
 
-        self.assertIn(Entry(block2_reward.get_hash(), 0), unspent)
+        self.assertIn(Entry(block2_reward, 0), unspent)
         self.assertIn(Entry(payment.get_hash(), 0), unspent)
 
     def test_merged_chain_without_transaction_conflicts(self):
