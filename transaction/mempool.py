@@ -34,8 +34,6 @@ class Mempool:
             self.gossips[tx.get_hash()] = tx
         elif isinstance(tx, PositiveGossipTransaction):
             self.gossips[tx.get_hash()] = tx
-        elif isinstance(tx, PenaltyGossipTransaction):
-            self.gossips[tx.get_hash()] = tx
         elif isinstance(tx, PaymentTransaction):
             self.payments[tx.get_hash()] = tx
         else:
@@ -44,8 +42,9 @@ class Mempool:
     # remove all occurences of given transaction
     def remove_transaction(self, tx):
         if isinstance(tx, PrivateKeyTransaction) or \
-               isinstance(tx, PenaltyTransaction):  # should only be as part of the block
-                pass
+                isinstance(tx, PenaltyTransaction) or \
+                isinstance(tx, PenaltyGossipTransaction):  # should only be as part of the block
+            pass
         elif isinstance(tx, PublicKeyTransaction):
             del self.public_keys[tx.get_hash()]
         elif isinstance(tx, StakeHoldTransaction) or isinstance(tx, StakeReleaseTransaction):
@@ -61,9 +60,6 @@ class Mempool:
             del self.gossips[tx.get_hash()]
         elif isinstance(tx, PositiveGossipTransaction):
             del self.gossips[tx.get_hash()]
-        elif isinstance(tx, PenaltyGossipTransaction):
-            if tx.get_hash() in self.gossips:    # check for penalty gossip in mempool before deleting
-                del self.gossips[tx.get_hash()]  # validator put it in block without broadcast
         elif isinstance(tx, PaymentTransaction):
             del self.payments[tx.get_hash()]
         else:
