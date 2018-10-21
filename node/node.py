@@ -12,14 +12,18 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
+from transaction.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
+from transaction.payment_transaction import PaymentTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
 from verification.block_acceptor import BlockAcceptor
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
+from hashlib import sha256
+
 
 
 class DummyLogger(object):
@@ -40,6 +44,7 @@ class Node:
         self.epoch.set_logger(self.logger)
         self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
+        self.utxo = Utxo()
         self.behaviour = behaviour
 
         self.block_signer = block_signer
@@ -52,10 +57,9 @@ class Node:
         self.reveals_to_send = {}
         self.sent_shares_epochs = []  # epoch hashes of secret shares
         self.last_expected_timeslot = 0
-        # TODO may be refactor needed
-        # temporary solution (not send anothre block by same timeslot)
         self.last_signed_block_number = 0
         self.tried_to_sign_current_block = False
+        self.owned_utxos = []
 
     def start(self):
         pass
@@ -155,43 +159,22 @@ class Node:
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
         
-        transactions = self.mempool.pop_round_system_transactions(current_round_type)
-
-        # skip non valid transactions
-        verifier = InBlockTransactionsAcceptor(self.epoch, self.permissions, self.logger)
-        transactions = [t for t in transactions if verifier.check_if_valid(t)]
-        # get gossip conflicts hashes (validate_gossip() ---> [gossip_negative_hash, gossip_positive_hash])
-        conflicts_gossip = self.validate_gossip(self.dag, self.mempool)
-        gossip_mempool_txs = self.mempool.pop_current_gossips()  # POP gossips to block
-        transactions += gossip_mempool_txs
+        system_txs = self.get_system_transactions_for_signing(current_round_type)
+        payment_txs = self.get_payment_transactions_for_signing(current_block_number)
 
         tops = self.dag.get_top_blocks_hashes()
         conflict_finder = ConflictFinder(self.dag)
-        chosen_top, conflicts = conflict_finder.find_conflicts(tops)
+        chosen_top, _ = conflict_finder.find_conflicts(tops)
         conflicting_tops = [top for top in tops if top != chosen_top]
         
-        if current_round_type == Round.PRIVATE:
-            if self.epoch_private_keys:
-                key_reveal_tx = self.form_private_key_reveal_transaction()
-                transactions.append(key_reveal_tx)
-
-        if conflicts:
-            penalty = self.form_penalize_violators_transaction(conflicts)
-            transactions.append(penalty)
-
-        if conflicts_gossip:
-            for conflict in conflicts_gossip:
-                penalty_gossip_tx = \
-                    TransactionFactory.create_penalty_gossip_transaction(conflict=conflict,
-                                                                         node_private=self.block_signer.private_key)
-                transactions.append(penalty_gossip_tx)
-
         current_top_blocks = [chosen_top] + conflicting_tops #first link in dag is not considered conflict, the rest is.
         
         block = BlockFactory.create_block_dummy(current_top_blocks)
-        block.system_txs = transactions
+        block.system_txs = system_txs
+        block.payment_txs = payment_txs
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
+        self.utxo.apply_payments(payment_txs)
         if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
             self.logger.debug("Broadcasting signed block number %s", current_block_number)
             self.network.broadcast_block(self.node_id, signed_block.pack())
@@ -200,12 +183,46 @@ class Node:
 
         if self.behaviour.is_malicious_excessive_block():
             additional_block_timestamp = block.timestamp + 1
-            block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
-            block.system_txs = transactions.copy()
-            signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
-            self.dag.add_signed_block(current_block_number, signed_block)
+            additional_block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
+            additional_block.system_txs = block.system_txs
+            additional_block.payment_txs = block.payment_txs
+            signed_add_block = BlockFactory.sign_block(additional_block, self.block_signer.private_key)
+            self.dag.add_signed_block(current_block_number, signed_add_block)
             self.logger.info("Sending additional block")
-            self.network.broadcast_block(self.node_id, signed_block.pack())
+            self.network.broadcast_block(self.node_id, signed_add_block.pack())
+
+    def get_system_transactions_for_signing(self, round):
+        system_txs = self.mempool.pop_round_system_transactions(round)
+
+        # skip non valid system_txs
+        verifier = InBlockTransactionsAcceptor(self.epoch, self.permissions, self.logger)
+        system_txs = [t for t in system_txs if verifier.check_if_valid(t)]
+        # get gossip conflicts hashes (validate_gossip() ---> [gossip_negative_hash, gossip_positive_hash])
+        conflicts_gossip = self.validate_gossip(self.dag, self.mempool)
+        gossip_mempool_txs = self.mempool.pop_current_gossips()  # POP gossips to block
+        system_txs += gossip_mempool_txs
+
+        if round == Round.PRIVATE:
+            if self.epoch_private_keys:
+                key_reveal_tx = self.form_private_key_reveal_transaction()
+                system_txs.append(key_reveal_tx)
+
+        if conflicts_gossip:
+            for conflict in conflicts_gossip:
+                penalty_gossip_tx = \
+                    TransactionFactory.create_penalty_gossip_transaction(conflict=conflict,
+                                                                         node_private=self.block_signer.private_key)
+                system_txs.append(penalty_gossip_tx)
+        
+        return system_txs
+
+    def get_payment_transactions_for_signing(self, block_number):
+        node_public = Private.publickey(self.block_signer.private_key)
+        pseudo_address = sha256(node_public).digest()
+        block_reward = TransactionFactory.create_block_reward(pseudo_address, block_number)
+        self.owned_utxos.append(block_reward.get_hash()) 
+        payment_txs = [block_reward] + self.mempool.pop_payment_transactions()
+        return payment_txs
 
     def try_to_publish_public_key(self, current_block_number):
         if self.epoch_private_keys:
@@ -359,6 +376,7 @@ class Node:
                 current_block_number = self.epoch.get_current_timeframe_block_number()
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
+                self.utxo.apply_payments(block.payment_txs)
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
@@ -387,7 +405,8 @@ class Node:
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 self.dag.add_signed_block(block_number, signed_block)
-                self.mempool.remove_transactions(signed_block.block.system_txs)
+                self.mempool.remove_transactions(block.system_txs)
+                self.utxo.apply_payments(block.payment_txs)
                 self.logger.error("Added block out of timeslot")
             else:
                 self.logger.error("Block was not added. Considered invalid")

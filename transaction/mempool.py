@@ -5,7 +5,7 @@ from transaction.gossip_transaction import NegativeGossipTransaction, \
 from transaction.secret_sharing_transactions import SplitRandomTransaction, PublicKeyTransaction, PrivateKeyTransaction
 from transaction.stake_transaction import StakeHoldTransaction, StakeReleaseTransaction, PenaltyTransaction
 from transaction.commit_transactions import CommitRandomTransaction, RevealRandomTransaction
-
+from transaction.payment_transaction import PaymentTransaction
 
 class Mempool:
 
@@ -16,6 +16,7 @@ class Mempool:
         self.reveals = {}
         self.shares = {}
         self.gossips = {}
+        self.payments = {}
 
     def add_transaction(self, tx):
         if isinstance(tx, PublicKeyTransaction):
@@ -35,6 +36,8 @@ class Mempool:
             self.gossips[tx.get_hash()] = tx
         elif isinstance(tx, PenaltyGossipTransaction):
             self.gossips[tx.get_hash()] = tx
+        elif isinstance(tx, PaymentTransaction):
+            self.payments[tx.get_hash()] = tx
         else:
             assert False, "Can't add. Transaction type is unknown or should not be added to mempool"
 
@@ -60,6 +63,8 @@ class Mempool:
             del self.gossips[tx.get_hash()]
         elif isinstance(tx, PenaltyGossipTransaction):
             del self.gossips[tx.get_hash()]
+        elif isinstance(tx, PaymentTransaction):
+            del self.payments[tx.get_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"
 
@@ -103,6 +108,12 @@ class Mempool:
         self.stake_operations.clear()
         self.commits.clear()
         self.reveals.clear()
+        # don't remove payments here
+
+    def pop_payment_transactions(self):
+        payments = self.payments.copy()
+        self.payments.clear()
+        return payments
 
     # -------------------------------------------------------------------------------
     # Gossip tx

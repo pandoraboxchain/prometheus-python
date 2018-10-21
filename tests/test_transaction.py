@@ -58,13 +58,11 @@ class TestTransaction(unittest.TestCase):
         self.assertEqual(original.get_signing_hash(b"epoch_hash"), restored.get_signing_hash(b"epoch_hash"))
 
     def test_payment_pack_unpack(self):
-        dummy_private = Private.generate()
         original = PaymentTransaction()
-        original.from_tx = os.urandom(32)
-        original.amount = 123
-        original.to = os.urandom(32)
-        original.pubkey = Private.publickey(dummy_private)
-        original.signature = Private.sign(original.get_hash(), dummy_private)
+        original.input = os.urandom(32)
+        original.number = 1
+        original.outputs = [os.urandom(32), os.urandom(32)]
+        original.amounts = [123, 999]
 
         raw = original.pack()
         restored = PaymentTransaction()

@@ -26,12 +26,4 @@ ZETA = 5
 ZETA_MIN = 3
 ZETA_MAX = 5
 
-
-# rounds length in blocks
-#    PUBLIC = 3
-#    COMMIT = 3
-#    SECRETSHARE = 3
-#    REVEAL = 3
-#    PRIVATE = 3
-#    FINAL = 3 + 1
-
+BLOCK_REWARD = 15

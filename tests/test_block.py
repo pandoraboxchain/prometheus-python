@@ -2,6 +2,7 @@ import unittest
 import os
 from chain.block import Block
 from transaction.secret_sharing_transactions import SplitRandomTransaction, PrivateKeyTransaction
+from transaction.payment_transaction import PaymentTransaction
 from crypto.private import Private
 from crypto.keys import Keys
 
@@ -24,6 +25,14 @@ class TestBlock(unittest.TestCase):
         pktx.key = Keys.to_bytes(Private.generate())
 
         original_block.system_txs = [tx, pktx]
+
+        payment = PaymentTransaction()
+        payment.input = b'0' * 32
+        payment.number = 0
+        payment.outputs = [os.urandom(32)]
+        payment.amounts = [15]
+
+        original_block.payment_txs = [payment]
 
         raw = original_block.pack()
         restored = Block()

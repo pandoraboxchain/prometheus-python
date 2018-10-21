@@ -14,6 +14,8 @@ from transaction.stake_transaction import StakeHoldTransaction, \
                                           StakeReleaseTransaction, \
                                           PenaltyTransaction
 
+from transaction.utxo import Utxo, COINBASE_IDENTIFIER
+from chain.params import BLOCK_REWARD
 
 class TransactionFactory:
 
@@ -120,6 +122,20 @@ class TransactionFactory:
         tx = PenaltyTransaction()
         tx.conflicts = conflicts
         tx.signature = Private.sign(tx.get_hash(), node_private)
+        return tx
+
+    @staticmethod
+    def create_block_reward(address, block_number):
+        #block number is random data provider against hash collisions
+        return TransactionFactory.create_payment(COINBASE_IDENTIFIER, block_number, [address], [BLOCK_REWARD])
+
+    @staticmethod
+    def create_payment(input, number, outputs, amounts):
+        tx = PaymentTransaction()
+        tx.input = input
+        tx.number = number
+        tx.outputs = outputs
+        tx.amounts = amounts
         return tx
 
 
