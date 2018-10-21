@@ -72,4 +72,46 @@ class TestConflictWatcher(unittest.TestCase):
         self.assertIn(block2c_hash, conflicts)
         self.assertIn(block3_hash, conflicts)
 
+    def test_different_epoch_watch(self):
+        dag = Dag(0)
+        conflict_watcher = ConflictWatcher(dag)
+
+        actor1 = Private.publickey(Private.generate())
+        actor2 = Private.publickey(Private.generate())
+        actor3 = Private.publickey(Private.generate())
+
+        block1_hash = TestChainGenerator.insert_dummy(dag, [dag.genesis_hash()], 1)
+        conflict_watcher.on_new_block_by_validator(block1_hash, 1, actor1)
+
+        block2_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        conflict_watcher.on_new_block_by_validator(block2_hash, 1, actor2)
+
+        block2c_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        conflict_watcher.on_new_block_by_validator(block2c_hash, 1, actor2)
+
+        block3_hash = TestChainGenerator.insert_dummy(dag, [block2_hash, block2c_hash], 3)
+        conflict_watcher.on_new_block_by_validator(block3_hash, 1, actor3)
+
+        #switch to next epoch
+        block4_hash = TestChainGenerator.insert_dummy(dag, [block3_hash], 4)
+        conflict_watcher.on_new_block_by_validator(block4_hash, 2, actor2) 
+        
+        block4c_hash = TestChainGenerator.insert_dummy(dag, [block3_hash], 4)
+        conflict_watcher.on_new_block_by_validator(block4c_hash, 2, actor2)
+
+        #first epoch conflicts
+        conflicts = conflict_watcher.get_conflicts_by_block(block2_hash)
+        self.assertEqual(len(conflicts), 2)
+        self.assertIn(block2_hash, conflicts)
+        self.assertIn(block2c_hash, conflicts)
+
+        #second epoch conflicts of the same public key
+        conflicts = conflict_watcher.get_conflicts_by_block(block4_hash)
+        self.assertEqual(len(conflicts), 2)
+        self.assertIn(block4_hash, conflicts)
+        self.assertIn(block4c_hash, conflicts)
+
+        conflicts = conflict_watcher.get_conflicts_by_block(block1_hash)
+        self.assertEqual(conflicts, None)
+
     #TODO test cross epoch
