@@ -111,7 +111,7 @@ class Mempool:
         # don't remove payments here
 
     def pop_payment_transactions(self):
-        payments = self.payments.copy()
+        payments = list(self.payments.values())
         self.payments.clear()
         return payments
 

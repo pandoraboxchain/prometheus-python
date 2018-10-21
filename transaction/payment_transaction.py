@@ -22,7 +22,7 @@ class PaymentTransaction:
     def parse(self, raw_data):
         deserializer = Deserializer(raw_data)
         self.input = deserializer.parse_hash()
-        self.number = deserializer.parse_u8()
+        self.number = deserializer.parse_u32() #TODO we made input number contain more bytes just for coinbase
         
         output_count = deserializer.parse_u8()
         self.outputs = []
@@ -37,7 +37,7 @@ class PaymentTransaction:
     def pack(self):
         assert len(self.outputs) == len(self.amounts), "Outputs count must match amounts count"
         raw = self.input
-        raw += Serializer.write_u8(self.number)
+        raw += Serializer.write_u32(self.number)
         raw += Serializer.write_u8(len(self.outputs))        
         for output in self.outputs:
             raw += output
