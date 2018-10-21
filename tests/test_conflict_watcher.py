@@ -114,4 +114,34 @@ class TestConflictWatcher(unittest.TestCase):
         conflicts = conflict_watcher.get_conflicts_by_block(block1_hash)
         self.assertEqual(conflicts, None)
 
+    def test_find_conflicts(self):
+        dag = Dag(0)
+        watcher = ConflictWatcher(dag)
+
+        actor1 = Private.publickey(Private.generate())
+        actor2 = Private.publickey(Private.generate())
+        actor3 = Private.publickey(Private.generate())
+
+        block1_hash = TestChainGenerator.insert_dummy(dag, [dag.genesis_hash()], 1)
+        watcher.on_new_block_by_validator(block1_hash, 1, actor1)
+
+        block2_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        watcher.on_new_block_by_validator(block2_hash, 1, actor2)
+
+        block2c_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        watcher.on_new_block_by_validator(block2c_hash, 1, actor2)
+
+        # block3_hash = TestChainGenerator.insert_dummy(dag, [block2_hash, block2c_hash], 3)
+        # watcher.on_new_block_by_validator(block3_hash, 1, actor3)
+
+        tops = dag.get_top_hashes()
+        common_ancestor = dag.get_common_ancestor(tops)
+
+        explicits, candidates = watcher.find_conflicts_in_between(tops, common_ancestor)
+        self.assertEqual(len(explicits), 0)
+        self.assertEqual(len(candidates), 2)
+        self.assertIn(block2_hash, candidates[0])
+        self.assertIn(block2c_hash, candidates[0])
+
+
     #TODO test cross epoch

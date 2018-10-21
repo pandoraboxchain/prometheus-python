@@ -33,7 +33,7 @@ class ConflictWatcher:
         tops_numbers = [self.dag.get_block_number(top) for top in tops]
         latest_top_number = max(tops_numbers)
 
-        merge_range = range(common_ancestor_number, latest_top_number)
+        merge_range = range(common_ancestor_number, latest_top_number + 1)
 
         all_merge_blocks = []
         for i in merge_range:
