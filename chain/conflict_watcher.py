@@ -64,6 +64,11 @@ class ConflictWatcher:
             if resolved_earlier:
                 explicit_conflicts += inside_merge_conflicts
             else:
-                candidate_conflicts += [inside_merge_conflicts]
+                candidate_conflicts += [inside_merge_conflicts] #put candidates into conflict groups
+
+            #delete blocks in conflict so we don't have same conflicts twice
+            for block in inside_merge_conflicts:
+                if block in all_merge_blocks:
+                    all_merge_blocks.remove(block)
         
         return explicit_conflicts, candidate_conflicts

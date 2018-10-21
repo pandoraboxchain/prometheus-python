@@ -120,7 +120,6 @@ class TestConflictWatcher(unittest.TestCase):
 
         actor1 = Private.publickey(Private.generate())
         actor2 = Private.publickey(Private.generate())
-        actor3 = Private.publickey(Private.generate())
 
         block1_hash = TestChainGenerator.insert_dummy(dag, [dag.genesis_hash()], 1)
         watcher.on_new_block_by_validator(block1_hash, 1, actor1)
@@ -137,11 +136,43 @@ class TestConflictWatcher(unittest.TestCase):
         tops = dag.get_top_hashes()
         common_ancestor = dag.get_common_ancestor(tops)
 
-        explicits, candidates = watcher.find_conflicts_in_between(tops, common_ancestor)
+        explicits, candidate_groups = watcher.find_conflicts_in_between(tops, common_ancestor)
         self.assertEqual(len(explicits), 0)
-        self.assertEqual(len(candidates), 2)
-        self.assertIn(block2_hash, candidates[0])
-        self.assertIn(block2c_hash, candidates[0])
+        self.assertEqual(len(candidate_groups), 1)
+        self.assertEqual(len(candidate_groups[0]), 2)
+        self.assertIn(block2_hash, candidate_groups[0])
+        self.assertIn(block2c_hash, candidate_groups[0])
+
+    def test_explicit_conflict(self):
+        dag = Dag(0)
+        watcher = ConflictWatcher(dag)
+
+        actor1 = Private.publickey(Private.generate())
+        actor2 = Private.publickey(Private.generate())
+
+        block1_hash = TestChainGenerator.insert_dummy(dag, [dag.genesis_hash()], 1)
+        watcher.on_new_block_by_validator(block1_hash, 1, actor2)
+        
+        block2_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        watcher.on_new_block_by_validator(block2_hash, 1, actor1)
+
+        block3_hash = TestChainGenerator.insert_dummy(dag, [block2_hash], 3)
+        watcher.on_new_block_by_validator(block3_hash, 1, actor2)
+
+        block3c_hash = TestChainGenerator.insert_dummy(dag, [block2_hash], 3)
+        watcher.on_new_block_by_validator(block3c_hash, 1, actor2)
+
+        tops = dag.get_top_hashes()
+        common_ancestor = dag.get_common_ancestor(tops)
+
+        #here block was signed by node even before merge appeared
+        #this is explicit merge and both following blocks are conflicting
+        explicits, candidates = watcher.find_conflicts_in_between(tops, common_ancestor)
+        self.assertEqual(len(explicits), 2)
+        self.assertEqual(len(candidates), 0)
+        self.assertIn(block3_hash, explicits)
+        self.assertIn(block3c_hash, explicits)
+
 
 
     #TODO test cross epoch
