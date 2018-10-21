@@ -53,8 +53,8 @@ class TestDag(unittest.TestCase):
         other_signed_block2 = BlockFactory.sign_block(other_block2, private)
         dag.add_signed_block(2, other_signed_block2)
 
-        self.assertEqual(dag.calculate_chain_length(other_block2.get_hash()), 3)
-        self.assertEqual(dag.calculate_chain_length(block3.get_hash()), 4)
+        self.assertEqual(dag.calculate_chain_length(other_block2.get_hash(), dag.genesis_hash()), 3)
+        self.assertEqual(dag.calculate_chain_length(block3.get_hash(), dag.genesis_hash()), 4)
 
     def test_ancestry(self):
         dag = Dag(0)

@@ -79,11 +79,13 @@ class Dag:
         assert block_hash in self.block_numbers_by_hash
         return self.block_numbers_by_hash[block_hash]
     
-    def calculate_chain_length(self, top_block_hash):
-        length = [0]
-        top_block = self.blocks_by_hash[top_block_hash]
-        self.recursive_previous_block_count(top_block, length)
-        return length[0]
+    def calculate_chain_length(self, from_block, to_block):
+        chain_iter = ChainIter(self, from_block)
+        count = 0
+        for block in chain_iter:
+            if block:
+                count += 1
+        return count
 
     def recursive_previous_block_count(self, block, count):
         count[0] += 1   # trick to emulate pass by reference
@@ -104,20 +106,22 @@ class Dag:
         return result
 
     # returns longest chain and chooses randomly if there are equal length longest chains
-    def get_longest_chain_top_block(self, top_blocks):
+    def get_longest_chain_top(self, tops):
         randgen = random.SystemRandom()  # crypto secure random
-        randgen.shuffle(top_blocks)  # randomly shuffle tops so same length chains won't be chosen deterministically
+        randgen.shuffle(tops)  # randomly shuffle tops so same length chains won't be chosen deterministically
+
+        common_ancestor = self.get_common_ancestor(tops)
 
         max_length = 0
         max_length_index = 0
-        for i in range(0, len(top_blocks)):
-            length = self.calculate_chain_length(top_blocks[i])
+        for i in range(0, len(tops)):
+            length = self.calculate_chain_length(tops[i], common_ancestor)
             if length > max_length:
                 max_length = length
                 max_length_index = i
 
-        return top_blocks[max_length_index]
-
+        return tops[max_length_index]
+    
     def subscribe_to_new_block_notification(self, listener):
         self.new_block_listeners.append(listener)
     

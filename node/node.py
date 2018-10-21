@@ -8,6 +8,7 @@ from chain.block_factory import BlockFactory
 from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.transaction_factory import TransactionFactory
 from chain.conflict_finder import ConflictFinder
+from chain.conflict_watcher import ConflictWatcher
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
@@ -45,6 +46,7 @@ class Node:
         self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
         self.utxo = Utxo()
+        self.conflict_watcher = ConflictWatcher(self.dag)
         self.behaviour = behaviour
 
         self.block_signer = block_signer
