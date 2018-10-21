@@ -41,8 +41,9 @@ class Mempool:
     # remove all occurences of given transaction
     def remove_transaction(self, tx):
         if isinstance(tx, PrivateKeyTransaction) or \
-               isinstance(tx, PenaltyTransaction):  # should only be as part of the block
-                pass
+                isinstance(tx, PenaltyTransaction) or \
+                isinstance(tx, PenaltyGossipTransaction):  # should only be as part of the block
+            pass
         elif isinstance(tx, PublicKeyTransaction):
             del self.public_keys[tx.get_hash()]
         elif isinstance(tx, StakeHoldTransaction) or isinstance(tx, StakeReleaseTransaction):
