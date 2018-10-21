@@ -16,7 +16,7 @@ from tests.test_chain_generator import TestChainGenerator
 
 class TestConflictWatcher(unittest.TestCase):
     
-    def test_simple(self):
+    def test_same_timeslot_watch(self):
         dag = Dag(0)
         conflict_watcher = ConflictWatcher(dag)
 
@@ -44,5 +44,32 @@ class TestConflictWatcher(unittest.TestCase):
         conflicts = conflict_watcher.get_conflicts_by_block(block1_hash)
         self.assertEqual(conflicts, None)
 
+
+    def test_different_timeslot_watch(self):
+        dag = Dag(0)
+        conflict_watcher = ConflictWatcher(dag)
+
+        actor1 = Private.publickey(Private.generate())
+        actor2 = Private.publickey(Private.generate())
+        actor3 = Private.publickey(Private.generate())
+
+        block1_hash = TestChainGenerator.insert_dummy(dag, [dag.genesis_hash()], 1)
+        conflict_watcher.on_new_block_by_validator(block1_hash, 1, actor1)
+
+        block2_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        conflict_watcher.on_new_block_by_validator(block2_hash, 1, actor2)
+
+        # second block is signed by third validator
+        # its not possible by usual means, but quite possible when we have two different epoch seeds
+        block2c_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        conflict_watcher.on_new_block_by_validator(block2c_hash, 1, actor3)
+
+        block3_hash = TestChainGenerator.insert_dummy(dag, [block2_hash, block2c_hash], 3)
+        conflict_watcher.on_new_block_by_validator(block3_hash, 1, actor3)
+
+        conflicts = conflict_watcher.get_conflicts_by_block(block3_hash)
+        self.assertEqual(len(conflicts), 2)
+        self.assertIn(block2c_hash, conflicts)
+        self.assertIn(block3_hash, conflicts)
 
     #TODO test cross epoch
