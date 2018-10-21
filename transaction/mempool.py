@@ -59,7 +59,8 @@ class Mempool:
         elif isinstance(tx, PositiveGossipTransaction):
             del self.gossips[tx.get_hash()]
         elif isinstance(tx, PenaltyGossipTransaction):
-            del self.gossips[tx.get_hash()]
+            if tx.get_hash() in self.gossips:
+                del self.gossips[tx.get_hash()]
         else:
             assert False, "Can't remove. Transaction type is unknown"
 
