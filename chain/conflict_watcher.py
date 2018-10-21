@@ -53,7 +53,7 @@ class ConflictWatcher:
             inside_merge_conflicts = []
             for conflict in conflicts:
                 conflict_number = self.dag.get_block_number(conflict)
-                if conflict_number < common_ancestor_number:
+                if conflict_number <= common_ancestor_number:
                     resolved_earlier = True
                     continue
                 if conflict_number > latest_top_number:

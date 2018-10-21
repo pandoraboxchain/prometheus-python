@@ -173,6 +173,32 @@ class TestConflictWatcher(unittest.TestCase):
         self.assertIn(block3_hash, explicits)
         self.assertIn(block3c_hash, explicits)
 
+    def test_explicit_conflict_right_on_common_ancestor(self):
+        dag = Dag(0)
+        watcher = ConflictWatcher(dag)
+
+        actor2 = Private.publickey(Private.generate())
+
+        block1_hash = TestChainGenerator.insert_dummy(dag, [dag.genesis_hash()], 1)
+        watcher.on_new_block_by_validator(block1_hash, 1, actor2)
+        
+        block2_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        watcher.on_new_block_by_validator(block2_hash, 1, actor2)
+
+        block2c_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        watcher.on_new_block_by_validator(block2c_hash, 1, actor2)
+
+        tops = dag.get_top_hashes()
+        common_ancestor = dag.get_common_ancestor(tops)
+
+        #here block was signed by node even before merge appeared
+        #this is explicit merge and both following blocks are conflicting
+        explicits, candidates = watcher.find_conflicts_in_between(tops, common_ancestor)
+        self.assertEqual(len(explicits), 2)
+        self.assertEqual(len(candidates), 0)
+        self.assertIn(block2_hash, explicits)
+        self.assertIn(block2c_hash, explicits)
+
 
 
     #TODO test cross epoch
