@@ -111,8 +111,7 @@ class Node:
             self.broadcast_gossip_negative(self.last_expected_timeslot)
             self.behaviour.malicious_send_negative_gossip_count -= 1
         if self.behaviour.malicious_send_positive_gossip_count > 0:
-            # send genesis block malicious
-            zero_block = self.dag.blocks_by_number[0][0].block
+            zero_block = self.dag.blocks_by_number[0][0].block  # send genesis block malicious
             self.broadcast_gossip_positive(zero_block.get_hash())
             self.behaviour.malicious_send_positive_gossip_count -= 1
 
@@ -124,7 +123,7 @@ class Node:
                 return
         if not self.tried_to_sign_current_block:
             self.try_to_sign_block(current_block_number)
-            self.tried_to_sign_current_block = True # will reset in next timeslot
+            self.tried_to_sign_current_block = True  # will reset in next timeslot
 
     async def run(self):
         while True:

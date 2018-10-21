@@ -62,7 +62,8 @@ class Mempool:
         elif isinstance(tx, PositiveGossipTransaction):
             del self.gossips[tx.get_hash()]
         elif isinstance(tx, PenaltyGossipTransaction):
-            del self.gossips[tx.get_hash()]
+            if tx.get_hash() in self.gossips:    # check for penalty gossip in mempool before deleting
+                del self.gossips[tx.get_hash()]  # validator put it in block without broadcast
         elif isinstance(tx, PaymentTransaction):
             del self.payments[tx.get_hash()]
         else:

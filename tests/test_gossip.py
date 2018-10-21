@@ -821,7 +821,7 @@ class TestGossip(unittest.TestCase):
         Time.advance_to_next_timeslot()  # current block number 2
         node0.step()  # do nothing
         node1.step()  # is validator by order (need to marge mempool and provide block)
-        # TODO in current case node will penaltize SELF !!!
+        # in current case node will penaltize SELF !!!
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 3)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
         # tx_s
