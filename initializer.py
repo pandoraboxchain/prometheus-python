@@ -73,7 +73,7 @@ class Initializer:
             # -------------------------------------
             self.launch()
             # add some extra nodes
-            self.add_node(10)
+            #self.add_node(10)
             # -------------------------------------
 
             if self.discrete_mode:

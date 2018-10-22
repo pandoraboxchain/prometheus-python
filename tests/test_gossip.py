@@ -913,7 +913,7 @@ class TestGossip(unittest.TestCase):
             if 'mempool.gossips.length' in functions:
                 self.assertEqual(len(node.mempool.gossips), value)
             if 'dag.blocks_by_number.length' in functions:
-                self.assertEqual(len(node.dag.blocks_by_number), value) # TODO sometimes fall for unknoun reason relaunch tests
+                self.assertEqual(len(node.dag.blocks_by_number), value)
             if 'dag.transactions_by_hash.length' in functions:
                 self.assertEqual(len(node.dag.transactions_by_hash), value)
             if 'permissions.epoch_validators.length' in functions:

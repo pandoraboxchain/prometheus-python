@@ -14,6 +14,9 @@ class Behaviour:
         # behavior flag for create block but not broadcast it
         # added as temporary fast solution
         self.transport_cancel_block_broadcast = False
+        # behavior flag for emulation node in offline for input and output requests
+        self.transport_node_offline_input = False
+        self.transport_node_offline_output = False
 
         # Malicious blocks (validated by block_verifier)
         self.malicious_private_transactions_in_block = False
@@ -29,8 +32,6 @@ class Behaviour:
         self.malicious_transaction_wrong_sender_for_current_round = False
         self.malicious_transaction_generate_too_few_secret_shares = False
         self.malicious_transaction_send_reveal_without_corresponding_commit = False
-
-
 
     def update(self, epoch_number):
         if self.epoch_to_release_stake == epoch_number:

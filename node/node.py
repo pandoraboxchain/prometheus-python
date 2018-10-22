@@ -373,6 +373,8 @@ class Node:
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 current_block_number = self.epoch.get_current_timeframe_block_number()
+                # проверять елси предок у данного блока в локальном даг
+                #
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
                 self.utxo.apply_payments(block.payment_txs)
