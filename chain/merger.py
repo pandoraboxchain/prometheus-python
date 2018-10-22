@@ -5,8 +5,9 @@ from chain.merged_chain import MergedChain
 
 class Merger:
 
-    def __init__(self, dag):
+    def __init__(self, dag, immutability):
         self.dag = dag
+        self.immutability = immutability
 
     # done in deterministic manner, should yield exact same result on every node
     # returns indexes 
@@ -25,7 +26,7 @@ class Merger:
         sorted_chains = [chains[index] for index in deterministic_order]
 
         active = sorted_chains[0]
-        mp = active.get_merging_point()
+        mp = active.get_merging_point() #TODO is it common ancestor?
         active_merged_point = MergedChain(active[:mp])
         merged_chain = MergedChain(active[:mp])
 
@@ -45,7 +46,7 @@ class Merger:
                 if block:
                     block_hash = block.get_hash()
                     if block_hash not in conflicts:
-                        if not diffchain.is_block_mutable(block.get_hash()):
+                        if not self.immutability.is_block_mutable(block_hash):
                             if not block in merged_chain:
                                 merged_chain.append(block)
         
@@ -55,7 +56,7 @@ class Merger:
                 if block:
                     block_hash = block.get_hash()
                     if block_hash not in conflicts:
-                        if diffchain.is_block_mutable(block.get_hash()):
+                        if self.immutability.is_block_mutable(block_hash):
                             if not block in merged_chain:
                                 merged_chain.append(block)
 
