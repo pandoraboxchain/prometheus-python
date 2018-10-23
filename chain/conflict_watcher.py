@@ -72,3 +72,16 @@ class ConflictWatcher:
                     all_merge_blocks.remove(block)
         
         return explicit_conflicts, candidate_conflicts
+
+    def filter_out_longest_chain_conflicts(self, candidate_groups, longest_chain_top):
+        explicit_conflicts = []
+        for group in candidate_groups:
+            sorted_group = sorted(group, key=lambda block: self.dag.get_block_number(block))
+            for block in sorted_group:
+                if self.dag.is_ancestor(longest_chain_top, block): #TODO maybe use chain iter search here?
+                    sorted_group.remove(block)
+                    break
+            explicit_conflicts += sorted_group
+        
+        return explicit_conflicts
+            

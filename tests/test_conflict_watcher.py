@@ -234,6 +234,40 @@ class TestConflictWatcher(unittest.TestCase):
         self.assertIn(block2_hash, candidate_groups[0])
         self.assertIn(block2c_hash, candidate_groups[0])
 
+    def test_filtering_longest_chain(self):
+        dag = Dag(0)
+        watcher = ConflictWatcher(dag)
 
+        actor1 = Private.publickey(Private.generate())
+        actor2 = Private.publickey(Private.generate())
+
+        block1_hash = TestChainGenerator.insert_dummy(dag, [dag.genesis_hash()], 1)
+        watcher.on_new_block_by_validator(block1_hash, 1, actor1)
+
+        block2_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        watcher.on_new_block_by_validator(block2_hash, 1, actor2)
+
+        block2c_hash = TestChainGenerator.insert_dummy(dag, [block1_hash], 2)
+        watcher.on_new_block_by_validator(block2c_hash, 1, actor2)
+
+        tops = dag.get_top_hashes()
+        common_ancestor = dag.get_common_ancestor(tops)
+
+        explicits, candidate_groups = watcher.find_conflicts_in_between(tops, common_ancestor)
+        self.assertEqual(len(explicits), 0)
+        self.assertEqual(len(candidate_groups), 1)
+        self.assertEqual(len(candidate_groups[0]), 2)
+        self.assertIn(block2_hash, candidate_groups[0])
+        self.assertIn(block2c_hash, candidate_groups[0])
+
+        non_longest_chain_conflicts = watcher.filter_out_longest_chain_conflicts(candidate_groups, block2_hash)
+
+        self.assertIn(block2c_hash, non_longest_chain_conflicts)
+        self.assertNotIn(block2_hash, non_longest_chain_conflicts)
+
+        non_longest_chain_conflicts = watcher.filter_out_longest_chain_conflicts(candidate_groups, block2c_hash)
+
+        self.assertIn(block2_hash, non_longest_chain_conflicts)
+        self.assertNotIn(block2c_hash, non_longest_chain_conflicts)
 
     #TODO test cross epoch
