@@ -134,9 +134,8 @@ class TestConflictWatcher(unittest.TestCase):
         # watcher.on_new_block_by_validator(block3_hash, 1, actor3)
 
         tops = dag.get_top_hashes()
-        common_ancestor = dag.get_common_ancestor(tops)
 
-        explicits, candidate_groups = watcher.find_conflicts_in_between(tops, common_ancestor)
+        explicits, candidate_groups = watcher.find_conflicts_in_between(tops)
         self.assertEqual(len(explicits), 0)
         self.assertEqual(len(candidate_groups), 1)
         self.assertEqual(len(candidate_groups[0]), 2)
@@ -163,11 +162,10 @@ class TestConflictWatcher(unittest.TestCase):
         watcher.on_new_block_by_validator(block3c_hash, 1, actor2)
 
         tops = dag.get_top_hashes()
-        common_ancestor = dag.get_common_ancestor(tops)
 
         #here block was signed by node even before merge appeared
         #this is explicit merge and both following blocks are conflicting
-        explicits, candidates = watcher.find_conflicts_in_between(tops, common_ancestor)
+        explicits, candidates = watcher.find_conflicts_in_between(tops)
         self.assertEqual(len(explicits), 2)
         self.assertEqual(len(candidates), 0)
         self.assertIn(block3_hash, explicits)
@@ -190,9 +188,8 @@ class TestConflictWatcher(unittest.TestCase):
         watcher.on_new_block_by_validator(block2c_hash, 1, actor2)
 
         tops = dag.get_top_hashes()
-        common_ancestor = dag.get_common_ancestor(tops)
 
-        explicits, candidates = watcher.find_conflicts_in_between(tops, common_ancestor)
+        explicits, candidates = watcher.find_conflicts_in_between(tops)
         self.assertEqual(len(explicits), 2)
         self.assertEqual(len(candidates), 0)
         self.assertIn(block2_hash, explicits)
@@ -223,9 +220,8 @@ class TestConflictWatcher(unittest.TestCase):
         watcher.on_new_block_by_validator(block4_hash, 1, actor1)
 
         tops = dag.get_top_hashes()
-        common_ancestor = dag.get_common_ancestor(tops)
 
-        explicits, candidate_groups = watcher.find_conflicts_in_between(tops, common_ancestor)
+        explicits, candidate_groups = watcher.find_conflicts_in_between(tops)
         self.assertEqual(len(explicits), 1)
         self.assertIn(block4_hash, explicits)
 
@@ -237,7 +233,7 @@ class TestConflictWatcher(unittest.TestCase):
     def test_filtering_longest_chain(self):
         dag = Dag(0)
         watcher = ConflictWatcher(dag)
-
+        
         actor1 = Private.publickey(Private.generate())
         actor2 = Private.publickey(Private.generate())
 
@@ -251,9 +247,8 @@ class TestConflictWatcher(unittest.TestCase):
         watcher.on_new_block_by_validator(block2c_hash, 1, actor2)
 
         tops = dag.get_top_hashes()
-        common_ancestor = dag.get_common_ancestor(tops)
 
-        explicits, candidate_groups = watcher.find_conflicts_in_between(tops, common_ancestor)
+        explicits, candidate_groups = watcher.find_conflicts_in_between(tops)
         self.assertEqual(len(explicits), 0)
         self.assertEqual(len(candidate_groups), 1)
         self.assertEqual(len(candidate_groups[0]), 2)

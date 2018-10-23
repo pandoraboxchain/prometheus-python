@@ -18,6 +18,7 @@ class ConflictWatcher:
             # public_key : [block_hash]
 
     def get_conflicts_by_block(self, block_hash):
+        assert block_hash in self.blocks, "No block in conflict watcher with hash %r" % block_hash.hex()
         pubkey, epoch_number = self.blocks[block_hash]
         return self.get_conflicts_by_pubkey(pubkey, epoch_number)
 
@@ -27,7 +28,8 @@ class ConflictWatcher:
             return None
         return conflicts
         
-    def find_conflicts_in_between(self, tops, common_ancestor):
+    def find_conflicts_in_between(self, tops):
+        common_ancestor = self.dag.get_common_ancestor(tops)
         common_ancestor_number = self.dag.get_block_number(common_ancestor)
 
         tops_numbers = [self.dag.get_block_number(top) for top in tops]
