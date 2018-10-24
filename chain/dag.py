@@ -13,6 +13,7 @@ class Dag:
         self.blocks_by_number = {}  # key is timeslot number, value is a list of blocks in this timeslot
         self.block_numbers_by_hash = {}
         self.transactions_by_hash = {}  # key is tx_hash, value is tx
+        self.payments_by_hash = {}
         self.existing_links = []
         self.tops = {}
         self.new_block_listeners = []
@@ -57,6 +58,7 @@ class Dag:
         
         #TODO move this to separate transaction holder by subscribing to on_block_added event
         self.add_txs_by_hash(block.block.system_txs)
+        self.add_payments_by_hash(block.block.payment_txs)
 
         for listener in self.new_block_listeners:
             listener.on_new_block_added(block)
@@ -197,6 +199,11 @@ class Dag:
         for tx in system_txs:
             self.transactions_by_hash[tx.get_hash()] = tx
         return self.transactions_by_hash
+
+    def add_payments_by_hash(self, payments):
+        for tx in payments:
+            self.payments_by_hash[tx.get_hash()] = tx
+        return self.payments_by_hash
 
     def get_tx_by_hash(self, tx_hash):
         result = self.transactions_by_hash.get(tx_hash)

@@ -4,7 +4,6 @@ import os
 from transaction.payment_transaction import PaymentTransaction
 from chain.resolver import Resolver, Entry
 from chain.merger import Merger
-from chain.conflict_finder import ConflictFinder
 from chain.dag import Dag
 from chain.transaction_factory import TransactionFactory
 from chain.merging_iterator import MergingIter
@@ -134,4 +133,22 @@ class TestMergeAndResolve(unittest.TestCase):
         self.assertIn(Entry(payment1.get_hash(), 0), unspent)
         self.assertNotIn(Entry(payment1c.get_hash(), 0), unspent)
 
+        total_block_rewards = 0
+        iterator = MergingIter(dag, watcher, block3_hash)
+        for block in iterator:
+            if block:
+                if not block.block.payment_txs:
+                    continue #it might be genesis, or just some silly validator who decided not to earn a reward
+                block_reward = block.block.payment_txs[0]
+                total_block_rewards += block_reward.amounts[0]
+        
 
+        unspent_total = 0
+        unspent_list = unspent #HACKY rename :)
+        for unspent in unspent_list:
+            unspent_tx = dag.payments_by_hash[unspent.tx]
+            unspent_output = unspent.number
+            unspent_amount = unspent_tx.amounts[unspent_output]
+            unspent_total += unspent_amount
+
+        self.assertEqual(total_block_rewards, unspent_total)
