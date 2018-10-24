@@ -3,6 +3,7 @@ class NodeApi:
     def __init__(self, *groups):
         self.nodes = []
         self.groups = None
+        self.merge_groups_flag = False
         if groups:
             self.groups = {}
             for group in groups:
@@ -28,7 +29,10 @@ class NodeApi:
     # receiver MUST response by SignedBlock() else ?(+1 request to ANOTHER node - ?)
     def get_block_by_hash(self, sender_node_id, receiver_node_id, block_hash):
         if self.groups:
-            self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
         for node in self.nodes:
             if self.check_node_input_transport_behaviour(receiver_node_id):
                 return
@@ -37,7 +41,10 @@ class NodeApi:
 
     def broadcast_transaction(self, sender_node_id, raw_tx):
         if self.groups:
-            self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
         if self.check_node_output_transport_behaviour(sender_node_id):
             return
         for node in self.nodes:
@@ -48,7 +55,10 @@ class NodeApi:
 
     def broadcast_block(self, sender_node_id, raw_signed_block):
         if self.groups:
-            self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
         if self.check_node_output_transport_behaviour(sender_node_id):
             return
         for node in self.nodes:
@@ -59,7 +69,10 @@ class NodeApi:
 
     def broadcast_block_out_of_timeslot(self, sender_node_id, raw_signed_block):
         if self.groups:
-            self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
         if self.check_node_output_transport_behaviour(sender_node_id):
             return
         for node in self.nodes:
@@ -70,7 +83,10 @@ class NodeApi:
 
     def broadcast_gossip_negative(self, sender_node_id, raw_gossip):
         if self.groups:
-            self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
         if self.check_node_output_transport_behaviour(sender_node_id):
             return
         for node in self.nodes:
@@ -81,7 +97,10 @@ class NodeApi:
 
     def broadcast_gossip_positive(self, sender_node_id, raw_gossip):
         if self.groups:
-            self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
         if self.check_node_output_transport_behaviour(sender_node_id):
             return
         for node in self.nodes:
@@ -93,6 +112,14 @@ class NodeApi:
     # -----------------------------------------------------------------
     # internal methods
     # -----------------------------------------------------------------
+    def merge_all_groups(self):
+        for group in self.groups:
+            for node in group:
+                if node not in self.nodes:
+                    self.nodes.append(node)
+        self.groups = {}
+        self.merge_groups_flag = False
+
     def get_nodes_group_by_sender_node_id(self, sender_node_id):
         for group in self.groups:
             nodes_in_group = self.groups[group]
