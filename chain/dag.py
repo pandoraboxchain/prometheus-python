@@ -1,6 +1,7 @@
 import random
 from chain.block import Block
 from chain.signed_block import SignedBlock
+from chain.genesis import Genesis
 from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGossipTransaction, \
     PenaltyGossipTransaction
 
@@ -8,7 +9,6 @@ from transaction.gossip_transaction import NegativeGossipTransaction, PositiveGo
 class Dag:
     
     def __init__(self, genesis_creation_time):
-        self.genesis_creation_time = genesis_creation_time
         self.blocks_by_hash = {}  # just hash map hash:block
         self.blocks_by_number = {}  # key is timeslot number, value is a list of blocks in this timeslot
         self.block_numbers_by_hash = {}
@@ -17,18 +17,16 @@ class Dag:
         self.tops = {}
         self.new_block_listeners = []
         self.new_top_block_event_listeners = []
+        self.genesis = Genesis(genesis_creation_time)
         signed_genesis_block = SignedBlock()
-        signed_genesis_block.set_block(self.genesis_block())
+        signed_genesis_block.set_block(self.genesis)
         self.add_signed_block(0, signed_genesis_block)
 
     def genesis_block(self):
-        block = Block()
-        block.timestamp = self.genesis_creation_time
-        block.prev_hashes = []
-        return block
+        return self.genesis
 
     def genesis_hash(self):
-        return self.genesis_block().get_hash()
+        return self.genesis.get_hash()
 
     # ------------------------------
     # block methods
@@ -56,7 +54,8 @@ class Dag:
             self.tops[block_hash] = block
             for listener in self.new_top_block_event_listeners:
                 listener.on_top_block_added(block, block_hash)
-
+        
+        #TODO move this to separate transaction holder by subscribing to on_block_added event
         self.add_txs_by_hash(block.block.system_txs)
 
         for listener in self.new_block_listeners:
