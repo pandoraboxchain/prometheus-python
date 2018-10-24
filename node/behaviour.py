@@ -14,6 +14,10 @@ class Behaviour:
         # behavior flag for create block but not broadcast it
         # added as temporary fast solution
         self.transport_cancel_block_broadcast = False
+        # behavior flag for emulation node in offline for input and output requests
+        self.transport_node_disable_input = False
+        self.transport_node_disable_output = False
+        self.transport_keep_offline = []
 
         # Malicious blocks (validated by block_verifier)
         self.malicious_private_transactions_in_block = False
@@ -30,12 +34,19 @@ class Behaviour:
         self.malicious_transaction_generate_too_few_secret_shares = False
         self.malicious_transaction_send_reveal_without_corresponding_commit = False
 
-
-
     def update(self, epoch_number):
         if self.epoch_to_release_stake == epoch_number:
             self.wants_to_release_stake = True
             self.epoch_to_release_stake = -1
+
+    def update_transport(self, current_block_number):
+        if len(self.transport_keep_offline) == 2:
+            if current_block_number in range(self.transport_keep_offline[0], self.transport_keep_offline[1] + 1):
+                self.transport_node_disable_input = True
+                self.transport_node_disable_output = True
+            else:
+                self.transport_node_disable_input = False
+                self.transport_node_disable_output = False
 
     def is_malicious_excessive_block(self):
         return self.malicious_excessive_block

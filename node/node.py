@@ -84,6 +84,8 @@ class Node:
 
         # service method for update node behavior (if behavior is temporary)
         self.behaviour.update(Epoch.get_epoch_number(current_block_number))
+        # service method for update transport behavior (if behavior is temporary)
+        self.behaviour.update_transport(current_block_number)
 
         current_round = self.epoch.get_round_by_block_number(current_block_number)
         if current_round == Round.PUBLIC:
@@ -374,6 +376,8 @@ class Node:
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 current_block_number = self.epoch.get_current_timeframe_block_number()
+                # проверять елси предок у данного блока в локальном даг
+                #
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
                 self.utxo.apply_payments(block.payment_txs)
@@ -455,7 +459,8 @@ class Node:
         if verifier.check_if_valid(transaction):
             self.mempool.append_gossip_tx(transaction)
             if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> ! make request ONLY if block in timeslot
-                self.network.get_block_by_hash(receiver_node_id=node_id,  # request TO ----> receiver_node_id
+                self.network.get_block_by_hash(sender_node_id=self.node_id,
+                                               receiver_node_id=node_id,  # request TO ----> receiver_node_id
                                                block_hash=transaction.block_hash)
         else:
             self.logger.error("Received gossip positive tx is invalid")
