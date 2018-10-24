@@ -42,7 +42,7 @@ class TestConflictFinder(unittest.TestCase):
                                                        indices_to_skip=[],
                                                        dummy_private=private3)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -85,7 +85,7 @@ class TestConflictFinder(unittest.TestCase):
                                                            indices_to_skip=[],
                                                            dummy_private=private3)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -130,7 +130,7 @@ class TestConflictFinder(unittest.TestCase):
                                                            indices_to_skip=[7],
                                                            dummy_private=private3)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -197,7 +197,7 @@ class TestConflictFinder(unittest.TestCase):
                                                            indices_to_skip=[7],
                                                            dummy_private=private4)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -260,7 +260,7 @@ class TestConflictFinder(unittest.TestCase):
                                                            indices_to_skip=[4, 5, 6, 7, 8],
                                                            dummy_private=private5)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -300,7 +300,7 @@ class TestConflictFinder(unittest.TestCase):
         conf_req.blocks[block_hash] = 4
         top_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 4)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
