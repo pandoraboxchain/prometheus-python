@@ -7,6 +7,7 @@ from node.node import Node
 from node.node_api import NodeApi
 from node.block_signers import BlockSigners
 from node.behaviour import Behaviour
+from node.stats import Stats
 
 from tools.announcer_node import AnnouncerNode
 from tools.time import Time
@@ -24,6 +25,8 @@ def save_dag_to_graphviz(dag_to_visualize):
         from visualization.dag_visualizer import DagVisualizer
         DagVisualizer.visualize(dag_to_visualize)
 
+def show_node_stats(node):
+    Stats.gather(node)
 
 class Initializer:
 
@@ -48,7 +51,7 @@ class Initializer:
                                                              'Validators count must be >= round_duration * 6 + 1'
 
     def __init__(self):
-        self.node_to_visualize_after_exit = None
+        self.node_to_visualize_after_exit = 0
         self.params_validate()
         self.discrete_mode = True
 
@@ -95,6 +98,7 @@ class Initializer:
         finally:
             if self.node_to_visualize_after_exit:
                 save_dag_to_graphviz(self.node_to_visualize_after_exit.dag)
+                show_node_stats(self.node_to_visualize_after_exit)
 
     def launch(self):
         logger = logging.getLogger("Announce")
