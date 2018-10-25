@@ -2,7 +2,7 @@ import unittest
 
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigners
-from node.node_api import NodeApi
+from node.network import Network
 from node.validators import Validators
 from tools.time import Time
 from chain.epoch import Epoch
@@ -24,7 +24,7 @@ class TestNodeAPI(unittest.TestCase):
         validators.signers_order = [0] + [1] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -72,7 +72,7 @@ class TestNodeAPI(unittest.TestCase):
         validators.signers_order = [0] + [1] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -130,7 +130,7 @@ class TestNodeAPI(unittest.TestCase):
         validators.signers_order = [0] + [1] + [2] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -207,7 +207,7 @@ class TestNodeAPI(unittest.TestCase):
         validators.signers_order = [0] + [1] + [2] + [0] + [1] + [2] + [0] + [1] + [2] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -333,7 +333,7 @@ class TestNodeAPI(unittest.TestCase):
         validators.signers_order = [0] + [1] + [2] + [0] + [1] + [2] + [0] + [1] + [2] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi(0, 1)
+        network = Network(0, 1)
 
         # node 0 exist in network0
         node0 = Node(genesis_creation_time=1,

@@ -46,26 +46,26 @@ class Mempool:
                 isinstance(tx, PenaltyGossipTransaction):  # should only be as part of the block
             pass
         elif isinstance(tx, PublicKeyTransaction):
-            if tx in self.public_keys:
+            if tx.get_hash() in self.public_keys:
                 del self.public_keys[tx.get_hash()]
         elif isinstance(tx, StakeHoldTransaction) or isinstance(tx, StakeReleaseTransaction):
-            if tx in self.stake_operations:
+            if tx.get_hash() in self.stake_operations:
                 del self.stake_operations[tx.get_hash()]
         elif isinstance(tx, CommitRandomTransaction):
-            if tx in self.commits:
+            if tx.get_hash() in self.commits:
                 del self.commits[tx.get_hash()]
         elif isinstance(tx, RevealRandomTransaction):
-            if tx in self.reveals:
+            if tx.get_hash() in self.reveals:
                 del self.reveals[tx.get_hash()]
         elif isinstance(tx, SplitRandomTransaction):
-            if tx in self.shares:
+            if tx.get_hash() in self.shares:
                 del self.shares[tx.get_hash()]
 
         elif isinstance(tx, NegativeGossipTransaction):
-            if tx in self.gossips:
+            if tx.get_hash() in self.gossips:
                 del self.gossips[tx.get_hash()]
         elif isinstance(tx, PositiveGossipTransaction):
-            if tx in self.gossips:
+            if tx.get_hash() in self.gossips:
                 del self.gossips[tx.get_hash()]
         elif isinstance(tx, PaymentTransaction):
             del self.payments[tx.get_hash()]

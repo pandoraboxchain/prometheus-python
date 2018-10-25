@@ -4,7 +4,7 @@ import importlib
 import datetime
 
 from node.node import Node
-from node.node_api import NodeApi
+from node.network import Network
 from node.block_signers import BlockSigners
 from node.behaviour import Behaviour
 
@@ -64,7 +64,7 @@ class Initializer:
         self.genesis_creation_time = Time.get_current_time() - BLOCK_TIME  # so we start right from the first block
 
         self.private_keys = BlockSigners()
-        self.network = NodeApi()
+        self.network = Network()
         self.nodes = []
         self.tasks = []
         try:

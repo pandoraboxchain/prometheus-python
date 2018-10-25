@@ -6,7 +6,7 @@ from chain.epoch import Epoch
 from chain.params import Round
 from node.block_signers import BlockSigners
 from node.node import Node
-from node.node_api import NodeApi
+from node.network import Network
 from node.validators import Validators
 from crypto.private import Private
 from tools.time import Time
@@ -107,7 +107,7 @@ class TestGossip(unittest.TestCase):
         validators.signers_order = [0, 1] * (Epoch.get_duration() // 2)
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
         behavior = Behaviour()
         behavior.malicious_skip_block = True
         node0 = Node(genesis_creation_time=1,
@@ -170,7 +170,7 @@ class TestGossip(unittest.TestCase):
         validators.signers_order = [0, 1, 2] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -270,7 +270,7 @@ class TestGossip(unittest.TestCase):
         validators.signers_order = [0] + [1] + [2] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -358,7 +358,7 @@ class TestGossip(unittest.TestCase):
         validators.signers_order = [0] + [1] + [2] + [3] + [4] + [5] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -492,7 +492,7 @@ class TestGossip(unittest.TestCase):
         validators.signers_order = [0,1,2,3,4,5] * ROUND_DURATION * 6
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -613,7 +613,7 @@ class TestGossip(unittest.TestCase):
         validators.signers_order = [0,1,2,3,4,5] * ROUND_DURATION * 6
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
@@ -736,7 +736,7 @@ class TestGossip(unittest.TestCase):
             validators.signers_order[i] = signer_index
             signer_index += 1
 
-        network = NodeApi()
+        network = Network()
 
         node0 = Node(genesis_creation_time=1,
                      node_id=0,

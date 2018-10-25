@@ -1,4 +1,4 @@
-class NodeApi:
+class Network:
 
     def __init__(self, *groups):
         self.nodes = []
