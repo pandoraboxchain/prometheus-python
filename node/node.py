@@ -362,11 +362,12 @@ class Node:
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
         
-        allowed_signers = self.get_allowed_signers_for_next_block(signed_block.block)
+        block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
+        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
 
         is_block_allowed = False
         for allowed_signer in allowed_signers:
-            if signed_block.verify_signature(allowed_signer.public_key):
+            if signed_block.verify_signature(allowed_signer):
                 is_block_allowed = True
                 break
         
