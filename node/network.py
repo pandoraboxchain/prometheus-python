@@ -17,6 +17,16 @@ class Network:
         else:
             self.nodes.append(node)
 
+    def move_nodes_to_group(self, group_id, nodes_list):
+        if not self.groups: self.groups = {}
+        if group_id not in self.groups:
+            self.groups[group_id] = []
+        for node in nodes_list:
+            group = self.groups[group_id]
+            group.append(node)
+            if node in self.nodes:
+                self.nodes.remove(node)
+
     @staticmethod
     def get_list_of_actual_chains():
         return True
@@ -114,10 +124,11 @@ class Network:
     # -----------------------------------------------------------------
     def merge_all_groups(self):
         for group in self.groups:
-            for node in group:
+            node_group = self.groups[group]
+            for node in node_group:
                 if node not in self.nodes:
                     self.nodes.append(node)
-        self.groups = {}
+        self.groups = None
         self.merge_groups_flag = False
 
     def get_nodes_group_by_sender_node_id(self, sender_node_id):

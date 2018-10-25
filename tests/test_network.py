@@ -12,6 +12,66 @@ from visualization.dag_visualizer import DagVisualizer
 
 class TestNodeAPI(unittest.TestCase):
 
+    def test_network_methods(self):
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+        validators = Validators()
+
+        network = Network()
+
+        node0 = Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        node1 = Node(genesis_creation_time=1,
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        node2 = Node(genesis_creation_time=1,
+                     node_id=2,
+                     network=network,
+                     block_signer=private_keys[2],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        node3 = Node(genesis_creation_time=1,
+                     node_id=3,
+                     network=network,
+                     block_signer=private_keys[3],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        node4 = Node(genesis_creation_time=1,
+                     node_id=4,
+                     network=network,
+                     block_signer=private_keys[4],
+                     validators=validators,
+                     behaviour=Behaviour())
+
+        network.register_node(node0)
+        network.register_node(node1)
+        network.register_node(node2)
+        network.register_node(node3)
+        network.register_node(node4)
+
+        self.assertEqual(len(network.nodes) == 5, True)
+
+        network.move_nodes_to_group(0, [node0, node1])  # create group 0 with nodes 0, 1
+        network.move_nodes_to_group(1, [node2, node3, node4])  # create group 1 with nodes 2, 3, 4
+
+        self.assertEqual(len(network.groups) == 2, True)
+        self.assertEqual(len(network.groups[0]) == 2, True)
+        self.assertEqual(len(network.groups[1]) == 3, True)
+
+        network.merge_all_groups()  # test marge groups
+        self.assertEqual(len(network.nodes) == 5, True)
+
     def test_node_broadcast_unavailable(self):
         Time.use_test_time()
         Time.set_current_time(1)
