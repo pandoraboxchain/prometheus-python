@@ -17,7 +17,7 @@ from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
-from verification.block_acceptor import BlockAcceptor
+from verification.block_acceptor import BlockVerifier
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
@@ -373,8 +373,9 @@ class Node:
         
         if is_block_allowed:
             block = signed_block.block
-            block_verifier = BlockAcceptor(self.epoch, self.logger)
-            if block_verifier.check_if_valid(block):
+            block_verifier = BlockVerifier(self.epoch, block, block_number)
+            verification_result = block_verifier.verify()
+            if verification_result.is_ok():
                 current_block_number = self.epoch.get_current_timeframe_block_number()
 
                 for prev_hash in block.prev_hashes:  # check received block ancestor
@@ -389,7 +390,7 @@ class Node:
                 self.mempool.remove_transactions(block.system_txs)
                 self.utxo.apply_payments(block.payment_txs)
             else:
-                self.logger.error("Block was not added. Considered invalid")
+                self.logger.error("Block was not added: %s", verification_result.value)
         else:
             self.logger.error("Received block from %d, but it's signature is wrong", node_id)
 
@@ -413,8 +414,9 @@ class Node:
 
         if is_block_allowed:
             block = signed_block.block
-            block_verifier = BlockAcceptor(self.epoch, self.logger)
-            if block_verifier.check_if_valid(block):
+            block_verifier = BlockVerifier(self.epoch, block, block_number)
+            verification_result = block_verifier.verify()
+            if verification_result.is_ok():
 
                 for prev_hash in block.prev_hashes:  # check received block ancestor
                     if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
@@ -437,7 +439,7 @@ class Node:
                 self.utxo.apply_payments(block.payment_txs)
                 self.logger.error("Added block out of timeslot")
             else:
-                self.logger.error("Block was not added. Considered invalid")
+                self.logger.error("Block was not added. %s", verification_result.value)
         else:
             self.logger.error("Received block from %d, but it's signature is wrong", node_id)
 
