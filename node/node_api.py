@@ -81,6 +81,7 @@ class NodeApi:
             if node.node_id != sender_node_id:
                 node.handle_block_out_of_timeslot(sender_node_id, raw_signed_block)
 
+    #TODO there should not be separate gossip broadcaster, just use broadcast transaction method
     def broadcast_gossip_negative(self, sender_node_id, raw_gossip):
         if self.groups:
             if self.merge_groups_flag:
@@ -95,6 +96,7 @@ class NodeApi:
             if node.node_id != sender_node_id:
                 node.handle_gossip_negative(sender_node_id, raw_gossip)
 
+    #TODO there should not be separate gossip broadcaster, just usual transaction
     def broadcast_gossip_positive(self, sender_node_id, raw_gossip):
         if self.groups:
             if self.merge_groups_flag:

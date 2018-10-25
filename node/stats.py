@@ -33,9 +33,15 @@ class Stats:
             unspent_amount = unspent_tx.amounts[unspent_output]
             unspent_total += unspent_amount
 
+        utxo_total = 0
+        for tx in node.utxo.utxo.values():
+            for output_amount in tx.values():
+                utxo_total += output_amount
+
         node.logger.info("Mainchain emitted funds: %s", mainchain_block_rewards)
         node.logger.info("Unspent funds: %s", unspent_total)
         node.logger.info("Total emitted funds (incl conflicts): %s", total_block_rewards)
+        node.logger.info("Utxo confirmed amount: %s", utxo_total)
 
     @staticmethod #helper method
     def get_block_reward(block):
