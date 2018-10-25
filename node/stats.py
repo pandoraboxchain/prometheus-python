@@ -8,18 +8,20 @@ class Stats:
 
         dag = node.dag
         epoch = node.epoch
-        total_block_rewards = 0
+        mainchain_block_rewards = 0
+        total_block_rewards = 0 #including conflicts
+        
         payments = []
         for top, _ in epoch.get_epoch_hashes().items():
             iterator = MergingIter(dag, node.conflict_watcher, top)
             for block in iterator:
                 if block:
-                    if not block.block.payment_txs:
-                        continue #it might be genesis, or just some silly validator who decided not to earn a reward
-                    block_reward = block.block.payment_txs[0]
-                    total_block_rewards += block_reward.amounts[0]
+                    mainchain_block_rewards += Stats.get_block_reward(block.block)
                     payments.append(block.block.payment_txs)
-        
+
+        for blocks_list in dag.blocks_by_number.values():
+            for block in blocks_list:
+                total_block_rewards += Stats.get_block_reward(block.block)
 
         payments = list(reversed(payments))
         _, unspent_list = Resolver.resolve(payments)
@@ -31,5 +33,13 @@ class Stats:
             unspent_amount = unspent_tx.amounts[unspent_output]
             unspent_total += unspent_amount
 
-        node.logger.info("Total emitted money %s", total_block_rewards)
-        node.logger.info("Unspent money %s", unspent_total)
+        node.logger.info("Mainchain emitted funds: %s", mainchain_block_rewards)
+        node.logger.info("Unspent funds: %s", unspent_total)
+        node.logger.info("Total emitted funds (incl conflicts): %s", total_block_rewards)
+
+    @staticmethod #helper method
+    def get_block_reward(block):
+        if not block.payment_txs:
+            return 0 #it might be genesis, or just some silly validator who decided not to earn a reward
+        block_reward = block.payment_txs[0]
+        return block_reward.amounts[0]
