@@ -18,6 +18,9 @@ class ConflictWatcher:
             # public_key : [block_hash]
 
     def get_conflicts_by_block(self, block_hash):
+        if block_hash == self.dag.genesis_hash():
+            return None
+
         assert block_hash in self.blocks, "No block in conflict watcher with hash %r" % block_hash.hex()
         pubkey, epoch_number = self.blocks[block_hash]
         return self.get_conflicts_by_pubkey(pubkey, epoch_number)
