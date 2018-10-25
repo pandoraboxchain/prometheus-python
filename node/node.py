@@ -119,6 +119,9 @@ class Node:
             self.broadcast_gossip_positive(zero_block.get_hash())
             self.behaviour.malicious_send_positive_gossip_count -= 1
 
+        if self.owned_utxos:
+            self.broadcast_payments()
+
         if current_block_number != self.last_expected_timeslot:
             self.tried_to_sign_current_block = False
             should_wait = self.handle_timeslot_changed(previous_timeslot_number=self.last_expected_timeslot,
@@ -222,7 +225,8 @@ class Node:
         node_public = Private.publickey(self.block_signer.private_key)
         pseudo_address = sha256(node_public).digest()
         block_reward = TransactionFactory.create_block_reward(pseudo_address, block_number)
-        self.owned_utxos.append(block_reward.get_hash()) 
+        block_reward_hash = block_reward.get_hash()
+        self.owned_utxos.append(block_reward_hash)
         payment_txs = [block_reward] + self.mempool.pop_payment_transactions()
         return payment_txs
 
@@ -380,11 +384,12 @@ class Node:
                 #
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
+                self.mempool.remove_transactions(block.payment_txs)
                 self.utxo.apply_payments(block.payment_txs)
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
-            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
+            self.logger.error("Received block from %d, but its signature is wrong", node_id)
 
     def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
         signed_block = SignedBlock()
@@ -410,6 +415,7 @@ class Node:
             if block_verifier.check_if_valid(block):
                 self.dag.add_signed_block(block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
+                self.mempool.remove_transactions(block.payment_txs)
                 self.utxo.apply_payments(block.payment_txs)
                 self.logger.error("Added block out of timeslot")
             else:
@@ -421,10 +427,7 @@ class Node:
         transaction = TransactionParser.parse(raw_transaction)
 
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
-        # print("Node ", self.node_id, "received transaction with hash",
-        # transaction.get_hash().hexdigest(), " from node ", node_id)
         if verifier.check_if_valid(transaction):
-            # print("It is valid. Adding to mempool")
             self.mempool.add_transaction(transaction)
         else:
             self.logger.error("Received tx is invalid")
@@ -493,6 +496,14 @@ class Node:
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.logger.info("Broadcasted positive gossip transaction")
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
+
+    def broadcast_payments(self):
+        for utxo in self.owned_utxos:
+            tx = TransactionFactory.create_payment(utxo, 0, [os.urandom(32), os.urandom(32)], [10, 5])
+            self.mempool.add_transaction(tx)
+            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+            self.logger.info("Broadcasted payment with hash %s", tx.get_hash())
+        self.owned_utxos.clear()
 
     # -------------------------------------------------------------------------------
     # Targeted request
