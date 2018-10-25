@@ -11,6 +11,10 @@ from chain.conflict_watcher import ConflictWatcher
 # from visualization.dag_visualizer import DagVisualizer
 # DagVisualizer.visualize(dag, True)
 
+# To highlight conflicts you can do the following:
+# visualizer = DagVisualizer(dag, conflict_watcher)
+# visualizer.show()
+
 class DagVisualizer:
     def __init__(self, dag, conflict_watcher=None):
         self.dag = dag
