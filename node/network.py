@@ -43,6 +43,8 @@ class Network:
                 self.merge_all_groups()
             else:
                 self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+        if self.check_node_output_transport_behaviour(sender_node_id):
+            return
         for node in self.nodes:
             if self.check_node_input_transport_behaviour(receiver_node_id):
                 return
@@ -118,6 +120,35 @@ class Network:
                 return
             if node.node_id != sender_node_id:
                 node.handle_gossip_positive(sender_node_id, raw_gossip)
+
+    # request block by has directly from node without broadcast
+    def direct_request_block_by_hash(self, sender_node_id, receiver_node_id, block_hash):
+        if self.groups:
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+        if self.check_node_output_transport_behaviour(sender_node_id):
+            return
+        for node in self.nodes:
+            if self.check_node_input_transport_behaviour(receiver_node_id):
+                return
+            if node.node_id == receiver_node_id:
+                node.direct_request_block_by_hash(sender_node_id, receiver_node_id, block_hash)
+
+    def direct_response_block_by_hash(self, sender_node_id, receiver_node_id, raw_signed_block):
+        if self.groups:
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+        if self.check_node_output_transport_behaviour(sender_node_id):
+            return
+        for node in self.nodes:
+            if self.check_node_input_transport_behaviour(receiver_node_id):
+                return
+            if node.node_id == receiver_node_id:
+                node.handle_block_out_of_timeslot(sender_node_id, raw_signed_block)
 
     # -----------------------------------------------------------------
     # internal methods

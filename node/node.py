@@ -7,7 +7,6 @@ from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.transaction_factory import TransactionFactory
-from chain.conflict_finder import ConflictFinder
 from chain.conflict_watcher import ConflictWatcher
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
@@ -16,7 +15,6 @@ from node.validators import Validators
 from transaction.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
-from transaction.payment_transaction import PaymentTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
 from verification.block_acceptor import BlockAcceptor
@@ -24,7 +22,6 @@ from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
 from hashlib import sha256
-
 
 
 class DummyLogger(object):
@@ -62,6 +59,8 @@ class Node:
         self.last_signed_block_number = 0
         self.tried_to_sign_current_block = False
         self.owned_utxos = []
+
+        self.blocks_buffer = []  # uses while receive block and do not have its ancestor in local dag (blocks valid)
 
     def start(self):
         pass
@@ -376,8 +375,15 @@ class Node:
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 current_block_number = self.epoch.get_current_timeframe_block_number()
-                # проверять елси предок у данного блока в локальном даг
-                #
+
+                for prev_hash in block.prev_hashes:  # check received block ancestor
+                    if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
+                        # request blocks by previous hash and add current block to local buffer
+                        self.blocks_buffer.append(block)
+                        self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
+                        # do not add blocks to local DAG until all blocks received
+                        return
+
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
                 self.utxo.apply_payments(block.payment_txs)
@@ -408,6 +414,23 @@ class Node:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
+
+                for prev_hash in block.prev_hashes:  # check received block ancestor
+                    if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
+                        # request blocks by previous hash and add current block to local buffer
+                        self.blocks_buffer.append(block)
+                        self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
+                        # do not add blocks to local DAG until all blocks received
+                        return
+
+                # TODO blocks from buffer processed only here
+                if len(self.blocks_buffer) > 0:  # validate if block buffer not empty and adds all blocks
+                    for block in self.blocks_buffer:
+                        self.dag.add_signed_block(block_number, signed_block)
+                        self.mempool.remove_transactions(block.system_txs)
+                        self.utxo.apply_payments(block.payment_txs)
+                        self.logger.error("Added block out of timeslot from block buffer")
+
                 self.dag.add_signed_block(block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
                 self.utxo.apply_payments(block.payment_txs)
@@ -501,6 +524,11 @@ class Node:
         # no need validate/ public info ?
         signed_block = self.dag.blocks_by_hash[block_hash]
         self.network.broadcast_block_out_of_timeslot(self.node_id, signed_block.pack())
+
+    # method returns block directly to sender without broadcast
+    def direct_request_block_by_hash(self, sender_node, block_hash):
+        signed_block = self.dag.blocks_by_hash[block_hash]
+        self.network.direct_response_block_by_hash(self.node_id, sender_node, signed_block.pack())
 
     # -------------------------------------------------------------------------------
     # Internal
