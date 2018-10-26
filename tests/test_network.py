@@ -492,32 +492,30 @@ class TestNodeAPI(unittest.TestCase):
 
         # move some timeslots for blocks generate
         last_block_range = 0
-        for i in range(0, ROUND_DURATION * 6 + 2):  # for epoch (max i == 19 on 3 round duration)
+        for i in range(0, Epoch.get_duration()):  # for epoch (max i == 19 on 3 round duration)
             Time.advance_to_next_timeslot()
-            for s in range(0, BLOCK_TIME):  # steps per timeslot
-                node0.step()
-                node1.step()
-                node2.step()
-                node3.step()
-                node4.step()
-                node5.step()
-                node6.step()
+            node0.step()
+            node1.step()
+            node2.step()
+            node3.step()
+            node4.step()
+            node5.step()
+            node6.step()
             last_block_range = i
 
-        # validate new epoch
-        DagVisualizer.visualize(node0.dag)
-        DagVisualizer.visualize(node6.dag)
+        epoch_hash = node0.dag.get_top_hashes()[0]
+        for node in network.nodes: #TODO make local array of nodes
+            node.permissions.signers_indexes[epoch_hash] = validators.signers_order
 
         for i in range(last_block_range, last_block_range+10):  # move to epoch/2 block
             Time.advance_to_next_timeslot()
-            for s in range(0, BLOCK_TIME):  # steps per timeslot
-                node0.step()
-                node1.step()
-                node2.step()
-                node3.step()
-                node4.step()
-                node5.step()
-                node6.step()
+            node0.step()
+            node1.step()
+            node2.step()
+            node3.step()
+            node4.step()
+            node5.step()
+            node6.step()
             last_block_range = i
 
         DagVisualizer.visualize(node0.dag)  # TODO strange! blocks behaviour
