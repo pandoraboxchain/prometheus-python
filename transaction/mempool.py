@@ -65,7 +65,7 @@ class Mempool:
             
             if container != None:
                 tx_hash = tx.get_hash()
-                if tx_hash in self.payments:
+                if tx_hash in container:
                     del container[tx_hash]
             else:
                 assert False, "Can't remove. Transaction type is unknown"
