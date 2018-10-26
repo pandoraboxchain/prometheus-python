@@ -543,6 +543,7 @@ class Node:
     # -------------------------------------------------------------------------------
 
     def get_allowed_signers_for_block_number(self, block_number):
+        #TODO take cached epoch hashes if block is of lastest epoch
         prev_epoch_number = self.epoch.get_epoch_number(block_number) - 1
         prev_epoch_start = self.epoch.get_epoch_start_block_number(prev_epoch_number)
         prev_epoch_end = self.epoch.get_epoch_end_block_number(prev_epoch_number)
