@@ -30,8 +30,11 @@ def enc_part_secret(publickey, split):
     return enc_data
 
 def dec_part_secret(privatekey, enc_data, number):
-    split = Private.decrypt(enc_data, privatekey) #TODO check if this returns bytearray, those decryption success
-    return (number + 1, int.from_bytes(split, byteorder="big"))
+    split = Private.decrypt(enc_data, privatekey)
+    if split:
+        return (number + 1, int.from_bytes(split, byteorder="big"))
+
+    return None
 
 def decode_random(encoded_splits, private_keys):
     splits = []
@@ -40,7 +43,8 @@ def decode_random(encoded_splits, private_keys):
         private_key = private_keys[i]
         if not private_key: continue
         split = dec_part_secret(private_key, split, i)
-        splits.append(split)
+        if split:
+            splits.append(split)
 
     return recover_splits(splits)
 

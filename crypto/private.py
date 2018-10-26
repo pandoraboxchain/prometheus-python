@@ -24,7 +24,10 @@ class Private:
     def decrypt(message, key):
         args = (message, key)
         if not args in Private.decrypt_cache:
-            result = seccure.decrypt(message, key, "secp256r1/nistp256")
+            try:
+                result = seccure.decrypt(message, key, "secp256r1/nistp256")
+            except: #decryption failure
+                result = None
             Private.decrypt_cache[args] = result
         return Private.decrypt_cache[args]
 

@@ -43,3 +43,25 @@ class TestSecretSharing(unittest.TestCase):
 
         self.assertEqual(random_value, decoded_random)
 
+    def test_decryption_failure(self):
+        private_keys = []
+        public_keys = []
+        for i in range(0, 5):
+            private = Private.generate()
+            private_keys.append(private)
+            public_keys.append(Private.publickey(private))
+
+        raw_private_keys = Keys.list_to_bytes(private_keys)
+        decoded_private_keys = Keys.list_from_bytes(raw_private_keys)
+
+        random_bytes = os.urandom(32)
+        random_value = int.from_bytes(random_bytes, byteorder='big')
+        splits = split_secret(random_bytes, 3, 5)
+        encoded_splits = encode_splits(splits, public_keys)
+        encoded_splits[2] = os.urandom(len(encoded_splits[2])) #corrupt one of the splits
+        encoded_splits[4] = os.urandom(len(encoded_splits[4])) #corrupt another split
+        decoded_random = decode_random(encoded_splits, decoded_private_keys)
+
+        self.assertEqual(random_value, decoded_random)
+
+
