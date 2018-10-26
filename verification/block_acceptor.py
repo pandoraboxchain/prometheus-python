@@ -19,16 +19,34 @@ class BlockAcceptor(Acceptor):
 
         current_round = self.epoch.get_current_round()
         current_block_number = self.epoch.get_current_timeframe_block_number()
+        prev_hashes = block.prev_hashes
 
         self.validate_timeslot(block, current_block_number)
+        # self.validate_prev_hashes_are_tops(prev_hashes) #turn off for out of timeslot case
+        self.validate_longest_chain_goes_first(prev_hashes)
         self.validate_private_transactions_in_block(block, current_round)
 
-    def validate_timeslot(self, block, current_block_number):
+    def validate_prev_hashes_are_tops(self, prev_hashes):
+        tops = self.epoch.dag.get_top_hashes()
+        for prev_hash in prev_hashes:
+            if not prev_hash in tops:
+                raise AcceptionException("Block refers to blocks !")
 
+
+    def validate_timeslot(self, block, current_block_number):
         for prev_hash in block.prev_hashes:
             prev_hash_number = self.epoch.dag.get_block_number(prev_hash)
             if prev_hash_number >= current_block_number:
                 raise AcceptionException("Block refers to blocks in current or future timeslots!")
+
+    def validate_longest_chain_goes_first(self, prev_hashes):
+        dag = self.epoch.dag
+        common_ancestor = dag.get_common_ancestor(prev_hashes)
+        lengths = [dag.calculate_chain_length(prev_hash, common_ancestor) for prev_hash in prev_hashes]
+        max_length = max(lengths)
+        first_chain_length = dag.calculate_chain_length(prev_hashes[0], common_ancestor)
+        if first_chain_length != max_length:
+            raise AcceptionException("Block first ancestor should link to longest chain")
 
     def validate_private_transactions_in_block(self, block, current_round):
         private_key_transactions = []
@@ -60,4 +78,4 @@ class BlockAcceptor(Acceptor):
             public_keys = self.epoch.get_public_keys_for_epoch(top)
             if not Keys.to_bytes(expected_public) in public_keys.values():
                 raise AcceptionException(
-                    "No correspondig public key was found for private key in PrivateKeyTransaction!")
+                    "No corresponding public key was found for private key in PrivateKeyTransaction!")
