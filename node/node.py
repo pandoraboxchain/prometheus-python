@@ -164,6 +164,7 @@ class Node:
 
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
+        epoch_number = Epoch.get_epoch_number(current_block_number)
         
         system_txs = self.get_system_transactions_for_signing(current_round_type)
         payment_txs = self.get_payment_transactions_for_signing(current_block_number)
@@ -180,6 +181,7 @@ class Node:
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
         self.utxo.apply_payments(payment_txs)
+        self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, self.node_pubkey)
         if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
             self.logger.debug("Broadcasting signed block number %s", current_block_number)
             self.network.broadcast_block(self.node_id, signed_block.pack())
@@ -193,6 +195,7 @@ class Node:
             additional_block.payment_txs = block.payment_txs
             signed_add_block = BlockFactory.sign_block(additional_block, self.block_signer.private_key)
             self.dag.add_signed_block(current_block_number, signed_add_block)
+            self.conflict_watcher.on_new_block_by_validator(signed_add_block.get_hash(), epoch_number, self.node_pubkey) #mark our own conflict for consistency
             self.logger.info("Sending additional block")
             self.network.broadcast_block(self.node_id, signed_add_block.pack())
 
@@ -369,23 +372,24 @@ class Node:
         
         allowed_signers = self.get_allowed_signers_for_next_block(signed_block.block)
 
-        is_block_allowed = False
+        allowed_pubkey = None
         for allowed_signer in allowed_signers:
             if signed_block.verify_signature(allowed_signer.public_key):
-                is_block_allowed = True
+                allowed_pubkey = allowed_signer.public_key
                 break
         
-        if is_block_allowed:
+        if allowed_pubkey:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 current_block_number = self.epoch.get_current_timeframe_block_number()
-                # проверять елси предок у данного блока в локальном даг
-                #
+                epoch_number = Epoch.get_epoch_number(current_block_number)
+                
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
                 self.mempool.remove_transactions(block.payment_txs)
                 self.utxo.apply_payments(block.payment_txs)
+                self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
@@ -403,21 +407,23 @@ class Node:
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
 
         allowed_signers = self.get_allowed_signers_for_block_number(block_number)
-        is_block_allowed = False
+        allowed_pubkey = None
         for allowed_signer in allowed_signers:
             if signed_block.verify_signature(allowed_signer):
-                is_block_allowed = True
+                allowed_pubkey = allowed_signer
                 break
 
-        if is_block_allowed:
+        if allowed_pubkey:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
+                epoch_number = Epoch.get_epoch_number(block_number)
                 self.dag.add_signed_block(block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
                 self.mempool.remove_transactions(block.payment_txs)
                 self.utxo.apply_payments(block.payment_txs)
-                self.logger.error("Added block out of timeslot")
+                self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
+                self.logger.info("Added block out of timeslot")
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
