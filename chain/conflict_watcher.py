@@ -39,8 +39,9 @@ class ConflictWatcher:
 
         all_merge_blocks = []
         for i in merge_range:
-            for block in self.dag.blocks_by_number[i]:
-                all_merge_blocks.append(block.get_hash())
+            if i in self.dag.blocks_by_number:
+                for block in self.dag.blocks_by_number[i]:
+                    all_merge_blocks.append(block.get_hash())
 
 
         explicit_conflicts = [] # conflicts for sure, to be ignored
