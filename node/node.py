@@ -45,7 +45,7 @@ class Node:
         self.epoch.set_logger(self.logger)
         self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
-        self.utxo = Utxo()
+        self.utxo = Utxo(self.logger)
         self.conflict_watcher = ConflictWatcher(self.dag)
         self.behaviour = behaviour
 
@@ -248,7 +248,7 @@ class Node:
                                                                       validator_index=pubkey_index,
                                                                       node_private=node_private)
                 if self.behaviour.malicious_wrong_signature:
-                    tx.signature += 1
+                    tx.signature = b'0' + tx.signature[1:]
                     
                 self.epoch_private_keys.append(generated_private)
                 self.logger.debug("Broadcasted public key")
@@ -447,8 +447,6 @@ class Node:
             if self.dag.has_block_number(transaction.number_of_block):
                 signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
                 self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
-                self.logger.error("Received valid gossip negative. Requested block %i found",
-                                  transaction.number_of_block)
             else:
                 # received gossip block but not have requested block for gossip positive broadcasting
                 self.logger.error("Received valid gossip negative. Requested block %i not found",
@@ -502,7 +500,7 @@ class Node:
             tx = TransactionFactory.create_payment(utxo, 0, [os.urandom(32), os.urandom(32)], [10, 5])
             self.mempool.add_transaction(tx)
             self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
-            self.logger.info("Broadcasted payment with hash %s", tx.get_hash())
+            # self.logger.info("Broadcasted payment with hash %s", tx.get_hash())
         self.owned_utxos.clear()
 
     # -------------------------------------------------------------------------------

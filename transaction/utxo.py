@@ -3,8 +3,9 @@ from transaction.payment_transaction import PaymentTransaction
 COINBASE_IDENTIFIER = b'0' * 32
 
 class Utxo:
-    def __init__(self):
+    def __init__(self, logger=None):
         self.utxo = {}
+        self.logger = logger
     
     def add(self, tx):
         
@@ -20,7 +21,9 @@ class Utxo:
                 del self.utxo[tx.input]
         
         tx_hash = tx.get_hash()
-        assert tx_hash not in self.utxo
+        if tx_hash in self.utxo:
+            if self.logger:
+                self.logger.info("Overwriting unspent output with hash with hash %s", tx_hash)
         self.utxo[tx_hash] = {}
         for i in range(len(tx.outputs)):
             self.utxo[tx_hash][i] = tx.amounts[i]
