@@ -134,7 +134,7 @@ class Network:
             if self.check_node_input_transport_behaviour(receiver_node_id):
                 return
             if node.node_id == receiver_node_id:
-                node.direct_request_block_by_hash(sender_node_id, receiver_node_id, block_hash)
+                node.direct_request_block_by_hash(sender_node_id, block_hash)
 
     def direct_response_block_by_hash(self, sender_node_id, receiver_node_id, raw_signed_block):
         if self.groups:

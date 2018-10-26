@@ -9,6 +9,8 @@ from chain.epoch import Epoch
 from node.node import Node
 from visualization.dag_visualizer import DagVisualizer
 
+from chain.params import ROUND_DURATION, BLOCK_TIME
+
 
 class TestNodeAPI(unittest.TestCase):
 
@@ -258,6 +260,7 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 3)
         self.assertEqual(len(node2.dag.blocks_by_number), 2)
 
+    @unittest.skip('test two chains groups')
     def test_make_node_offline_from_block(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -267,7 +270,7 @@ class TestNodeAPI(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0] + [1] + [2] + [0] + [1] + [2] + [0] + [1] + [2] * Epoch.get_duration()
+        validators.signers_order = [0] + [1] + [2] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = Network()
@@ -350,7 +353,7 @@ class TestNodeAPI(unittest.TestCase):
         Time.advance_to_next_timeslot()
         node0.step()
         node1.step()
-        node2.step()  # DO NOT RECEIVE BLOCK wait for nex step
+        node2.step()  # DO NOT RECEIVE BLOCK wait for nex step # + produce but not broadcast negative gossip
         self.assertEqual(len(node0.dag.blocks_by_number), 6)
         self.assertEqual(len(node1.dag.blocks_by_number), 6)
         self.assertEqual(len(node2.dag.blocks_by_number), 5)  # DO NOT RECEIVE BLOCK !
@@ -364,7 +367,7 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 6)
         self.assertEqual(len(node2.dag.blocks_by_number), 6)  # node 2 forks chain
 
-        # ------------------------------- block 7
+        # ------------------------------- block 7 (timeslot)
         # node 2 make online again on step
         Time.advance_to_next_timeslot()
         node0.step()  # provide negative gossip for block 6 before creating and broadcasting block
@@ -375,12 +378,52 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 6)
         self.assertEqual(len(node2.dag.blocks_by_number), 6)
 
-        node0.step()  # create and broadcast block number 7
-        node1.step()  # handle and add block normaly
-        node2.step()  # TODO crash on block handle! (in case validator make offline on term signing and broadcasting) (variant A)
+        # visualization and description block ===========================================
+        # DagVisualizer.visualize(node0.dag)
+        # DagVisualizer.visualize(node2.dag)
+        # on current time nodes have such blocks
+        # timeslot[0, 1, 2, 3, 4, 5, 6,     7]
+        # ====================================
+        # node0 - [0, 1, 2, 3, 4, 5, <>, node0]
+        # node1 - [0, 1, 2, 3, 4, 5, <>,      ]
+        # node2 - [0, 1, 2, 3, 4, <>, 6,      ]
 
-    @unittest.skip('GROUP INTERESTING CASE')
-    def test_network_groups(self):
+        # ancessor for block 7 is block 5
+        # ancessor for block 5 is block 4
+
+        # node2 request block 5 as ancestor for block 7 (block 6 was skipped till node was offline)
+        # node2 received and insert block 5 as conflict to empty timeslot till offline to block 6
+        # block 6 was created offline, need to skip all its tx's and softly drop
+        # visualization and description block ===========================================
+
+        # node0 - provide block 7
+        node0.step()  # create and broadcast block number 7
+
+        # visualization and description block ===========================================
+        # DagVisualizer.visualize(node0.dag)  # [0,1,2,3,4,5,6,<>,7]
+        # by timeslots                          [           5,<>, 6]
+        # DagVisualizer.visualize(node2.dag)  # [0,1,2,3,4,<>, 6, -]
+        # visualization and description block ===========================================
+
+        node1.step()  # handle and add block normaly
+        node2.step()  # handled all ancestor blocks and inset it to dag with processing included transactions
+
+        self.assertEqual(len(node0.dag.blocks_by_number), 7)
+        self.assertEqual(len(node1.dag.blocks_by_number), 7)
+        self.assertEqual(len(node2.dag.blocks_by_number), 8)  # steel have redundant block 6
+
+        # ------------------------------- block 8 (timeslot)
+        # all nodes online
+        Time.advance_to_next_timeslot()
+        node0.step()
+        node1.step()
+        node2.step()
+
+        self.assertEqual(len(node0.dag.blocks_by_number), 8)
+        self.assertEqual(len(node1.dag.blocks_by_number), 8)
+        self.assertEqual(len(node2.dag.blocks_by_number), 9)  # steel have redundant block 6
+
+    def test_two_network_groups(self):
         Time.use_test_time()
         Time.set_current_time(1)
 
@@ -389,58 +432,93 @@ class TestNodeAPI(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0] + [1] + [2] + [0] + [1] + [2] + [0] + [1] + [2] * Epoch.get_duration()
-        validators.randomizers_order = [0] * Epoch.get_duration()
+        validators.signers_order = ([0, 1, 2, 3, 4, 5, 6] * Epoch.get_duration()) * 2
+        validators.randomizers_order = ([0] * Epoch.get_duration()) * 2
 
-        network = Network(0, 1)
+        network = Network()
 
-        # node 0 exist in network0
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
                      network=network,
                      block_signer=private_keys[0],
                      validators=validators,
                      behaviour=Behaviour())
-        network.register_node(node0, 0)
-
-        # node 1 exist in network0 and network1
         node1 = Node(genesis_creation_time=1,
                      node_id=1,
                      network=network,
                      block_signer=private_keys[1],
                      validators=validators,
                      behaviour=Behaviour())
-        network.register_node(node1, 0, 1)
-
-        # node 2 exist in network1
         node2 = Node(genesis_creation_time=1,
                      node_id=2,
                      network=network,
                      block_signer=private_keys[2],
                      validators=validators,
                      behaviour=Behaviour())
-        network.register_node(node2, 1)
+        node3 = Node(genesis_creation_time=1,
+                     node_id=3,
+                     network=network,
+                     block_signer=private_keys[3],
+                     validators=validators,
+                     behaviour=Behaviour())
+        node4 = Node(genesis_creation_time=1,
+                     node_id=4,
+                     network=network,
+                     block_signer=private_keys[4],
+                     validators=validators,
+                     behaviour=Behaviour())
+        node5 = Node(genesis_creation_time=1,
+                     node_id=5,
+                     network=network,
+                     block_signer=private_keys[5],
+                     validators=validators,
+                     behaviour=Behaviour())
+        node6 = Node(genesis_creation_time=1,
+                     node_id=6,
+                     network=network,
+                     block_signer=private_keys[6],
+                     validators=validators,
+                     behaviour=Behaviour())
 
-        # assert nodes groups
-        self.assertTrue(network.groups is not None)
-        self.assertEqual(len(network.groups[0]) == 2, True)
-        self.assertEqual(len(network.groups[1]) == 2, True)
+        # all in one network
+        network.register_node(node0)
+        network.register_node(node1)
+        network.register_node(node2)
+        network.register_node(node3)
+        network.register_node(node4)
+        network.register_node(node5)
+        network.register_node(node6)
+        self.assertEqual(len(network.nodes) == 7, True)
 
-        # ------------------------------- block 1
-        Time.advance_to_next_timeslot()
-        node0.step()  # provide block
-        node1.step()  # node1 in group0 receive block
-        node2.step()  # node2 do not receive block (its in group1)
+        # move some timeslots for blocks generate
+        last_block_range = 0
+        for i in range(0, ROUND_DURATION * 6 + 2):  # for epoch (max i == 19 on 3 round duration)
+            Time.advance_to_next_timeslot()
+            for s in range(0, BLOCK_TIME):  # steps per timeslot
+                node0.step()
+                node1.step()
+                node2.step()
+                node3.step()
+                node4.step()
+                node5.step()
+                node6.step()
+            last_block_range = i
 
-        self.assertEqual(len(node0.dag.blocks_by_number), 2)
-        self.assertEqual(len(node1.dag.blocks_by_number), 2)
-        self.assertEqual(len(node2.dag.blocks_by_number), 1)  # steel wait for block (node 2 is in another group)
+        # validate new epoch
+        DagVisualizer.visualize(node0.dag)
+        DagVisualizer.visualize(node6.dag)
 
-        Time.advance_to_next_timeslot()
-        node0.step()
-        node1.step()  # provide block to network group1 and group2
-        node2.step()
+        for i in range(last_block_range, last_block_range+10):  # move to epoch/2 block
+            Time.advance_to_next_timeslot()
+            for s in range(0, BLOCK_TIME):  # steps per timeslot
+                node0.step()
+                node1.step()
+                node2.step()
+                node3.step()
+                node4.step()
+                node5.step()
+                node6.step()
+            last_block_range = i
 
-        # TODO after node1 provide block node 2 crashes when try to delete not existed public key tx on node2 handle
-
-
+        DagVisualizer.visualize(node0.dag)  # TODO strange! blocks behaviour
+        DagVisualizer.visualize(node6.dag)

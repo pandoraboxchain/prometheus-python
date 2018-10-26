@@ -84,8 +84,8 @@ class Initializer:
 
                     # add some nodes on defined time
                     # will be possible after syncronization mechanism will be implemented)
-                    # if Time.get_current_time() == 40:
-                    #     self.add_node(1)
+                    #if Time.get_current_time() == 40:
+                    #    self.add_node(1)
             else:
                 self.tasks = [node.run() for node in self.nodes]
                 loop = asyncio.get_event_loop()
