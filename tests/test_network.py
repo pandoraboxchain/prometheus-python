@@ -504,10 +504,10 @@ class TestNodeAPI(unittest.TestCase):
             last_block_range = i
 
         epoch_hash = node0.dag.get_top_hashes()[0]
-        for node in network.nodes: #TODO make local array of nodes
+        for node in network.nodes:
             node.permissions.signers_indexes[epoch_hash] = validators.signers_order
 
-        for i in range(last_block_range, last_block_range+10):  # move to epoch/2 block
+        for i in range(last_block_range, last_block_range+10):
             Time.advance_to_next_timeslot()
             node0.step()
             node1.step()
@@ -518,5 +518,25 @@ class TestNodeAPI(unittest.TestCase):
             node6.step()
             last_block_range = i
 
-        DagVisualizer.visualize(node0.dag)  # TODO strange! blocks behaviour
+        DagVisualizer.visualize(node0.dag)
         DagVisualizer.visualize(node6.dag)
+
+        network.move_nodes_to_group(0, [node0, node1, node2, node3])  # create group 0 with nodes 0, 1, 2, 3
+        network.move_nodes_to_group(1, [node4, node5, node6])  # create group 1 with nodes 4, 5, 6
+
+        for i in range(last_block_range, last_block_range + 3):
+            Time.advance_to_next_timeslot()
+            node0.step()
+            node1.step()
+            node2.step()
+            node3.step()
+            node4.step()
+            node5.step()
+            node6.step()
+            last_block_range = i
+
+        DagVisualizer.visualize(node0.dag)
+        DagVisualizer.visualize(node6.dag)
+
+        test = ''
+
