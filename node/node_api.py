@@ -17,13 +17,11 @@ class NodeApi:
         else:
             self.nodes.append(node)
 
-    @staticmethod
-    def get_list_of_actual_chains():
-        return True
-
-    @staticmethod
-    def push_block():
-        return True
+    def unregister_node(self, node_to_remove):
+        if self.groups:
+            for group in self.groups.values():
+                group = filter(lambda node: node.node_id == node_to_remove.node_id, group)
+        self.nodes = filter(lambda node: node.node_id == node_to_remove.node_id, self.nodes)
 
     # request receiver_node_id (node) by getting SignedBlock() by HASH.
     # receiver MUST response by SignedBlock() else ?(+1 request to ANOTHER node - ?)

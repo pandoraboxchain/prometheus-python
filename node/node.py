@@ -62,6 +62,7 @@ class Node:
         self.last_signed_block_number = 0
         self.tried_to_sign_current_block = False
         self.owned_utxos = []
+        self.terminated = False
 
     def start(self):
         pass

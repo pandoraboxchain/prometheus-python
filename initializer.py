@@ -81,9 +81,24 @@ class Initializer:
             # -------------------------------------
 
             if self.discrete_mode:
-                while True:
+                should_continue = True
+                while should_continue:
+                    terminated_nodes_count = 0
+                    initial_node_count = len(self.nodes) - 1 # one node less because of announcer
                     for node in self.nodes:
+                        try:
+                            if not node.terminated:
                         node.step()
+                        except AssertionError:
+                            print("Node", node.node_id, "crashed")
+                            self.network.unregister_node(node)
+                            node.terminated = True
+                            terminated_nodes_count += 1
+                            if terminated_nodes_count == initial_node_count:
+                                print("No alive nodes left. Terminating")
+                                should_continue = False
+                                break
+                        
                     Time.advance_time(1)
 
                     # add some nodes on defined time
