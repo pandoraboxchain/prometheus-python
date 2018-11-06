@@ -2,6 +2,8 @@ import asyncio
 import logging
 import importlib
 import datetime
+import random
+
 
 from node.node import Node
 from node.node_api import NodeApi
@@ -15,7 +17,6 @@ from tools.time import Time
 from chain.params import GENESIS_VALIDATORS_COUNT, \
                          BLOCK_TIME, \
                          ROUND_DURATION
-
 
 # you can set node to visualize its DAG as soon as Ctrl-C pressed
 def save_dag_to_graphviz(dag_to_visualize):
@@ -54,7 +55,7 @@ class Initializer:
         self.node_to_visualize_after_exit = 0
         self.params_validate()
         self.discrete_mode = True
-
+        self.malicious_validators_count = 0 # GENESIS_VALIDATORS_COUNT / 2 - 1
         # set up logging to file - see previous section for more details
         self.logger = logging.basicConfig(level=logging.DEBUG,
                                           format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
@@ -98,7 +99,7 @@ class Initializer:
         finally:
             if self.node_to_visualize_after_exit:
                 save_dag_to_graphviz(self.node_to_visualize_after_exit.dag)
-                show_node_stats(self.node_to_visualize_after_exit)
+                # show_node_stats(self.node_to_visualize_after_exit)
 
     def launch(self):
         logger = logging.getLogger("Announce")
@@ -106,7 +107,7 @@ class Initializer:
         self.nodes.append(announcer)
 
         for i in range(0, GENESIS_VALIDATORS_COUNT):
-            behaviour = Behaviour()
+            behaviour = self.generate_behaviour(i)
             # if i==7:
             #     behaviour.malicious_wrong_signature = True
             # behavior for gossip emulation (create block but not broadcast)
@@ -140,5 +141,17 @@ class Initializer:
             self.network.register_node(keyless_node)
             self.tasks.append(keyless_node.run())
 
+    def generate_behaviour(self, i=-1):
+        randgen = random.SystemRandom() 
+        behaviour = Behaviour()
+        if self.malicious_validators_count:
+            behaviour = Behaviour()
+            malicious_flags = behaviour.get_malicious_flags_names()
+            chosen_flag_name = randgen.choice(malicious_flags)
+            if i != -1: print("Node", i, "set", chosen_flag_name)
+            setattr(behaviour,chosen_flag_name, True)
+            self.malicious_validators_count -= 1
+        
+        return behaviour
 
 Initializer()

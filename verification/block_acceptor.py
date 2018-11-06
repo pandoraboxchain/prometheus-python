@@ -30,7 +30,7 @@ class BlockAcceptor(Acceptor):
         tops = self.epoch.dag.get_top_hashes()
         for prev_hash in prev_hashes:
             if not prev_hash in tops:
-                raise AcceptionException("Block refers to blocks !")
+                raise AcceptionException("Block refers to blocks which were not top blocks at the moment!")
 
 
     def validate_timeslot(self, block, current_block_number):

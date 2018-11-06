@@ -34,6 +34,9 @@ class Behaviour:
         self.malicious_transaction_generate_too_few_secret_shares = False
         self.malicious_transaction_send_reveal_without_corresponding_commit = False
 
+        flags = dir(self)
+        self.flags_of_malice = [flag for flag in flags if flag.startswith("malicious")]
+
     def update(self, epoch_number):
         if self.epoch_to_release_stake == epoch_number:
             self.wants_to_release_stake = True
@@ -60,4 +63,5 @@ class Behaviour:
     def should_release_stake(self):
         return self.wants_to_release_stake
 
-
+    def get_malicious_flags_names(self):
+        return self.flags_of_malice
