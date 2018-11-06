@@ -218,7 +218,6 @@ class Epoch:
         ordered_private_keys_count = len(private_keys) # total amount of both sent and unsent keys
         randoms_list = []
         for random_pieces in random_pieces_list:
-            self.log("random pieces len:", len(random_pieces))
             assert ordered_private_keys_count >= len(random_pieces), "Amount of splits must match amount of public keys"
             random = decode_random(random_pieces, Keys.list_from_bytes(published_private_keys))
             randoms_list.append(random)

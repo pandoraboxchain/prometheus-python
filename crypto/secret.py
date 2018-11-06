@@ -38,14 +38,14 @@ def dec_part_secret(privatekey, enc_data, number):
 
 def decode_random(encoded_splits, private_keys):
     splits = []
-    for i in range(0, len(encoded_splits)):
+    count = min(len(encoded_splits), len(private_keys))
+    for i in range(count):
         split = encoded_splits[i]
         private_key = private_keys[i]
-        if not private_key: continue
         split = dec_part_secret(private_key, split, i)
         if split:
             splits.append(split)
-
+    assert splits, "No split parts decoded for shared random"
     return recover_splits(splits)
 
 def encode_splits(splits, public_keys):
