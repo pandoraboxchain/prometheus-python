@@ -203,12 +203,17 @@ class Epoch:
                  private_key_count,
                  "of them matching",
                  matching_keys_count)
+
+        half_of_pubkeys = int(pubkey_count / 2) + 1
+        half_of_privkeys = int(private_key_count / 2) + 1
         
         # TODO we should have a special handling for when not enough keys was sent for each round
         assert pubkey_count > 1, "Not enough public keys to decrypt random"
         assert private_key_count > 1, "Not enough private keys to decrypt random"
-        assert pubkey_count >= int(private_key_count / 2) + 1, "Not enough public keys to decrypt random"
-        assert private_key_count >= int(pubkey_count / 2) + 1, "Not enough private keys to decrypt random"
+        assert pubkey_count >= half_of_privkeys, "Not enough public keys to decrypt random"
+        assert private_key_count >= half_of_pubkeys, "Not enough private keys to decrypt random"
+        assert matching_keys_count >= half_of_pubkeys, "Not enough matching keys in epoch"
+        assert matching_keys_count >= half_of_privkeys, "Not enough matching keys in epoch"
 
         ordered_private_keys_count = len(private_keys) # total amount of both sent and unsent keys
         randoms_list = []
@@ -231,7 +236,7 @@ class Epoch:
                 expected_public = Private.publickey(Keys.from_bytes(private_key))
                 if Keys.to_bytes(expected_public) in public_keys.values():
                     filtered_private_keys.append(private_key)
-        return private_keys
+        return filtered_private_keys
 
     def is_last_block_of_epoch(self, block_number):
         if block_number == 0:
