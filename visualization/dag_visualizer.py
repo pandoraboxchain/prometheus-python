@@ -10,6 +10,8 @@ from graphviz import Digraph
 # from visualization.dag_visualizer import DagVisualizer
 # DagVisualizer.visualize(dag, True)
 
+SUFFIX_LEN = 4
+
 class DagVisualizer:
     @staticmethod
     def visualize(dag, view_immediately=False):
@@ -38,12 +40,12 @@ class DagVisualizer:
                     color = 'black'
                     if blockhash == dag.genesis_block().get_hash():
                         color='blue'
-                    sub.node(blockhash.hex()[0:6], color=color)
+                    sub.node(blockhash.hex()[:SUFFIX_LEN], color=color)
 
         for _, signed_block in dag.blocks_by_hash.items():
             block_hash = signed_block.get_hash()
             for prev_hash in signed_block.block.prev_hashes:
-                dot.edge(block_hash.hex()[0:6], prev_hash.hex()[0:6], constraint='true')
+                dot.edge(block_hash.hex()[:SUFFIX_LEN], prev_hash.hex()[:SUFFIX_LEN], constraint='true')
         #set view to True to instantly render and open pdf
         #Note, that you will need 'graphviz' package installed
         dot.format = "png"
