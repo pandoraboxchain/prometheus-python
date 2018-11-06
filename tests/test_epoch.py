@@ -15,7 +15,7 @@ from crypto.secret import split_secret, encode_splits, decode_random
 from crypto.keys import Keys
 from chain.params import ROUND_DURATION
 
-from tests.test_chain_generator import TestChainGenerator
+from tools.chain_generator import ChainGenerator
 
 
 class TestEpoch(unittest.TestCase):
@@ -55,7 +55,7 @@ class TestEpoch(unittest.TestCase):
             signer_index += 1
             prev_hash = block.get_hash()
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.COMMIT))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.COMMIT))
 
         public_keys = []
         for private in private_keys:
@@ -84,7 +84,7 @@ class TestEpoch(unittest.TestCase):
 
         expected_seed = sum_random(randoms_list)  
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.REVEAL))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.REVEAL))
 
         signer_index = 0
         private_key_index = 0
@@ -104,7 +104,7 @@ class TestEpoch(unittest.TestCase):
             private_key_index += 1
             prev_hash = block.get_hash()
         
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
 
         top_block_hash = dag.get_top_blocks_hashes()[0]
 
@@ -127,7 +127,7 @@ class TestEpoch(unittest.TestCase):
 
         private = Private.generate()
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, dag.genesis_block().get_hash(), Epoch.get_round_range(1, Round.PUBLIC))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, dag.genesis_block().get_hash(), Epoch.get_round_range(1, Round.PUBLIC))
 
         randoms_list = []
         for i in Epoch.get_round_range(1, Round.COMMIT):
@@ -162,7 +162,7 @@ class TestEpoch(unittest.TestCase):
 
         # self.assertEqual(len(reveals), ROUND_DURATION)
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.SECRETSHARE))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.SECRETSHARE))
 
         for i in Epoch.get_round_range(1, Round.REVEAL):
             reveal_block = BlockFactory.create_block_with_timestamp([prev_hash], i * BLOCK_TIME)
@@ -171,9 +171,9 @@ class TestEpoch(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = reveal_block.get_hash()           
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.PRIVATE))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.PRIVATE))
 
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
 
         seed = epoch.reveal_commited_random(prev_hash)
         self.assertEqual(expected_seed, seed)
@@ -256,7 +256,7 @@ class TestEpoch(unittest.TestCase):
             dag.add_signed_block(i, signed_block)
             prev_hash = block.get_hash()
 
-        TestChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
+        ChainGenerator.fill_with_dummies(dag, prev_hash, Epoch.get_round_range(1, Round.FINAL))
 
         epoch_hash = dag.blocks_by_number[ROUND_DURATION * 6 + 1][0].get_hash()
 

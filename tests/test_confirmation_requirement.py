@@ -4,7 +4,7 @@ from chain.block_factory import BlockFactory
 from chain.confirmation_requirement import ConfirmationRequirement
 from chain.dag import Dag
 from crypto.private import Private
-from tests.test_chain_generator import TestChainGenerator
+from tools.chain_generator import ChainGenerator
 from visualization.dag_visualizer import DagVisualizer
 
 
@@ -16,26 +16,26 @@ class TestConfirmationRequirement(unittest.TestCase):
 
         genesis_hash = dag.genesis_block().get_hash()
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 2
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 3
 
-        block_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 2)
+        block_hash = ChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 2)
         conf_req.blocks[block_hash] = 3
 
-        last_block_in_seq_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        last_block_in_seq_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[last_block_in_seq_hash] = 3
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 3
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [last_block_in_seq_hash, block_hash], 2)
+        block_hash = ChainGenerator.insert_dummy(dag, [last_block_in_seq_hash, block_hash], 2)
         conf_req.blocks[block_hash] = 4
 
-        block_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 3)
+        block_hash = ChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 3)
         conf_req.blocks[block_hash] = 4
 
-        block_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 4)
+        block_hash = ChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 4)
 
         # DagVisualizer.visualize(dag, True) # take a look to understand what's going on
 
@@ -55,15 +55,15 @@ class TestConfirmationRequirement(unittest.TestCase):
 
         genesis_hash = dag.genesis_block().get_hash()
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 5
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 5)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 5)
 
         # confirmation requirement decreases because we have large skip 
         confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
         self.assertEqual(confirmation_requirement, 4)
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 9)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 9)
 
         # DagVisualizer.visualize(dag, True) # take a look to understand what's going on
 
@@ -76,31 +76,31 @@ class TestConfirmationRequirement(unittest.TestCase):
 
         genesis_hash = dag.genesis_block().get_hash()
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 5
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 5)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 5)
 
         # confirmation requirement decreases because we have large skip 
         confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
         self.assertEqual(confirmation_requirement, 4)
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 6)
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 7)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 6)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 7)
 
         #we still have 4 here
         confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
         self.assertEqual(confirmation_requirement, 4)
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 8)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 8)
         
         #but we have restored to 5 here, because of 3 previous consecutive blocks
         confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
         self.assertEqual(confirmation_requirement, 5)
 
         #let's skip one
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 10)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 10)
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [block_hash], 11)
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 11)
         
         # DagVisualizer.visualize(dag, True) # take a look to understand what's going on
 

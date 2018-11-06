@@ -12,7 +12,7 @@ from crypto.private import Private
 from crypto.keys import Keys
 from node.permissions import Permissions
 from node.validators import Validators
-from tests.test_chain_generator import TestChainGenerator
+from tools.chain_generator import ChainGenerator
 
 
 class TestStakeActions(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestStakeActions(unittest.TestCase):
         genesis_hash = dag.genesis_block().get_hash()
 
         last_block_number = Epoch.get_epoch_end_block_number(1)
-        prev_hash = TestChainGenerator.fill_with_dummies(dag, genesis_hash, range(1, last_block_number))
+        prev_hash = ChainGenerator.fill_with_dummies(dag, genesis_hash, range(1, last_block_number))
 
         block = BlockFactory.create_block_with_timestamp([prev_hash], BLOCK_TIME * last_block_number)
         tx = PenaltyTransaction()

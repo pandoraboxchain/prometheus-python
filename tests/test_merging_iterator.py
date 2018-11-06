@@ -4,7 +4,7 @@ from chain.dag import Dag
 from chain.merging_iterator import MergingIter
 from chain.params import BLOCK_TIME
 from crypto.private import Private
-from tests.test_chain_generator import TestChainGenerator
+from tools.chain_generator import ChainGenerator
 from visualization.dag_visualizer import DagVisualizer
 
 class TestMergingIterator(unittest.TestCase):
@@ -13,11 +13,11 @@ class TestMergingIterator(unittest.TestCase):
     def test_simple_merge(self):
         dag = Dag(0)
         genesis_hash = dag.genesis_block().get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,10), [2,5,7,8])
+        ChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,10), [2,5,7,8])
         first_block = dag.blocks_by_number[1][0].get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, first_block, range(2,10), [3,4,6,7,8,9])
+        ChainGenerator.fill_with_dummies_and_skips(dag, first_block, range(2,10), [3,4,6,7,8,9])
         second_block = dag.blocks_by_number[2][0].get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
+        ChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
 
         hanging_tips = dag.get_top_hashes()
 
@@ -43,15 +43,15 @@ class TestMergingIterator(unittest.TestCase):
     def test_merge_in_merge(self):
         dag = Dag(0)
         genesis_hash = dag.genesis_block().get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,5), [1,3])
+        ChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,5), [1,3])
         second_block = dag.blocks_by_number[2][0].get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,4), [])
+        ChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,4), [])
         tops = dag.get_top_hashes()
         merging_block = BlockFactory.create_block_with_timestamp(tops, BLOCK_TIME * 5)
         merging_signed_block = BlockFactory.sign_block(merging_block, Private.generate())
         dag.add_signed_block(5, merging_signed_block)
 
-        TestChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,7), [2,3,4,5])
+        ChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,7), [2,3,4,5])
 
         tops = dag.get_top_hashes()
         merging_block = BlockFactory.create_block_with_timestamp(tops, BLOCK_TIME * 7)

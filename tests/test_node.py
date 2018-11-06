@@ -5,7 +5,7 @@ from node.node_api import NodeApi
 from node.block_signers import BlockSigners
 from node.validators import Validators
 from chain.epoch import Epoch
-from tests.test_chain_generator import TestChainGenerator
+from tools.chain_generator import ChainGenerator
 from tools.time import Time
 
 from chain.params import BLOCK_TIME, ROUND_DURATION
@@ -122,7 +122,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(allowed_signers[0], validators_pubkeys[2]) #simple case
 
         # generate two branches resulting in two epoch_hashes
-        node0.dag = TestChainGenerator.generate_two_chains(ROUND_DURATION * 6 + 1)
+        node0.dag = ChainGenerator.generate_two_chains(ROUND_DURATION * 6 + 1)
         tops = node0.dag.get_top_hashes()
 
         # assign pseudo generated list of validators to cache for each epoch

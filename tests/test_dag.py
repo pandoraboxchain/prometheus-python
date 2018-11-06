@@ -8,7 +8,7 @@ from chain.dag import Dag
 from crypto.private import Private
 from chain.epoch import BLOCK_TIME
 from chain.dag import ChainIter
-from tests.test_chain_generator import TestChainGenerator
+from tools.chain_generator import ChainGenerator
 
 
 class TestDag(unittest.TestCase):
@@ -126,9 +126,9 @@ class TestDag(unittest.TestCase):
         dag = Dag(0)
 
         prev_hash = dag.genesis_block().get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,8), [3,5])
-        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,8), [4])
-        TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,7), [4,5])
+        ChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,8), [3,5])
+        ChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,8), [4])
+        ChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range(1,7), [4,5])
 
         tops = dag.get_branches_for_timeslot_range(3, 6)
 
@@ -228,11 +228,11 @@ class TestDag(unittest.TestCase):
         epoch_range = range(1, 20)
         epoch_range_2 = range(3, 20)
         dag = Dag(0)
-        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+        ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                        prev_hash=dag.genesis_block().get_hash(),
                                                        range=epoch_range,
                                                        indices_to_skip=[])
-        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+        ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                        prev_hash=dag.blocks_by_number[2][0].get_hash(),
                                                        range=epoch_range_2,
                                                        indices_to_skip=[])
@@ -250,11 +250,11 @@ class TestDag(unittest.TestCase):
         epoch_range = range(1, 30)
         epoch_range_2 = range(3, 30)
         dag = Dag(0)
-        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+        ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                        prev_hash=dag.genesis_block().get_hash(),
                                                        range=epoch_range,
                                                        indices_to_skip=[])
-        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+        ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                        prev_hash=dag.blocks_by_number[2][0].get_hash(),
                                                        range=epoch_range_2,
                                                        indices_to_skip=[])
@@ -266,7 +266,7 @@ class TestDag(unittest.TestCase):
         self.assertEqual(expected_intersection, found_intersection)
 
     def test_common_ancestor(self):
-        dag = TestChainGenerator.generate_two_chains(5)
+        dag = ChainGenerator.generate_two_chains(5)
         expected_intersection = dag.blocks_by_number[1][0].get_hash()
         
         tops = dag.get_top_blocks_hashes()
@@ -277,11 +277,11 @@ class TestDag(unittest.TestCase):
     def test_multiple_chain_common_ancestor(self):
         dag = Dag(0)
         genesis_hash = dag.genesis_block().get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,10), [2,5,7,8])
+        ChainGenerator.fill_with_dummies_and_skips(dag, genesis_hash, range(1,10), [2,5,7,8])
         first_block = dag.blocks_by_number[1][0].get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, first_block, range(2,10), [3,4,6,7,8,9])
+        ChainGenerator.fill_with_dummies_and_skips(dag, first_block, range(2,10), [3,4,6,7,8,9])
         second_block = dag.blocks_by_number[2][0].get_hash()
-        TestChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
+        ChainGenerator.fill_with_dummies_and_skips(dag, second_block, range(3,10), [3,4,5,6,9])
         expected_intersection = dag.blocks_by_number[1][0].get_hash()
         
         tops = dag.get_top_blocks_hashes()

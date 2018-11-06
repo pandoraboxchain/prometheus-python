@@ -1,7 +1,6 @@
 import unittest
 
 from tests.test_block import *
-from tests.test_chain_generator import *
 from tests.test_confirmation_requirement import *
 from tests.test_dag import *
 from tests.test_epoch import *
