@@ -5,7 +5,7 @@ from chain.transaction_factory import TransactionFactory
 from crypto.private import Private
 from os import urandom
 
-class TestChainGenerator:
+class ChainGenerator:
     
     @staticmethod
     def generate_two_chains(length):
@@ -31,7 +31,7 @@ class TestChainGenerator:
     # TODO creater similar but simpler method not using prev_hash and just taking top hash as prev hash
     @staticmethod
     def fill_with_dummies(dag, prev_hash, range, dummy_private=Private.generate()):
-        return TestChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range, [], dummy_private)
+        return ChainGenerator.fill_with_dummies_and_skips(dag, prev_hash, range, [], dummy_private)
   
     @staticmethod
     def fill_with_dummies_and_skips(dag, prev_hash, range, indices_to_skip, dummy_private=Private.generate()):

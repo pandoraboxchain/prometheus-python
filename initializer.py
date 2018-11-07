@@ -2,11 +2,14 @@ import asyncio
 import logging
 import importlib
 import datetime
+import random
+
 
 from node.node import Node
 from node.network import Network
 from node.block_signers import BlockSigners
 from node.behaviour import Behaviour
+from node.stats import Stats
 
 from tools.announcer_node import AnnouncerNode
 from tools.time import Time
@@ -14,7 +17,6 @@ from tools.time import Time
 from chain.params import GENESIS_VALIDATORS_COUNT, \
                          BLOCK_TIME, \
                          ROUND_DURATION
-
 
 # you can set node to visualize its DAG as soon as Ctrl-C pressed
 def save_dag_to_graphviz(dag_to_visualize):
@@ -24,6 +26,8 @@ def save_dag_to_graphviz(dag_to_visualize):
         from visualization.dag_visualizer import DagVisualizer
         DagVisualizer.visualize(dag_to_visualize)
 
+def show_node_stats(node):
+    Stats.gather(node)
 
 class Initializer:
 
@@ -48,10 +52,10 @@ class Initializer:
                                                              'Validators count must be >= round_duration * 6 + 1'
 
     def __init__(self):
-        self.node_to_visualize_after_exit = None
+        self.node_to_visualize_after_exit = 0
         self.params_validate()
         self.discrete_mode = True
-
+        self.malicious_validators_count = 0 # GENESIS_VALIDATORS_COUNT / 2 - 1
         # set up logging to file - see previous section for more details
         self.logger = logging.basicConfig(level=logging.DEBUG,
                                           format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
@@ -77,9 +81,24 @@ class Initializer:
             # -------------------------------------
 
             if self.discrete_mode:
-                while True:
+                should_continue = True
+                terminated_nodes_count = 0
+                while should_continue:
+                    initial_node_count = len(self.nodes) - 1 # one node less because of announcer
                     for node in self.nodes:
-                        node.step()
+                        try:
+                            if not node.terminated:
+                                node.step()
+                        except AssertionError:
+                            print("Node", node.node_id, "crashed")
+                            self.network.unregister_node(node)
+                            node.terminated = True
+                            terminated_nodes_count += 1
+                            if terminated_nodes_count == initial_node_count:
+                                print("No alive nodes left. Terminating")
+                                should_continue = False
+                                break
+                        
                     Time.advance_time(1)
 
                     # add some nodes on defined time
@@ -95,6 +114,7 @@ class Initializer:
         finally:
             if self.node_to_visualize_after_exit:
                 save_dag_to_graphviz(self.node_to_visualize_after_exit.dag)
+                # show_node_stats(self.node_to_visualize_after_exit)
 
     def launch(self):
         logger = logging.getLogger("Announce")
@@ -102,7 +122,7 @@ class Initializer:
         self.nodes.append(announcer)
 
         for i in range(0, GENESIS_VALIDATORS_COUNT):
-            behaviour = Behaviour()
+            behaviour = self.generate_behaviour(i)
             # if i==7:
             #     behaviour.malicious_wrong_signature = True
             # behavior for gossip emulation (create block but not broadcast)
@@ -136,5 +156,17 @@ class Initializer:
             self.network.register_node(keyless_node)
             self.tasks.append(keyless_node.run())
 
+    def generate_behaviour(self, i=-1):
+        randgen = random.SystemRandom() 
+        behaviour = Behaviour()
+        if self.malicious_validators_count:
+            behaviour = Behaviour()
+            malicious_flags = behaviour.get_malicious_flags_names()
+            chosen_flag_name = randgen.choice(malicious_flags)
+            if i != -1: print("Node", i, "set", chosen_flag_name)
+            setattr(behaviour,chosen_flag_name, True)
+            self.malicious_validators_count -= 1
+        
+        return behaviour
 
 Initializer()

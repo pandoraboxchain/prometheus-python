@@ -14,6 +14,7 @@ class AnnouncerNode:
         self.epoch.set_logger(self.logger)
         self.logger.info("Starting announcer node")
         self.last_announced_round = None
+        self.terminated = False
 
     def step(self):
         current_block_number = self.epoch.get_current_timeframe_block_number()

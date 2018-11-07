@@ -45,32 +45,30 @@ class Mempool:
                 isinstance(tx, PenaltyTransaction) or \
                 isinstance(tx, PenaltyGossipTransaction):  # should only be as part of the block
             pass
-        elif isinstance(tx, PublicKeyTransaction):
-            if tx.get_hash() in self.public_keys:
-                del self.public_keys[tx.get_hash()]
-        elif isinstance(tx, StakeHoldTransaction) or isinstance(tx, StakeReleaseTransaction):
-            if tx.get_hash() in self.stake_operations:
-                del self.stake_operations[tx.get_hash()]
-        elif isinstance(tx, CommitRandomTransaction):
-            if tx.get_hash() in self.commits:
-                del self.commits[tx.get_hash()]
-        elif isinstance(tx, RevealRandomTransaction):
-            if tx.get_hash() in self.reveals:
-                del self.reveals[tx.get_hash()]
-        elif isinstance(tx, SplitRandomTransaction):
-            if tx.get_hash() in self.shares:
-                del self.shares[tx.get_hash()]
-
-        elif isinstance(tx, NegativeGossipTransaction):
-            if tx.get_hash() in self.gossips:
-                del self.gossips[tx.get_hash()]
-        elif isinstance(tx, PositiveGossipTransaction):
-            if tx.get_hash() in self.gossips:
-                del self.gossips[tx.get_hash()]
-        elif isinstance(tx, PaymentTransaction):
-            del self.payments[tx.get_hash()]
         else:
-            assert False, "Can't remove. Transaction type is unknown"
+            container = None
+            if isinstance(tx, PublicKeyTransaction):
+                container = self.public_keys
+            elif isinstance(tx, StakeHoldTransaction) or isinstance(tx, StakeReleaseTransaction):
+                container = self.stake_operations
+            elif isinstance(tx, CommitRandomTransaction):
+                container = self.commits
+            elif isinstance(tx, RevealRandomTransaction):
+                container = self.reveals
+            elif isinstance(tx, SplitRandomTransaction):
+                container = self.shares
+
+            elif isinstance(tx, NegativeGossipTransaction) or isinstance(tx, PositiveGossipTransaction):
+                container = self.gossips
+            elif isinstance(tx, PaymentTransaction):
+                container = self.payments
+            
+            if container != None:
+                tx_hash = tx.get_hash()
+                if tx_hash in container:
+                    del container[tx_hash]
+            else:
+                assert False, "Can't remove. Transaction type is unknown"
 
     def remove_transactions(self, transactions):
         for tx in transactions:

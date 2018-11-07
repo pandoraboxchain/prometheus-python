@@ -1,11 +1,11 @@
 from enum import IntEnum
 
+# blocks per round
+ROUND_DURATION = 8  # default 3
 # initial number ov validators
-GENESIS_VALIDATORS_COUNT = 20  # default 20
+GENESIS_VALIDATORS_COUNT = ROUND_DURATION * 6 + 1  # default 20
 # steps/seconds per block
 BLOCK_TIME = 4  # default 4
-# blocks per round
-ROUND_DURATION = 3  # default 3
 
 
 class Round(IntEnum):
@@ -17,7 +17,7 @@ class Round(IntEnum):
     FINAL = 5
     INVALID = 6
 
-SECRET_SHARE_PARTICIPANTS_COUNT = 3
+SECRET_SHARE_PARTICIPANTS_COUNT = ROUND_DURATION
 
 MINIMAL_SECRET_SHARERS = ROUND_DURATION // 2 + 1
 TOTAL_SECRET_SHARERS = ROUND_DURATION

@@ -24,7 +24,7 @@ class MergingIter:
 
         block = self.chain_iter.next()
 
-        if len(block.block.prev_hashes) > 1:
+        if block and len(block.block.prev_hashes) > 1:
             prev_hashes = block.block.prev_hashes
             conflicts = []
             if self.finder:

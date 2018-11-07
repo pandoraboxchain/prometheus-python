@@ -41,13 +41,11 @@ class Network:
             group = self.groups[group_id]
             group.append(node_to_group)
 
-    @staticmethod
-    def get_list_of_actual_chains():
-        return True
-
-    @staticmethod
-    def push_block():
-        return True
+    def unregister_node(self, node_to_remove):
+        if self.groups:
+            for group in self.groups.values():
+                group = filter(lambda node: node.node_id == node_to_remove.node_id, group)
+        self.nodes = filter(lambda node: node.node_id == node_to_remove.node_id, self.nodes)
 
     # request receiver_node_id (node) by getting SignedBlock() by HASH.
     # receiver MUST response by SignedBlock() else ?(+1 request to ANOTHER node - ?)
@@ -107,6 +105,7 @@ class Network:
             if node.node_id != sender_node_id:
                 node.handle_block_out_of_timeslot(sender_node_id, raw_signed_block)
 
+    #TODO there should not be separate gossip broadcaster, just use broadcast transaction method
     def broadcast_gossip_negative(self, sender_node_id, raw_gossip):
         if self.groups:
             if self.merge_groups_flag:
@@ -121,6 +120,7 @@ class Network:
             if node.node_id != sender_node_id:
                 node.handle_gossip_negative(sender_node_id, raw_gossip)
 
+    #TODO there should not be separate gossip broadcaster, just usual transaction
     def broadcast_gossip_positive(self, sender_node_id, raw_gossip):
         if self.groups:
             if self.merge_groups_flag:

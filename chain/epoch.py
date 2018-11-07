@@ -184,8 +184,8 @@ class Epoch:
         # for _, public_key in public_keys.items():
             # self.log(Keys.to_visual_string(public_key))
         # self.log("privkeys converted")
-        private_key_count = 0
-        matching_keys_count = 0
+        private_key_count = 0   # amount of sent keys
+        matching_keys_count = 0 # amount of keys which have matching pubkeys 
         for key in published_private_keys:
             if not key:
                 # self.log("None")
@@ -203,16 +203,22 @@ class Epoch:
                  private_key_count,
                  "of them matching",
                  matching_keys_count)
+
+        half_of_pubkeys = int(pubkey_count / 2) + 1
+        half_of_privkeys = int(private_key_count / 2) + 1
         
         # TODO we should have a special handling for when not enough keys was sent for each round
         assert pubkey_count > 1, "Not enough public keys to decrypt random"
         assert private_key_count > 1, "Not enough private keys to decrypt random"
-        assert pubkey_count >= int(private_key_count / 2) + 1, "Not enough public keys to decrypt random"
-        assert private_key_count >= int(pubkey_count / 2) + 1, "Not enough private keys to decrypt random"
+        assert pubkey_count >= half_of_privkeys, "Not enough public keys to decrypt random"
+        assert private_key_count >= half_of_pubkeys, "Not enough private keys to decrypt random"
+        assert matching_keys_count >= half_of_pubkeys, "Not enough matching keys in epoch"
+        assert matching_keys_count >= half_of_privkeys, "Not enough matching keys in epoch"
 
+        ordered_private_keys_count = len(private_keys) # total amount of both sent and unsent keys
         randoms_list = []
         for random_pieces in random_pieces_list:
-            assert private_key_count >= len(random_pieces), "Amount of splits must match amount of public keys"
+            assert ordered_private_keys_count >= len(random_pieces), "Amount of splits must match amount of public keys"
             random = decode_random(random_pieces, Keys.list_from_bytes(published_private_keys))
             randoms_list.append(random)
 
@@ -229,7 +235,7 @@ class Epoch:
                 expected_public = Private.publickey(Keys.from_bytes(private_key))
                 if Keys.to_bytes(expected_public) in public_keys.values():
                     filtered_private_keys.append(private_key)
-        return private_keys
+        return filtered_private_keys
 
     def is_last_block_of_epoch(self, block_number):
         if block_number == 0:

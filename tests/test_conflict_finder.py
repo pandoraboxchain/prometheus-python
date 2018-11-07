@@ -3,7 +3,7 @@ import unittest
 from chain.confirmation_requirement import ConfirmationRequirement
 from chain.dag import Dag
 from crypto.private import Private
-from tests.test_chain_generator import TestChainGenerator
+from tools.chain_generator import ChainGenerator
 from visualization.dag_visualizer import DagVisualizer
 from chain.conflict_finder import ConflictFinder
 
@@ -24,25 +24,25 @@ class TestConflictFinder(unittest.TestCase):
         private3 = Private.generate()
 
         determinated_top_hash = \
-        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+        ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                        prev_hash=dag.genesis_block().get_hash(),
                                                        range=range(1, 7),
                                                        indices_to_skip=[],
                                                        dummy_private=private1)
 
-        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+        ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                        prev_hash=dag.blocks_by_number[2][0].get_hash(),
                                                        range=range(3, 6),
                                                        indices_to_skip=[],
                                                        dummy_private=private2)
 
-        TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+        ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                        prev_hash=dag.blocks_by_number[3][1].get_hash(),
                                                        range=range(4, 6),
                                                        indices_to_skip=[],
                                                        dummy_private=private3)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -66,26 +66,26 @@ class TestConflictFinder(unittest.TestCase):
         private3 = Private.generate()
 
         top_hash_1 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.genesis_block().get_hash(),
                                                            range=range(1, 6),
                                                            indices_to_skip=[],
                                                            dummy_private=private1)
         top_hash_2 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[2][0].get_hash(),
                                                            range=range(3, 6),
                                                            indices_to_skip=[],
                                                            dummy_private=private2)
 
         top_hash_3 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[3][1].get_hash(),
                                                            range=range(4, 6),
                                                            indices_to_skip=[],
                                                            dummy_private=private3)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -111,26 +111,26 @@ class TestConflictFinder(unittest.TestCase):
         private3 = Private.generate()
 
         top_hash_1 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.genesis_block().get_hash(),
                                                            range=range(1, 9),
                                                            indices_to_skip=[4],
                                                            dummy_private=private1)
         top_hash_2 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[2][0].get_hash(),
                                                            range=range(3, 9),
                                                            indices_to_skip=[5],
                                                            dummy_private=private2)
 
         top_hash_3 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[3][1].get_hash(),
                                                            range=range(4, 9),
                                                            indices_to_skip=[7],
                                                            dummy_private=private3)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -170,34 +170,34 @@ class TestConflictFinder(unittest.TestCase):
         private4 = Private.generate()
 
         top_hash_2 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.genesis_block().get_hash(),
                                                            range=range(1, 9),
                                                            indices_to_skip=[3, 4],
                                                            dummy_private=private2)
 
         top_hash_1 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[1][0].get_hash(),
                                                            range=range(2, 9),
                                                            indices_to_skip=[6, 7],
                                                            dummy_private=private1)
 
         top_hash_3 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[2][0].get_hash(),
                                                            range=range(3, 9),
                                                            indices_to_skip=[5],
                                                            dummy_private=private3)
 
         top_hash_4 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[3][1].get_hash(),
                                                            range=range(4, 9),
                                                            indices_to_skip=[7],
                                                            dummy_private=private4)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -226,41 +226,41 @@ class TestConflictFinder(unittest.TestCase):
         private5 = Private.generate()
 
         top_hash_2 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.genesis_block().get_hash(),
                                                            range=range(1, 11),
                                                            indices_to_skip=[3, 4, 10],
                                                            dummy_private=private2)
 
         top_hash_1 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[1][0].get_hash(),
                                                            range=range(2, 11),
                                                            indices_to_skip=[6, 7],
                                                            dummy_private=private1)
 
         top_hash_3 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[2][0].get_hash(),
                                                            range=range(3, 11),
                                                            indices_to_skip=[5, 7, 10],
                                                            dummy_private=private3)
 
         top_hash_4 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[3][1].get_hash(),
                                                            range=range(4, 11),
                                                            indices_to_skip=[5, 8, 10],
                                                            dummy_private=private4)
 
         top_hash_5 = \
-            TestChainGenerator.fill_with_dummies_and_skips(dag=dag,
+            ChainGenerator.fill_with_dummies_and_skips(dag=dag,
                                                            prev_hash=dag.blocks_by_number[3][1].get_hash(),
                                                            range=range(4, 11),
                                                            indices_to_skip=[4, 5, 6, 7, 8],
                                                            dummy_private=private5)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())
@@ -284,23 +284,23 @@ class TestConflictFinder(unittest.TestCase):
 
         genesis_hash = dag.genesis_block().get_hash()
 
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 2
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 3
-        block_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 2)
+        block_hash = ChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 2)
         conf_req.blocks[block_hash] = 3
-        last_block_in_seq_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        last_block_in_seq_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[last_block_in_seq_hash] = 3
-        block_hash = TestChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
         conf_req.blocks[block_hash] = 3
-        block_hash = TestChainGenerator.insert_dummy(dag, [last_block_in_seq_hash, block_hash], 2)
+        block_hash = ChainGenerator.insert_dummy(dag, [last_block_in_seq_hash, block_hash], 2)
         conf_req.blocks[block_hash] = 4
-        block_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 3)
+        block_hash = ChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 3)
         conf_req.blocks[block_hash] = 4
-        top_hash = TestChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 4)
+        top_hash = ChainGenerator.insert_dummy(dag, dag.get_top_hashes(), 4)
 
-        DagVisualizer.visualize(dag)
+        # DagVisualizer.visualize(dag)
 
         conflict_finder = ConflictFinder(dag)
         top_blocks = list(dag.get_top_blocks().keys())

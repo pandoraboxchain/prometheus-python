@@ -178,7 +178,7 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 2)  # have genesis + self produced block
 
         # uncomment for visual ensure that on NODE_0 have 2 blocks with genesis ancestor
-        DagVisualizer.visualize(node0.dag)
+        # DagVisualizer.visualize(node0.dag)
 
     def test_node_offline(self):
         Time.use_test_time()

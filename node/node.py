@@ -42,7 +42,7 @@ class Node:
         self.epoch.set_logger(self.logger)
         self.permissions = Permissions(self.epoch, validators)
         self.mempool = Mempool()
-        self.utxo = Utxo()
+        self.utxo = Utxo(self.logger)
         self.conflict_watcher = ConflictWatcher(self.dag)
         self.behaviour = behaviour
 
@@ -59,6 +59,7 @@ class Node:
         self.last_signed_block_number = 0
         self.tried_to_sign_current_block = False
         self.owned_utxos = []
+        self.terminated = False
 
         self.blocks_buffer = []  # uses while receive block and do not have its ancestor in local dag (before verify)
 
@@ -118,6 +119,9 @@ class Node:
             self.broadcast_gossip_positive(zero_block.get_hash())
             self.behaviour.malicious_send_positive_gossip_count -= 1
 
+        if self.owned_utxos:
+            self.broadcast_payments()
+
         if current_block_number != self.last_expected_timeslot:
             self.tried_to_sign_current_block = False
             should_wait = self.handle_timeslot_changed(previous_timeslot_number=self.last_expected_timeslot,
@@ -160,6 +164,7 @@ class Node:
 
     def sign_block(self, current_block_number):
         current_round_type = self.epoch.get_round_by_block_number(current_block_number)
+        epoch_number = Epoch.get_epoch_number(current_block_number)
         
         system_txs = self.get_system_transactions_for_signing(current_round_type)
         payment_txs = self.get_payment_transactions_for_signing(current_block_number)
@@ -176,6 +181,7 @@ class Node:
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
         self.dag.add_signed_block(current_block_number, signed_block)
         self.utxo.apply_payments(payment_txs)
+        self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, self.node_pubkey)
         if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
             self.logger.debug("Broadcasting signed block number %s", current_block_number)
             self.network.broadcast_block(self.node_id, signed_block.pack())
@@ -189,6 +195,7 @@ class Node:
             additional_block.payment_txs = block.payment_txs
             signed_add_block = BlockFactory.sign_block(additional_block, self.block_signer.private_key)
             self.dag.add_signed_block(current_block_number, signed_add_block)
+            self.conflict_watcher.on_new_block_by_validator(signed_add_block.get_hash(), epoch_number, self.node_pubkey) #mark our own conflict for consistency
             self.logger.info("Sending additional block")
             self.network.broadcast_block(self.node_id, signed_add_block.pack())
 
@@ -221,7 +228,8 @@ class Node:
         node_public = Private.publickey(self.block_signer.private_key)
         pseudo_address = sha256(node_public).digest()
         block_reward = TransactionFactory.create_block_reward(pseudo_address, block_number)
-        self.owned_utxos.append(block_reward.get_hash()) 
+        block_reward_hash = block_reward.get_hash()
+        self.owned_utxos.append(block_reward_hash)
         payment_txs = [block_reward] + self.mempool.pop_payment_transactions()
         return payment_txs
 
@@ -243,7 +251,7 @@ class Node:
                                                                       validator_index=pubkey_index,
                                                                       node_private=node_private)
                 if self.behaviour.malicious_wrong_signature:
-                    tx.signature += 1
+                    tx.signature = b'0' + tx.signature[1:]
                     
                 self.epoch_private_keys.append(generated_private)
                 self.logger.debug("Broadcasted public key")
@@ -368,27 +376,31 @@ class Node:
                 self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
                 return
 
-        allowed_signers = self.get_allowed_signers_for_next_block(signed_block.block)
+        block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
+        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
 
-        is_block_allowed = False
+        allowed_pubkey = None
         for allowed_signer in allowed_signers:
-            if signed_block.verify_signature(allowed_signer.public_key):
-                is_block_allowed = True
+            if signed_block.verify_signature(allowed_signer):
+                allowed_pubkey = allowed_signer
                 break
         
-        if is_block_allowed:
+        if allowed_pubkey:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
                 current_block_number = self.epoch.get_current_timeframe_block_number()
-
+                epoch_number = Epoch.get_epoch_number(current_block_number)
+                
                 self.dag.add_signed_block(current_block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
+                self.mempool.remove_transactions(block.payment_txs)
                 self.utxo.apply_payments(block.payment_txs)
+                self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
-            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
+            self.logger.error("Received block from %d, but its signature is wrong", node_id)
 
     def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
         signed_block = SignedBlock()
@@ -402,13 +414,13 @@ class Node:
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
 
         allowed_signers = self.get_allowed_signers_for_block_number(block_number)
-        is_block_allowed = False
+        allowed_pubkey = None
         for allowed_signer in allowed_signers:
             if signed_block.verify_signature(allowed_signer):
-                is_block_allowed = True
+                allowed_pubkey = allowed_signer
                 break
 
-        if is_block_allowed:
+        if allowed_pubkey:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
 
@@ -430,14 +442,19 @@ class Node:
                         block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
                         self.dag.add_signed_block(block_number, block_from_buffer)
                         self.mempool.remove_transactions(block_from_buffer.block.system_txs)
+                        self.mempool.remove_transactions(block_from_buffer.block.payment_txs)
                         self.utxo.apply_payments(block_from_buffer.block.payment_txs)
+                        #TODO add block to conflict watcher from buffer properly
+                        # self.conflict_watcher.on_new_block_by_validator(block_from_buffer.get_hash(), epoch_number, allowed_pubkey)
                         self.logger.info("Added block out of timeslot from block buffer")
                     return  # while all blocks added from block buffer return
                 else:
                     # simple insert block out of timeslot
                     self.dag.add_signed_block(block_number, signed_block)
                     self.mempool.remove_transactions(block.system_txs)
+                    self.mempool.remove_transactions(block.payment_txs)
                     self.utxo.apply_payments(block.payment_txs)
+                    self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
                     self.logger.error("Added block out of timeslot")
             else:
                 self.logger.error("Block was not added. Considered invalid")
@@ -448,10 +465,7 @@ class Node:
         transaction = TransactionParser.parse(raw_transaction)
 
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
-        # print("Node ", self.node_id, "received transaction with hash",
-        # transaction.get_hash().hexdigest(), " from node ", node_id)
         if verifier.check_if_valid(transaction):
-            # print("It is valid. Adding to mempool")
             self.mempool.add_transaction(transaction)
         else:
             self.logger.error("Received tx is invalid")
@@ -471,8 +485,6 @@ class Node:
             if self.dag.has_block_number(transaction.number_of_block):
                 signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
                 self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
-                self.logger.error("Received valid gossip negative. Requested block %i found",
-                                  transaction.number_of_block)
             else:
                 # received gossip block but not have requested block for gossip positive broadcasting
                 self.logger.error("Received valid gossip negative. Requested block %i not found",
@@ -520,6 +532,14 @@ class Node:
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.logger.info("Broadcasted positive gossip transaction")
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
+
+    def broadcast_payments(self):
+        for utxo in self.owned_utxos:
+            tx = TransactionFactory.create_payment(utxo, 0, [os.urandom(32), os.urandom(32)], [10, 5])
+            self.mempool.add_transaction(tx)
+            self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
+            # self.logger.info("Broadcasted payment with hash %s", tx.get_hash())
+        self.owned_utxos.clear()
 
     # -------------------------------------------------------------------------------
     # Targeted request
