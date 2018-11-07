@@ -1,7 +1,9 @@
 import unittest
+import logging
 
+from crypto.private import Private
 from node.behaviour import Behaviour
-from node.block_signers import BlockSigners
+from node.block_signers import BlockSigners, BlockSigner
 from node.network import Network
 from node.validators import Validators
 from tools.time import Time
@@ -9,12 +11,9 @@ from chain.epoch import Epoch
 from node.node import Node
 from visualization.dag_visualizer import DagVisualizer
 
-from chain.params import ROUND_DURATION, BLOCK_TIME
-
 
 class TestNodeAPI(unittest.TestCase):
 
-    @unittest.skip('test ancessor for block')
     def test_network_methods(self):
         private_keys = BlockSigners()
         private_keys = private_keys.block_signers
@@ -75,7 +74,6 @@ class TestNodeAPI(unittest.TestCase):
         network.merge_all_groups()  # test marge groups
         self.assertEqual(len(network.nodes) == 5, True)
 
-    @unittest.skip('test ancessor for block')
     def test_node_broadcast_unavailable(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -124,7 +122,6 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node0.dag.blocks_by_number), 2)
         self.assertEqual(len(node1.dag.blocks_by_number), 3)
 
-    @unittest.skip('test ancessor for block')
     def test_node_handle_unavailable(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -183,7 +180,6 @@ class TestNodeAPI(unittest.TestCase):
         # uncomment for visual ensure that on NODE_0 have 2 blocks with genesis ancestor
         DagVisualizer.visualize(node0.dag)
 
-    @unittest.skip('test ancessor for block')
     def test_node_offline(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -260,7 +256,6 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 3)
         self.assertEqual(len(node2.dag.blocks_by_number), 2)
 
-    @unittest.skip('test two chains groups')
     def test_make_node_offline_from_block(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -270,7 +265,7 @@ class TestNodeAPI(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0] + [1] + [2] * Epoch.get_duration()
+        validators.signers_order = ([0] + [1] + [2]) * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = Network()
@@ -423,7 +418,7 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 8)
         self.assertEqual(len(node2.dag.blocks_by_number), 9)  # steel have redundant block 6
 
-    def test_two_network_groups(self):
+    def test_two_node_groups(self):
         Time.use_test_time()
         Time.set_current_time(1)
 
@@ -432,111 +427,77 @@ class TestNodeAPI(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = ([0, 1, 2, 3, 4, 5, 6] * Epoch.get_duration()) * 2
-        validators.randomizers_order = ([0] * Epoch.get_duration()) * 2
 
         network = Network()
+        self.generate_nodes(network, private_keys, 20)  # create validators
+        self.add_stakeholders(network, 9)  # add stakeholders to network
 
-        node0 = Node(genesis_creation_time=1,
-                     node_id=0,
-                     network=network,
-                     block_signer=private_keys[0],
-                     validators=validators,
-                     behaviour=Behaviour())
-        node1 = Node(genesis_creation_time=1,
-                     node_id=1,
-                     network=network,
-                     block_signer=private_keys[1],
-                     validators=validators,
-                     behaviour=Behaviour())
-        node2 = Node(genesis_creation_time=1,
-                     node_id=2,
-                     network=network,
-                     block_signer=private_keys[2],
-                     validators=validators,
-                     behaviour=Behaviour())
-        node3 = Node(genesis_creation_time=1,
-                     node_id=3,
-                     network=network,
-                     block_signer=private_keys[3],
-                     validators=validators,
-                     behaviour=Behaviour())
-        node4 = Node(genesis_creation_time=1,
-                     node_id=4,
-                     network=network,
-                     block_signer=private_keys[4],
-                     validators=validators,
-                     behaviour=Behaviour())
-        node5 = Node(genesis_creation_time=1,
-                     node_id=5,
-                     network=network,
-                     block_signer=private_keys[5],
-                     validators=validators,
-                     behaviour=Behaviour())
-        node6 = Node(genesis_creation_time=1,
-                     node_id=6,
-                     network=network,
-                     block_signer=private_keys[6],
-                     validators=validators,
-                     behaviour=Behaviour())
+        # generate blocks to new epoch
+        self.perform_steps(network, 22)
+        DagVisualizer.visualize(network.nodes[0].dag)
 
-        # all in one network
-        network.register_node(node0)
-        network.register_node(node1)
-        network.register_node(node2)
-        network.register_node(node3)
-        network.register_node(node4)
-        network.register_node(node5)
-        network.register_node(node6)
-        self.assertEqual(len(network.nodes) == 7, True)
+        # divide network into two groups
+        network.move_nodes_to_group_by_id(1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
+        network.move_nodes_to_group_by_id(2, [21, 22, 23, 24, 25, 26, 27, 28])
 
-        # move some timeslots for blocks generate
-        last_block_range = 0
-        for i in range(0, Epoch.get_duration()):  # for epoch (max i == 19 on 3 round duration)
+        test_group_1 = network.groups.get(1)
+        test_group_2 = network.groups.get(2)
+        # check nodes count in groups
+        self.assertEqual(len(test_group_1), 21)
+        self.assertEqual(len(test_group_2), 8)
+
+        self.perform_steps(network, 5)
+        self.assertEqual(len(network.groups.get(1)[0].dag.blocks_by_hash), 28)  # group_1 = 28 blocks
+        self.assertEqual(len(network.groups.get(2)[0].dag.blocks_by_hash), 23)  # group_2 = 23 blocks
+
+        network.merge_all_groups()  # marge all groups
+        self.assertEqual(len(network.nodes), 29)
+        self.perform_steps(network, 1)  # perform sync timeslot steps
+
+        # !!! on performed step all nodes from second group obtain all missed blocks to last received
+        # [21, 22, 23, 24, 25, 26, 27, 28]
+
+        # check first node blocks
+        self.assertEqual(len(network.nodes[0].dag.blocks_by_hash), 29)
+        # check last node blocks
+        self.assertEqual(len(network.nodes[28].dag.blocks_by_hash), 29)
+        # nodes tops assert
+        self.assertEqual(network.nodes[28].epoch.tops_and_epochs, network.nodes[0].epoch.tops_and_epochs)
+
+    @staticmethod
+    def generate_nodes(network, block_signers, count):
+        behaviour = Behaviour()
+        for i in range(0, count):
+            logger = logging.getLogger("Node " + str(i))
+            node = Node(genesis_creation_time=1,
+                        node_id=i,
+                        network=network,
+                        behaviour=behaviour,
+                        block_signer=block_signers[i],
+                        logger=logger)
+            network.register_node(node)
+
+    @staticmethod
+    def add_stakeholders(network, count):
+        behaviour = Behaviour()
+        behaviour.wants_to_hold_stake = True
+        for i in range(0, count):
+            index = len(network.nodes)
+            logger = logging.getLogger("Node " + str(index))
+            node = Node(genesis_creation_time=1,
+                        block_signer=BlockSigner(Private.generate()),
+                        node_id=index,
+                        network=network,
+                        behaviour=behaviour,
+                        logger=logger)
+            network.register_node(node)
+
+    @staticmethod
+    def perform_steps(network, timeslote_count):
+        for t in range(0, timeslote_count):  # by timeslots
             Time.advance_to_next_timeslot()
-            node0.step()
-            node1.step()
-            node2.step()
-            node3.step()
-            node4.step()
-            node5.step()
-            node6.step()
-            last_block_range = i
+            for s in range(0, 3):  # by steps
+                for node in network.nodes:  # by nodes
+                    node.step()
 
-        epoch_hash = node0.dag.get_top_hashes()[0]
-        for node in network.nodes:
-            node.permissions.signers_indexes[epoch_hash] = validators.signers_order
-
-        for i in range(last_block_range, last_block_range+10):
-            Time.advance_to_next_timeslot()
-            node0.step()
-            node1.step()
-            node2.step()
-            node3.step()
-            node4.step()
-            node5.step()
-            node6.step()
-            last_block_range = i
-
-        DagVisualizer.visualize(node0.dag)
-        DagVisualizer.visualize(node6.dag)
-
-        network.move_nodes_to_group(0, [node0, node1, node2, node3])  # create group 0 with nodes 0, 1, 2, 3
-        network.move_nodes_to_group(1, [node4, node5, node6])  # create group 1 with nodes 4, 5, 6
-
-        for i in range(last_block_range, last_block_range + 3):
-            Time.advance_to_next_timeslot()
-            node0.step()
-            node1.step()
-            node2.step()
-            node3.step()
-            node4.step()
-            node5.step()
-            node6.step()
-            last_block_range = i
-
-        DagVisualizer.visualize(node0.dag)
-        DagVisualizer.visualize(node6.dag)
-
-        test = ''
 

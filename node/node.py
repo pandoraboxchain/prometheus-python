@@ -364,10 +364,8 @@ class Node:
 
         for prev_hash in signed_block.block.prev_hashes:  # check received block ancestor
             if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
-                # request blocks by previous hash and add current block to local buffer
-                self.blocks_buffer.append(signed_block)  # add not verified handled block
+                self.blocks_buffer.append(signed_block)   # add not verified handled block
                 self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
-                # do not add blocks to local DAG until all blocks received
                 return
 
         allowed_signers = self.get_allowed_signers_for_next_block(signed_block.block)
@@ -413,36 +411,34 @@ class Node:
         if is_block_allowed:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
+
+            # check block parent ancestor in local dag
+            for prev_hash in block.prev_hashes:  # check received block ancestor
+                if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
+                    self.blocks_buffer.append(signed_block)
+                    self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
+                    return
+                else:
+                    self.blocks_buffer.append(signed_block)  # add last received ancestor block
+                    self.logger.info("Missed blocks collected by direct requests")
+
             if block_verifier.check_if_valid(block):
-
-                for prev_hash in block.prev_hashes:  # check received block ancestor
-                    if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
-                        # request blocks by previous hash and add current block to local buffer
-                        self.blocks_buffer.append(block)
-                        self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
-                        # do not add blocks to local DAG until all blocks received
-                        return
-                    if block.get_hash() in self.dag.blocks_by_hash:
-                        self.logger.error("Received block ancestor is currently, exist in local dag")
-
-                self.dag.add_signed_block(block_number, signed_block)
-                self.mempool.remove_transactions(block.system_txs)
-                self.utxo.apply_payments(block.payment_txs)
-                self.logger.error("Added block out of timeslot")
-
-                # insert buffer blocks after last parent was inserted !
-                # TODO blocks from buffer processed only here
-                if len(self.blocks_buffer) > 0:  # validate if block buffer not empty and adds all blocks
-                    for block in self.blocks_buffer:  # TODO check out buffer blocks inserting order!
-                        if block.block.get_hash() not in self.dag.blocks_by_hash:
-                            # !! recalc block number NECESSARY !!
-                            block_number = self.epoch.get_block_number_from_timestamp(block.block.timestamp)
-                            self.dag.add_signed_block(block_number, block)
-                            self.mempool.remove_transactions(block.block.system_txs)
-                            self.utxo.apply_payments(block.block.payment_txs)
-                            self.logger.error("Added block out of timeslot from block buffer")
-                        else:
-                            self.logger.error("Block from block_buffer, exist in local dag")
+                if len(self.blocks_buffer) > 0:
+                    # add blocks from buffer out of timeslot
+                    while len(self.blocks_buffer) > 0:
+                        block_from_buffer = self.blocks_buffer.pop()
+                        block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
+                        self.dag.add_signed_block(block_number, block_from_buffer)
+                        self.mempool.remove_transactions(block_from_buffer.block.system_txs)
+                        self.utxo.apply_payments(block_from_buffer.block.payment_txs)
+                        self.logger.info("Added block out of timeslot from block buffer")
+                    return  # while all blocks added from block buffer return
+                else:
+                    # simple insert block out of timeslot
+                    self.dag.add_signed_block(block_number, signed_block)
+                    self.mempool.remove_transactions(block.system_txs)
+                    self.utxo.apply_payments(block.payment_txs)
+                    self.logger.error("Added block out of timeslot")
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
@@ -543,7 +539,7 @@ class Node:
     # -------------------------------------------------------------------------------
 
     def get_allowed_signers_for_block_number(self, block_number):
-        #TODO take cached epoch hashes if block is of lastest epoch
+        # TODO take cached epoch hashes if block is of lastest epoch
         prev_epoch_number = self.epoch.get_epoch_number(block_number) - 1
         prev_epoch_start = self.epoch.get_epoch_start_block_number(prev_epoch_number)
         prev_epoch_end = self.epoch.get_epoch_end_block_number(prev_epoch_number)

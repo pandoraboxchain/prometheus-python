@@ -18,14 +18,28 @@ class Network:
             self.nodes.append(node)
 
     def move_nodes_to_group(self, group_id, nodes_list):
-        if not self.groups: self.groups = {}
+        if not self.groups:
+            self.groups = {}
         if group_id not in self.groups:
             self.groups[group_id] = []
         for node in nodes_list:
             group = self.groups[group_id]
             group.append(node)
-            if node in self.nodes:
-                self.nodes.remove(node)
+
+    def move_nodes_to_group_by_id(self, group_id, nodes_list):
+        if not self.groups:
+            self.groups = {}
+        if group_id not in self.groups:
+            self.groups[group_id] = []
+        for index in nodes_list:
+            node_to_group = None
+            for node in self.nodes:
+                if node.node_id == index:
+                    node_to_group = node
+            if not node_to_group:
+                return
+            group = self.groups[group_id]
+            group.append(node_to_group)
 
     @staticmethod
     def get_list_of_actual_chains():
