@@ -434,6 +434,8 @@ class Node:
                     self.blocks_buffer.append(signed_block)  # add last received ancestor block
                     self.logger.info("Missed blocks collected by direct requests")
 
+            epoch_number = Epoch.get_epoch_number(block_number)
+
             if block_verifier.check_if_valid(block):
                 if len(self.blocks_buffer) > 0:
                     # add blocks from buffer out of timeslot
@@ -444,7 +446,7 @@ class Node:
                         self.mempool.remove_transactions(block_from_buffer.block.system_txs)
                         self.mempool.remove_transactions(block_from_buffer.block.payment_txs)
                         self.utxo.apply_payments(block_from_buffer.block.payment_txs)
-                        #TODO add block to conflict watcher from buffer properly
+                        #TODO find out who was real allowed pubkey and add block to conflict watcher from buffer properly
                         # self.conflict_watcher.on_new_block_by_validator(block_from_buffer.get_hash(), epoch_number, allowed_pubkey)
                         self.logger.info("Added block out of timeslot from block buffer")
                     return  # while all blocks added from block buffer return

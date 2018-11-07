@@ -29,5 +29,6 @@ class Utxo:
             self.utxo[tx_hash][i] = tx.amounts[i]
     
     def apply_payments(self, payments):
+        return #turn off UTXO temporarily, as it is badly reacting to conflicts
         for payment in payments:
             self.add(payment)
