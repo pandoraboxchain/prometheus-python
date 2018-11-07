@@ -6,7 +6,7 @@ import random
 
 
 from node.node import Node
-from node.node_api import NodeApi
+from node.network import Network
 from node.block_signers import BlockSigners
 from node.behaviour import Behaviour
 from node.stats import Stats
@@ -68,7 +68,7 @@ class Initializer:
         self.genesis_creation_time = Time.get_current_time() - BLOCK_TIME  # so we start right from the first block
 
         self.private_keys = BlockSigners()
-        self.network = NodeApi()
+        self.network = Network()
         self.nodes = []
         self.tasks = []
         try:
@@ -103,8 +103,8 @@ class Initializer:
 
                     # add some nodes on defined time
                     # will be possible after syncronization mechanism will be implemented)
-                    # if Time.get_current_time() == 40:
-                    #     self.add_node(1)
+                    #if Time.get_current_time() == 40:
+                    #    self.add_node(1)
             else:
                 self.tasks = [node.run() for node in self.nodes]
                 loop = asyncio.get_event_loop()

@@ -43,20 +43,20 @@ class Dag:
         else:
             self.blocks_by_number[index] = [block]
         
-        #determine if block shadows previous top block
+        # determine if block shadows previous top block
         prev_hashes = block.block.prev_hashes
         for prev_hash in prev_hashes:
             if prev_hash in self.tops:
                 del self.tops[prev_hash]
 
-        #determine if block should be top block
+        # determine if block should be top block
         self.existing_links += prev_hashes
-        if not block_hash in self.existing_links:
+        if block_hash not in self.existing_links:
             self.tops[block_hash] = block
             for listener in self.new_top_block_event_listeners:
                 listener.on_top_block_added(block, block_hash)
         
-        #TODO move this to separate transaction holder by subscribing to on_block_added event
+        # TODO move this to separate transaction holder by subscribing to on_block_added event
         self.add_txs_by_hash(block.block.system_txs)
         self.add_payments_by_hash(block.block.payment_txs)
 

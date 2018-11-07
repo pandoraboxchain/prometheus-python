@@ -1,4 +1,4 @@
-class NodeApi:
+class Network:
 
     def __init__(self, *groups):
         self.nodes = []
@@ -17,6 +17,30 @@ class NodeApi:
         else:
             self.nodes.append(node)
 
+    def move_nodes_to_group(self, group_id, nodes_list):
+        if not self.groups:
+            self.groups = {}
+        if group_id not in self.groups:
+            self.groups[group_id] = []
+        for node in nodes_list:
+            group = self.groups[group_id]
+            group.append(node)
+
+    def move_nodes_to_group_by_id(self, group_id, nodes_list):
+        if not self.groups:
+            self.groups = {}
+        if group_id not in self.groups:
+            self.groups[group_id] = []
+        for index in nodes_list:
+            node_to_group = None
+            for node in self.nodes:
+                if node.node_id == index:
+                    node_to_group = node
+            if not node_to_group:
+                return
+            group = self.groups[group_id]
+            group.append(node_to_group)
+
     def unregister_node(self, node_to_remove):
         if self.groups:
             for group in self.groups.values():
@@ -31,6 +55,8 @@ class NodeApi:
                 self.merge_all_groups()
             else:
                 self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+        if self.check_node_output_transport_behaviour(sender_node_id):
+            return
         for node in self.nodes:
             if self.check_node_input_transport_behaviour(receiver_node_id):
                 return
@@ -109,15 +135,45 @@ class NodeApi:
             if node.node_id != sender_node_id:
                 node.handle_gossip_positive(sender_node_id, raw_gossip)
 
+    # request block by has directly from node without broadcast
+    def direct_request_block_by_hash(self, sender_node_id, receiver_node_id, block_hash):
+        if self.groups:
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+        if self.check_node_output_transport_behaviour(sender_node_id):
+            return
+        for node in self.nodes:
+            if self.check_node_input_transport_behaviour(receiver_node_id):
+                return
+            if node.node_id == receiver_node_id:
+                node.direct_request_block_by_hash(sender_node_id, block_hash)
+
+    def direct_response_block_by_hash(self, sender_node_id, receiver_node_id, raw_signed_block):
+        if self.groups:
+            if self.merge_groups_flag:
+                self.merge_all_groups()
+            else:
+                self.nodes = self.get_nodes_group_by_sender_node_id(sender_node_id)
+        if self.check_node_output_transport_behaviour(sender_node_id):
+            return
+        for node in self.nodes:
+            if self.check_node_input_transport_behaviour(receiver_node_id):
+                return
+            if node.node_id == receiver_node_id:
+                node.handle_block_out_of_timeslot(sender_node_id, raw_signed_block)
+
     # -----------------------------------------------------------------
     # internal methods
     # -----------------------------------------------------------------
     def merge_all_groups(self):
         for group in self.groups:
-            for node in group:
+            node_group = self.groups[group]
+            for node in node_group:
                 if node not in self.nodes:
                     self.nodes.append(node)
-        self.groups = {}
+        self.groups = None
         self.merge_groups_flag = False
 
     def get_nodes_group_by_sender_node_id(self, sender_node_id):

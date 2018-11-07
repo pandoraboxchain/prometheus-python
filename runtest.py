@@ -17,6 +17,6 @@ from tests.test_transaction import *
 from tests.test_conflict_finder import *
 from tests.test_utxo import *
 from tests.test_resolver import *
-from tests.test_node_api import *
+from tests.test_network import *
 
 unittest.main()

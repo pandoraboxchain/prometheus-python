@@ -7,7 +7,6 @@ from chain.signed_block import SignedBlock
 from chain.block_factory import BlockFactory
 from chain.params import Round, MINIMAL_SECRET_SHARERS, TOTAL_SECRET_SHARERS, ZETA
 from chain.transaction_factory import TransactionFactory
-from chain.conflict_finder import ConflictFinder
 from chain.conflict_watcher import ConflictWatcher
 from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
@@ -16,7 +15,6 @@ from node.validators import Validators
 from transaction.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
-from transaction.payment_transaction import PaymentTransaction
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
 from verification.block_acceptor import BlockAcceptor
@@ -24,7 +22,6 @@ from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
 from hashlib import sha256
-
 
 
 class DummyLogger(object):
@@ -63,6 +60,8 @@ class Node:
         self.tried_to_sign_current_block = False
         self.owned_utxos = []
         self.terminated = False
+
+        self.blocks_buffer = []  # uses while receive block and do not have its ancestor in local dag (before verify)
 
     def start(self):
         pass
@@ -370,7 +369,13 @@ class Node:
 
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
-        
+
+        for prev_hash in signed_block.block.prev_hashes:  # check received block ancestor
+            if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
+                self.blocks_buffer.append(signed_block)   # add not verified handled block
+                self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
+                return
+
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
         allowed_signers = self.get_allowed_signers_for_block_number(block_number)
 
@@ -418,14 +423,41 @@ class Node:
         if allowed_pubkey:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
+
+            # check block parent ancestor in local dag
+            for prev_hash in block.prev_hashes:  # check received block ancestor
+                if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
+                    self.blocks_buffer.append(signed_block)
+                    self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
+                    return
+                else:
+                    self.blocks_buffer.append(signed_block)  # add last received ancestor block
+                    self.logger.info("Missed blocks collected by direct requests")
+
+            epoch_number = Epoch.get_epoch_number(block_number)
+
             if block_verifier.check_if_valid(block):
-                epoch_number = Epoch.get_epoch_number(block_number)
-                self.dag.add_signed_block(block_number, signed_block)
-                self.mempool.remove_transactions(block.system_txs)
-                self.mempool.remove_transactions(block.payment_txs)
-                self.utxo.apply_payments(block.payment_txs)
-                self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
-                self.logger.info("Added block out of timeslot")
+                if len(self.blocks_buffer) > 0:
+                    # add blocks from buffer out of timeslot
+                    while len(self.blocks_buffer) > 0:
+                        block_from_buffer = self.blocks_buffer.pop()
+                        block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
+                        self.dag.add_signed_block(block_number, block_from_buffer)
+                        self.mempool.remove_transactions(block_from_buffer.block.system_txs)
+                        self.mempool.remove_transactions(block_from_buffer.block.payment_txs)
+                        self.utxo.apply_payments(block_from_buffer.block.payment_txs)
+                        #TODO find out who was real allowed pubkey and add block to conflict watcher from buffer properly
+                        # self.conflict_watcher.on_new_block_by_validator(block_from_buffer.get_hash(), epoch_number, allowed_pubkey)
+                        self.logger.info("Added block out of timeslot from block buffer")
+                    return  # while all blocks added from block buffer return
+                else:
+                    # simple insert block out of timeslot
+                    self.dag.add_signed_block(block_number, signed_block)
+                    self.mempool.remove_transactions(block.system_txs)
+                    self.mempool.remove_transactions(block.payment_txs)
+                    self.utxo.apply_payments(block.payment_txs)
+                    self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
+                    self.logger.error("Added block out of timeslot")
             else:
                 self.logger.error("Block was not added. Considered invalid")
         else:
@@ -519,11 +551,17 @@ class Node:
         signed_block = self.dag.blocks_by_hash[block_hash]
         self.network.broadcast_block_out_of_timeslot(self.node_id, signed_block.pack())
 
+    # method returns block directly to sender without broadcast
+    def direct_request_block_by_hash(self, sender_node, block_hash):
+        signed_block = self.dag.blocks_by_hash[block_hash]
+        self.network.direct_response_block_by_hash(self.node_id, sender_node, signed_block.pack())
+
     # -------------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------------
 
     def get_allowed_signers_for_block_number(self, block_number):
+        # TODO take cached epoch hashes if block is of lastest epoch
         prev_epoch_number = self.epoch.get_epoch_number(block_number) - 1
         prev_epoch_start = self.epoch.get_epoch_start_block_number(prev_epoch_number)
         prev_epoch_end = self.epoch.get_epoch_end_block_number(prev_epoch_number)

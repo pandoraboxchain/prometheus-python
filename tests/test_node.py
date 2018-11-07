@@ -1,7 +1,7 @@
 import unittest
 
 from node.node import Node
-from node.node_api import NodeApi
+from node.network import Network
 from node.block_signers import BlockSigners
 from node.validators import Validators
 from chain.epoch import Epoch
@@ -36,7 +36,7 @@ class TestNode(unittest.TestCase):
         validators.signers_order = [0] + [1] * Epoch.get_duration()
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
         node_id = 0
         node = Node(genesis_creation_time=1,
                     node_id=node_id,
@@ -66,7 +66,7 @@ class TestNode(unittest.TestCase):
         validators.signers_order = [0] + [1] * Epoch.get_duration() 
         validators.randomizers_order = [0] * Epoch.get_duration()
 
-        network = NodeApi()
+        network = Network()
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
                      network=network,
@@ -110,7 +110,7 @@ class TestNode(unittest.TestCase):
 
         validators_pubkeys = [validator.public_key for validator in validators.validators]
 
-        network = NodeApi()
+        network = Network()
         node0 = Node(genesis_creation_time=1,
                      node_id=0,
                      network=network,

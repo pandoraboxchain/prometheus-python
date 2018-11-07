@@ -106,7 +106,7 @@ class TransactionFactory:
     def create_stake_hold_transaction(amount, node_private):
         tx = StakeHoldTransaction()
         tx.amount = amount
-        tx.pubkey = Private.sign(node_private)
+        tx.pubkey = Private.publickey(node_private)
         tx.signature = Private.sign(tx.get_hash(), node_private)
         return tx
 
