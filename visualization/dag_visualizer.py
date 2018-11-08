@@ -14,7 +14,7 @@ SUFFIX_LEN = 4
 
 class DagVisualizer:
     @staticmethod
-    def visualize(dag, view_immediately=False):
+    def visualize(dag, view_immediately=False, filename="dag"):
         dot = Digraph(name='DAG', node_attr={
             'shape':'box',\
             'style': "rounded"})
@@ -49,4 +49,4 @@ class DagVisualizer:
         #set view to True to instantly render and open pdf
         #Note, that you will need 'graphviz' package installed
         dot.format = "png"
-        dot.render('visualization/dag.dot', view=view_immediately) 
+        dot.render('visualization/'+filename+'.dot', view=view_immediately) 
