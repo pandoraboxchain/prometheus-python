@@ -377,6 +377,10 @@ class Node:
                 return
 
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
+
+        if self.epoch.is_new_epoch_upcoming(block_number):
+            self.epoch.accept_tops_as_epoch_hashes()
+
         allowed_signers = self.get_allowed_signers_for_block_number(block_number)
 
         allowed_pubkey = None
