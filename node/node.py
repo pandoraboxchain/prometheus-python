@@ -23,6 +23,7 @@ from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
 from hashlib import sha256
 
+from chain.params import ROUND_DURATION
 
 class DummyLogger(object):
     def __getattr__(self, name):
@@ -70,7 +71,22 @@ class Node:
         self.last_expected_timeslot = current_timeslot_number
         if previous_timeslot_number not in self.dag.blocks_by_number:
             negative_by_block = self.mempool.get_negative_gossips_by_block(previous_timeslot_number)
-            if len(negative_by_block) < ZETA:  # validate count of negative gossip by block
+            # debug only
+            # epoch_signers = list(self.permissions.signers_indexes.values())[self.epoch.current_epoch-1]
+            epoch_timeslot = previous_timeslot_number - 1 - ((ROUND_DURATION * 6) + 1 * self.epoch.current_epoch)
+            validators_keys = list(self.permissions.epoch_validators.values())[self.epoch.current_epoch-1]
+            allowed_zeta_validators = validators_keys[epoch_timeslot:epoch_timeslot+ZETA]
+            allowed_zeta_validator_keys = []
+            for validator in allowed_zeta_validators:
+                allowed_zeta_validator_keys.append(validator.public_key)
+            gossips_by_block_keys = []
+            for negative in negative_by_block:
+                gossips_by_block_keys.append(negative.pubkey)
+            # list in sublist
+            if all(elem in gossips_by_block_keys for elem in allowed_zeta_validator_keys):
+                return False  # receive all ZETA permited gossips
+            else:
+                # send gossip
                 self.broadcast_gossip_negative(previous_timeslot_number)
             # even if do not broadcast negative gossip perform wait by one step
             return True
@@ -617,4 +633,15 @@ class Node:
         # dag_penalty_gossips = dag.get_penalty_gossips()
         return result
 
+    @staticmethod
+    def sublist(lst1, lst2):
+        def get_all_in(one, another):
+            for element in one:
+                if element in another:
+                    yield element
+
+        for x1, x2 in zip(get_all_in(lst1, lst2), get_all_in(lst2, lst1)):
+            if x1 != x2:
+                return False
+        return True
 

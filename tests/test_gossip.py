@@ -15,7 +15,7 @@ from transaction.gossip_transaction import PositiveGossipTransaction, \
                                            NegativeGossipTransaction, \
                                            PenaltyGossipTransaction
 
-from chain.params import ROUND_DURATION
+from chain.params import ROUND_DURATION, ZETA, BLOCK_TIME
 
 from chain.params import GENESIS_VALIDATORS_COUNT
 from visualization.dag_visualizer import DagVisualizer
@@ -38,7 +38,6 @@ from visualization.dag_visualizer import DagVisualizer
 
 class TestGossip(unittest.TestCase):
 
-    @unittest.skip('gossip update')
     def test_parse_pack_gossip_positive(self):
         private = Private.generate()
         original = PositiveGossipTransaction()
@@ -55,7 +54,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('gossip update')
     def test_parse_pack_gossip_negative(self):
         private = Private.generate()
         original = NegativeGossipTransaction()
@@ -70,7 +68,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('gossip update')
     def test_pack_parse_penalty_gossip_transaction(self):
         private = Private.generate()
         original = PenaltyGossipTransaction()
@@ -100,7 +97,6 @@ class TestGossip(unittest.TestCase):
 
         self.assertEqual(original.get_hash(), restored.get_hash())
 
-    @unittest.skip('gossip update')
     def test_send_negative_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -164,7 +160,6 @@ class TestGossip(unittest.TestCase):
         system_txs = node0.dag.blocks_by_number[2][0].block.system_txs
         self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
 
-    @unittest.skip('gossip update')
     def test_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -265,7 +260,6 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
         # assert that next block is correctly created by next node
 
-    @unittest.skip('gossip update')
     def test_send_negative_gossip_by_validator(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -354,7 +348,6 @@ class TestGossip(unittest.TestCase):
         self.assertTrue(len(node2.dag.blocks_by_number) == 5, True)
 
     # perform testing ZETA by malicious_skip_block in network of min nodes < ZETA
-    @unittest.skip('gossip update')
     def test_negative_gossip_by_zeta(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -453,7 +446,8 @@ class TestGossip(unittest.TestCase):
         node3.step()  # broadcast negative gossip
         node4.step()  # broadcast negative gossip
         node5.step()  # VALIDATE 5 NEGATIVE GOSSIPS AND DO NOT BROADCAST ANOTHER ONE (current ZETA == 5)
-        self.list_validator(network.nodes, ['mempool.gossips.length'], 5)
+                      # GOSSIPS may be more - see test_negative_gossips_zata_validators
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 6)
 
         # duplicate gossips tx will NOT include to mempool !
         # if node already send negative gossip IT NOT broadcast it again !
@@ -463,7 +457,7 @@ class TestGossip(unittest.TestCase):
         node0.step()  #
         node1.step()  #
         # steel 5 negative gossips (from 0,1,2,3,4) on all nodes (add validation ?)
-        self.list_validator(network.nodes, ['mempool.gossips.length'], 5)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 6)
 
         node2.step()  # CREATE, SIGN, BROADCAST block (block by node1 not exist)
 
@@ -489,7 +483,6 @@ class TestGossip(unittest.TestCase):
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
         self.list_validator(network.nodes, ['mempool.gossips.length'], 0)
 
-    @unittest.skip('gossip update')
     def test_maliciously_send_negative_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -611,7 +604,6 @@ class TestGossip(unittest.TestCase):
         # validate new block by node2
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
 
-    @unittest.skip('gossip update')
     def test_maliciously_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -730,7 +722,6 @@ class TestGossip(unittest.TestCase):
         # validate new block by node2
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 4)
 
-    @unittest.skip('gossip update')
     def test_maliciously_send_negative_and_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -923,12 +914,32 @@ class TestGossip(unittest.TestCase):
         self.generate_nodes(network, private_keys, 19)  # create validators
 
         # generate blocks to new epoch
-        self.perform_steps(network, 22)
+        self.perform_block_steps(network, 22)
         DagVisualizer.visualize(network.nodes[0].dag)
 
-        # todo get signers order
         # invalidate that node DO not send negative gossip only if have ZETA negatives from next ZETA validators
-        test = ''
+        round_2_signers_order = list(network.nodes[0].permissions.signers_indexes.values())[1]  # SECOND! EPOCH
+        expected_node_signer_id = round_2_signers_order[2]  # already have 22 blocks
+        last_block_signer_index = network.nodes[expected_node_signer_id].last_signed_block_number # node 9
+
+        # assert signers order
+        self.assertEqual(last_block_signer_index, 22)
+        # get next ZETA SIGNERS by order
+        next_zeta_signers_order = round_2_signers_order[3:3+ZETA+1]  # -20 for first epoch +1 for maliciously skip block
+        # next_zeta_signers_order gossips need to wait
+
+        # maliciously skip block by next signer
+        network.nodes[expected_node_signer_id].behaviour.malicious_skip_block = True
+        # perform in block step
+        Time.advance_to_next_timeslot()
+        self.perform_in_block_single_step(network, BLOCK_TIME)
+        Time.advance_to_next_timeslot()
+        self.perform_in_block_single_step(network, 1)
+        # validate send gossips
+
+        # nodes may contain different count of gossips but MUST contain all ZETA validators keys for stop send -gossip
+        self.assertEqual(len(network.nodes[0].mempool.gossips), 7)
+        self.list_validator(network.nodes, ['mempool.gossips.length'], 7)
 
     # -------------------------------------------------------------------
     # Internal
@@ -962,12 +973,18 @@ class TestGossip(unittest.TestCase):
             network.register_node(node)
 
     @staticmethod
-    def perform_steps(network, timeslote_count):
+    def perform_block_steps(network, timeslote_count):
         for t in range(0, timeslote_count):  # by timeslots
             Time.advance_to_next_timeslot()
             for s in range(0, ROUND_DURATION):  # by steps
                 for node in network.nodes:  # by nodes
                     node.step()
+
+    @staticmethod
+    def perform_in_block_single_step(network, count):
+        for s in range(0, count):
+            for node in network.nodes:  # by nodes
+                node.step()
 
     def list_validator(self, node_list, functions, value):
         """
