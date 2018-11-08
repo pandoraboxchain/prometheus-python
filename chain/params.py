@@ -1,7 +1,7 @@
 from enum import IntEnum
 
 # blocks per round
-ROUND_DURATION = 8  # default 3
+ROUND_DURATION = 3  # default 3
 # initial number ov validators
 GENESIS_VALIDATORS_COUNT = ROUND_DURATION * 6 + 1  # default 20
 # steps/seconds per block

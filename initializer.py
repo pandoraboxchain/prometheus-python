@@ -57,7 +57,7 @@ class Initializer:
     def __init__(self):
         self.node_to_visualize_after_exit = 0
         self.params_validate()
-        self.discrete_mode = True
+        self.discrete_mode = False
         self.malicious_validators_count = 0  # GENESIS_VALIDATORS_COUNT / 2 - 1
         # set up logging to file - see previous section for more details
         self.logger = logging.basicConfig(level=logging.DEBUG,
@@ -106,7 +106,7 @@ class Initializer:
 
                     # add some nodes on defined time
                     # will be possible after syncronization mechanism will be implemented)
-                    #if Time.get_current_time() == 40:
+                    # if Time.get_current_time() == 40:
                     #    self.add_node(1)
             else:
                 self.tasks = [node.run() for node in self.nodes]

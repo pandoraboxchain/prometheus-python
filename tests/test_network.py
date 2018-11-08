@@ -13,9 +13,9 @@ from visualization.dag_visualizer import DagVisualizer
 
 from chain.params import ROUND_DURATION, GENESIS_VALIDATORS_COUNT
 
+
 class TestNodeAPI(unittest.TestCase):
 
-    @unittest.skip("fix")
     def test_network_methods(self):
         private_keys = BlockSigners()
         private_keys = private_keys.block_signers
@@ -76,7 +76,6 @@ class TestNodeAPI(unittest.TestCase):
         network.merge_all_groups()  # test marge groups
         self.assertEqual(len(network.nodes) == 5, True)
 
-    @unittest.skip("fix")
     def test_node_broadcast_unavailable(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -125,7 +124,6 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node0.dag.blocks_by_number), 2)
         self.assertEqual(len(node1.dag.blocks_by_number), 3)
 
-    @unittest.skip("fix")
     def test_node_handle_unavailable(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -184,7 +182,6 @@ class TestNodeAPI(unittest.TestCase):
         # uncomment for visual ensure that on NODE_0 have 2 blocks with genesis ancestor
         # DagVisualizer.visualize(node0.dag)
 
-    @unittest.skip("fix")
     def test_node_offline(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -261,7 +258,6 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 3)
         self.assertEqual(len(node2.dag.blocks_by_number), 2)
 
-    @unittest.skip("fix")
     def test_make_node_offline_from_block(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -449,7 +445,7 @@ class TestNodeAPI(unittest.TestCase):
         test_group_1 = network.groups.get(1)
         test_group_2 = network.groups.get(2)
         # check nodes count in groups
-        self.assertEqual(len(test_group_1), 21)
+        self.assertEqual(len(test_group_1), 20)
         self.assertEqual(len(test_group_2), 8)
 
         self.perform_steps(network, 5)
@@ -457,7 +453,7 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(network.groups.get(2)[0].dag.blocks_by_hash), 23)  # group_2 = 23 blocks
 
         network.merge_all_groups()  # marge all groups
-        self.assertEqual(len(network.nodes), 29)
+        self.assertEqual(len(network.nodes), 28)
         self.perform_steps(network, 1)  # perform sync timeslot steps
 
         # !!! on performed step all nodes from second group obtain all missed blocks to last received
@@ -466,9 +462,9 @@ class TestNodeAPI(unittest.TestCase):
         # check first node blocks
         self.assertEqual(len(network.nodes[0].dag.blocks_by_hash), 29)
         # check last node blocks
-        self.assertEqual(len(network.nodes[28].dag.blocks_by_hash), 29)
+        self.assertEqual(len(network.nodes[27].dag.blocks_by_hash), 29)
         # nodes tops assert
-        self.assertEqual(network.nodes[28].epoch.tops_and_epochs, network.nodes[0].epoch.tops_and_epochs)
+        self.assertEqual(network.nodes[27].epoch.tops_and_epochs, network.nodes[0].epoch.tops_and_epochs)
 
     @staticmethod
     def generate_nodes(network, block_signers, count):
