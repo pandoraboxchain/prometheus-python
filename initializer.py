@@ -18,6 +18,7 @@ from chain.params import GENESIS_VALIDATORS_COUNT, \
                          BLOCK_TIME, \
                          ROUND_DURATION
 
+
 # you can set node to visualize its DAG as soon as Ctrl-C pressed
 def save_dag_to_graphviz(dag_to_visualize):
     graphviz_import = importlib.util.find_spec("graphviz")
@@ -26,8 +27,10 @@ def save_dag_to_graphviz(dag_to_visualize):
         from visualization.dag_visualizer import DagVisualizer
         DagVisualizer.visualize(dag_to_visualize)
 
+
 def show_node_stats(node):
     Stats.gather(node)
+
 
 class Initializer:
 
@@ -42,7 +45,7 @@ class Initializer:
         print('BLOCK_TIME               : ' + str(BLOCK_TIME))
         print('ROUND_DURATION           : ' + str(ROUND_DURATION))
         # check minimum values
-        assert (GENESIS_VALIDATORS_COUNT >= 20), 'Minimum initial validators is 19 ((3 blocks per round)+1, 6 rounds)'
+        assert (GENESIS_VALIDATORS_COUNT >= 19), 'Minimum initial validators is 19 ((3 blocks per round)+1, 6 rounds)'
         assert (BLOCK_TIME >= 2), 'Block time minimum value is 2, please increase block time'
         assert (ROUND_DURATION >= 3), 'Minimum value is 3 blocks per round for 20 validators'
         # check values in proportion
@@ -55,7 +58,7 @@ class Initializer:
         self.node_to_visualize_after_exit = 0
         self.params_validate()
         self.discrete_mode = True
-        self.malicious_validators_count = 0 # GENESIS_VALIDATORS_COUNT / 2 - 1
+        self.malicious_validators_count = 0  # GENESIS_VALIDATORS_COUNT / 2 - 1
         # set up logging to file - see previous section for more details
         self.logger = logging.basicConfig(level=logging.DEBUG,
                                           format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
