@@ -225,6 +225,7 @@ class Node:
 
         if conflicts_gossip:
             for conflict in conflicts_gossip:
+                self.logger.info("Adding penalty to block with conflicting gossips %s", conflicts_gossip)
                 penalty_gossip_tx = \
                     TransactionFactory.create_penalty_gossip_transaction(conflict=conflict,
                                                                          node_private=self.block_signer.private_key)
@@ -499,10 +500,6 @@ class Node:
             if self.dag.has_block_number(transaction.number_of_block):
                 signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
                 self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
-            else:
-                # received gossip block but not have requested block for gossip positive broadcasting
-                self.logger.error("Received valid gossip negative. Requested block %i not found",
-                                  transaction.number_of_block)
         else:
             self.logger.error("Received gossip negative tx is invalid")
 
@@ -544,7 +541,7 @@ class Node:
         node_private = self.block_signer.private_key
         tx = TransactionFactory.create_positive_gossip_transaction(signed_block_hash, node_private)
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
-        self.logger.info("Broadcasted positive gossip transaction")
+        # self.logger.info("Broadcasted positive gossip transaction")
         self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_payments(self):
