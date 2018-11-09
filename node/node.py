@@ -70,25 +70,17 @@ class Node:
     def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):
         self.last_expected_timeslot = current_timeslot_number
         if previous_timeslot_number not in self.dag.blocks_by_number:
-            negative_by_block = self.mempool.get_negative_gossips_by_block(previous_timeslot_number)
-            # debug only
-            # epoch_signers = list(self.permissions.signers_indexes.values())[self.epoch.current_epoch-1]
-            epoch_timeslot = previous_timeslot_number - 1 - ((ROUND_DURATION * 6) + 1 * self.epoch.current_epoch)
-            validators_keys = list(self.permissions.epoch_validators.values())[self.epoch.current_epoch-1]
-            allowed_zeta_validators = validators_keys[epoch_timeslot:epoch_timeslot+ZETA]
-            allowed_zeta_validator_keys = []
-            for validator in allowed_zeta_validators:
-                allowed_zeta_validator_keys.append(validator.public_key)
-            gossips_by_block_keys = []
-            for negative in negative_by_block:
-                gossips_by_block_keys.append(negative.pubkey)
-            # list in sublist
-            if all(elem in gossips_by_block_keys for elem in allowed_zeta_validator_keys):
-                return False  # receive all ZETA permited gossips
-            else:
-                # send gossip
+            epoch_block_number = Epoch.convert_to_epoch_block_number(previous_timeslot_number)
+            allowed_to_send_negative_gossip = False
+            epoch_hashes = self.epoch.get_epoch_hashes()
+            for top, epoch_hash in epoch_hashes.items():
+                permissions = self.permissions.get_gossip_permission(epoch_hash, epoch_block_number)
+                for permission in permissions:
+                    if permission.public_key == self.node_pubkey:
+                        allowed_to_send_negative_gossip = True
+                        break
+            if allowed_to_send_negative_gossip:
                 self.broadcast_gossip_negative(previous_timeslot_number)
-            # even if do not broadcast negative gossip perform wait by one step
             return True
         return False
 

@@ -8,7 +8,7 @@ from crypto.keys import Keys
 from crypto.entropy import Source
 
 from chain.params import SECRET_SHARE_PARTICIPANTS_COUNT
-from chain.params import ROUND_DURATION
+from chain.params import ROUND_DURATION, ZETA
 
 
 class Permissions:
@@ -52,6 +52,13 @@ class Permissions:
             print("Looping epoch validators. Next block validator is as in block number", block_number_in_epoch)
         index = random_signers_indexes[block_number_in_epoch]
         return validators_for_epoch[index]
+
+    def get_gossip_permission(self, epoch_hash, block_number_in_epoch):
+        validators_for_epoch = self.get_validators(epoch_hash)
+        if block_number_in_epoch+ZETA >= len(validators_for_epoch):
+            # TODO what to do in last blocks of epoch
+            print("Zeta one of last block in epoch WARNING", block_number_in_epoch)
+        return validators_for_epoch[block_number_in_epoch:block_number_in_epoch+ZETA]
 
     def get_commiters(self, epoch_hash):
         validators_for_epoch = self.get_validators(epoch_hash)
