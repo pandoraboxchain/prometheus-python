@@ -24,6 +24,9 @@ class Behaviour:
         self.malicious_timeslot_of_block = False
         self.malicious_block_dont_add_system_transactions = False
 
+        self.malicious_block_broadcast_delay = 0
+        self.block_to_delay_broadcasting = None
+
         # Malicious transactions (validated by transaction_verifier)
         self.malicious_transaction_broadcasting_private_key = False
         self.malicious_transaction_broadcasting_penalty = False

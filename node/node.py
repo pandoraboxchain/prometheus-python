@@ -69,11 +69,24 @@ class Node:
 
     def handle_timeslot_changed(self, previous_timeslot_number, current_timeslot_number):
         self.last_expected_timeslot = current_timeslot_number
+        self.try_to_broadcast_maliciously_delayed_block()
+        return self.try_to_send_negative_gossip(previous_timeslot_number)
+        
+    def try_to_broadcast_maliciously_delayed_block(self):
+        if self.behaviour.block_to_delay_broadcasting:
+            if self.behaviour.malicious_block_broadcast_delay > 0:
+                self.behaviour.malicious_block_broadcast_delay -= 1
+            else:
+                self.network.broadcast_block(self.node_id, self.behaviour.block_to_delay_broadcasting.pack())
+                self.behaviour.block_to_delay_broadcasting = None
+
+
+    def try_to_send_negative_gossip(self, previous_timeslot_number):
         if previous_timeslot_number not in self.dag.blocks_by_number:
             epoch_block_number = Epoch.convert_to_epoch_block_number(previous_timeslot_number)
             allowed_to_send_negative_gossip = False
             epoch_hashes = self.epoch.get_epoch_hashes()
-            for top, epoch_hash in epoch_hashes.items():
+            for _, epoch_hash in epoch_hashes.items():
                 permissions = self.permissions.get_gossip_permission(epoch_hash, epoch_block_number)
                 for permission in permissions:
                     if permission.public_key == self.node_pubkey:
@@ -187,9 +200,15 @@ class Node:
         block.system_txs = system_txs
         block.payment_txs = payment_txs
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
+
+        if self.behaviour.malicious_block_broadcast_delay > 0:
+            self.behaviour.block_to_delay_broadcasting = signed_block
+            return #don't do broadcasting, wait a few timeslots1
+
         self.dag.add_signed_block(current_block_number, signed_block)
         self.utxo.apply_payments(payment_txs)
         self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, self.node_pubkey)
+
         if not self.behaviour.transport_cancel_block_broadcast:  # behaviour flag for cancel block broadcast
             self.logger.debug("Broadcasting signed block number %s", current_block_number)
             self.network.broadcast_block(self.node_id, signed_block.pack())
@@ -402,10 +421,9 @@ class Node:
             block = signed_block.block
             block_verifier = BlockAcceptor(self.epoch, self.logger)
             if block_verifier.check_if_valid(block):
-                current_block_number = self.epoch.get_current_timeframe_block_number()
-                epoch_number = Epoch.get_epoch_number(current_block_number)
+                epoch_number = Epoch.get_epoch_number(block_number)
                 
-                self.dag.add_signed_block(current_block_number, signed_block)
+                self.dag.add_signed_block(block_number, signed_block)
                 self.mempool.remove_transactions(block.system_txs)
                 self.mempool.remove_transactions(block.payment_txs)
                 self.utxo.apply_payments(block.payment_txs)
@@ -415,6 +433,7 @@ class Node:
         else:
             self.logger.error("Received block from %d, but its signature is wrong", node_id)
 
+    #TODO now it seems all block messages are doing the same thing
     def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)

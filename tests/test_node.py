@@ -7,6 +7,8 @@ from node.validators import Validators
 from chain.epoch import Epoch
 from tools.chain_generator import ChainGenerator
 from tools.time import Time
+from node.behaviour import Behaviour
+from visualization.dag_visualizer import DagVisualizer
 
 from chain.params import BLOCK_TIME, ROUND_DURATION
 
@@ -141,6 +143,81 @@ class TestNode(unittest.TestCase):
         self.assertEqual(len(allowed_signers), 2)
         self.assertIn(validators_pubkeys[1], allowed_signers)
         self.assertIn(validators_pubkeys[5], allowed_signers)
+
+    def test_maliciously_delay_block_broadcast(self):
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+        validators.signers_order = [0, 1, 2] * Epoch.get_duration()
+        validators.randomizers_order = [0] * Epoch.get_duration()
+
+        malicious_behaviour = Behaviour()
+        malicious_behaviour.malicious_block_broadcast_delay = 1
+
+        network = Network()
+        nodes = [
+            Node(genesis_creation_time=1,
+                     node_id=0,
+                     network=network,
+                     block_signer=private_keys[0],
+                     validators=validators,
+                     behaviour=Behaviour()),
+
+            Node(genesis_creation_time=1,
+                     node_id=1,
+                     network=network,
+                     block_signer=private_keys[1],
+                     validators=validators,
+                     behaviour=malicious_behaviour),
+
+            Node(genesis_creation_time=1,
+                     node_id=2,
+                     network=network,
+                     block_signer=private_keys[2],
+                     validators=validators,
+                     behaviour=Behaviour())
+        ]
+        for node in nodes:
+            network.register_node(node)
+
+        Time.advance_to_next_timeslot()
+        for node in nodes: node.step()
+
+        #here first node skips block broadcast but remembers it for the future
+        Time.advance_to_next_timeslot()
+        for node in nodes: node.step()
+        self.assertNotEqual(nodes[1].behaviour.block_to_delay_broadcasting, None)
+
+        #here second node will do two steps just to wait for negative gossips to arrive        
+        Time.advance_to_next_timeslot()
+        for node in nodes: node.step()
+        Time.advance_time(1)
+        for node in nodes: node.step()
+
+        # this time we do reversed iteration, so first node will send its delayed block
+        # and then zero node will sign block referencing both previous and delayed block
+        Time.advance_to_next_timeslot()
+        for node in reversed(nodes): node.step()
+        
+        tops = nodes[0].dag.get_top_hashes()
+        self.assertEquals(len(tops), 1)
+        top_block = nodes[0].dag.blocks_by_hash[tops[0]]
+        self.assertEqual(len(top_block.block.prev_hashes), 2) #check that delayed block is referenced
+
+        DagVisualizer.visualize(nodes[2].dag, True)
+            
+
+
+
+
+
+
+
 
 
         
