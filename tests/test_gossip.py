@@ -160,7 +160,6 @@ class TestGossip(unittest.TestCase):
         system_txs = node0.dag.blocks_by_number[2][0].block.system_txs
         self.assertTrue(NegativeGossipTransaction.__class__, system_txs[3].__class__)
 
-    @unittest.skip("NEED TO UPDATE - not actual")
     def test_send_positive_gossip(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -170,96 +169,46 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0, 1, 2] * Epoch.get_duration()
-        validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = Network()
+        self.generate_nodes(network, private_keys, 19)  # create validators
 
-        node0 = Node(genesis_creation_time=1,
-                     node_id=0,
-                     network=network,
-                     block_signer=private_keys[0],
-                     validators=validators,
-                     behaviour=Behaviour())
-        network.register_node(node0)
+        # generate blocks to new epoch
+        self.perform_block_steps(network, 22)
+        DagVisualizer.visualize(network.nodes[0].dag)
 
-        behavior = Behaviour()
-        behavior.transport_cancel_block_broadcast = True
-        node1 = Node(genesis_creation_time=1,
-                     node_id=1,
-                     network=network,
-                     block_signer=private_keys[1],
-                     validators=validators,
-                     behaviour=behavior)
-        network.register_node(node1)
+        # invalidate that node DO not send negative gossip only if have ZETA negatives from next ZETA validators
+        round_2_signers_order = list(network.nodes[0].permissions.signers_indexes.values())[1]  # SECOND! EPOCH
+        last_block_signer_id = round_2_signers_order[2]
+        last_signed_block_number = network.nodes[last_block_signer_id].last_signed_block_number
+        # assert signers order
+        self.assertEqual(last_signed_block_number, 22)
 
-        node2 = Node(genesis_creation_time=1,
-                     node_id=2,
-                     network=network,
-                     block_signer=private_keys[2],
-                     validators=validators,
-                     behaviour=Behaviour())
-        network.register_node(node2)
-        # it is necessary that it would work for any count() of nodes
-        # and ANY count() of listeners of current node in one timeslot
-        # WARNING - IT CAN BE MINIMIZED BY NODE_LISTENERS_COUNT()
-        # | max count() of get_block_by_hash() request's RESPONSE by timeslot (where RESPONSE.COUNT() == 'x')
+        expected_node_signer_id = round_2_signers_order[3]  # already have 22 blocks
+        # maliciously skip block by next signer
+        network.nodes[expected_node_signer_id].behaviour.transport_cancel_block_broadcast = True
 
-        Time.advance_to_next_timeslot()  # current block number 1
-        node0.step()  # create and sign block
-        node1.step()
-        node2.step()
-        self.assertTrue(len(node0.dag.blocks_by_number) == 2, True)
-        self.assertTrue(len(node1.dag.blocks_by_number) == 2, True)
-        self.assertTrue(len(node2.dag.blocks_by_number) == 2, True)
-        # asset that node0 create block number 2
-        #
-        Time.advance_to_next_timeslot()  # current block number 2
-        node0.step()
-        node1.step()  # skip broadcasting block
-        node2.step()
-        self.assertTrue(len(node0.dag.blocks_by_number) == 2, True)
-        self.assertTrue(len(node1.dag.blocks_by_number) == 3, True)
-        self.assertTrue(len(node2.dag.blocks_by_number) == 2, True)
-        # assert that block 3 created on node1 but not broadcasted to node0 and node2
-
-        Time.advance_to_next_timeslot()  # current block number 3
-        node0.step()  # send negative gossip for block 3
-        self.assertEqual(len(node0.dag.blocks_by_number), 2)
-        # performs broadcast (gossip-)
-        # all nodes accept sender and handle (gossip-) tx ---> self.mempool()
-        # check for block by slot number and IF IT'S EXIST ----> broadcast (gossip+)
-        # every node which receive (gossip+) ----> self.mempool()
-        # check local DAG for block exist ----> if not request it by DIRECT_REQUEST to node from which (gossip+) income
-        # node MUST answer to min 50% of connected listeners requests(network.get_block_by_hash()).count()
-
-        node1.step()  # send possitive gossip block 3 and (block 3 by block request)
-        self.assertTrue(len(node1.dag.blocks_by_number) == 3, True)
-        self.assertEqual(len(node2.dag.blocks_by_number), 2)
-
-        # after node0 step and broadcast negative gossip
-        # node 2 MUST contains this tx in mempool
-        # current solution is to broadcast negative gossip IF current mempool negative gossip
-        # count is < than 5 (system parameter ZETA) -----> #TODO check in next test
-        node2.step()  # send negative gossip if permited for block 3 create and sign block (with negative gossips) block number 4
-        self.assertEqual(len(node0.dag.blocks_by_number), 3)
-        self.assertEqual(len(node1.dag.blocks_by_number), 3)
-        self.assertEqual(len(node2.dag.blocks_by_number), 3)
-
-        # at such emulation if the validator is not the first who sent a negative state
-        # By the time the block is signed, in turn, it will already have a full and valid dag
-
-        # providing request for gossip- will delay creation and signing of the block by the VALIDATOR node
-        # but in this case it is not required (will be checked in the next test)
-
+        # perform in block step
         Time.advance_to_next_timeslot()
-        node0.step()
-        node1.step()
-        node2.step()
-        self.assertEqual(len(node0.dag.blocks_by_number), 3)
-        self.assertEqual(len(node1.dag.blocks_by_number), 3)
-        self.assertEqual(len(node2.dag.blocks_by_number), 3)
-        # assert that next block is correctly created by next node
+        # perform step by malicious node (create block and not broadcast)
+        network.nodes[expected_node_signer_id].step()
+        # assume that node has block in local dag
+        for node in network.nodes:
+            if node.node_id == expected_node_signer_id:
+                self.assertEqual(len(node.dag.blocks_by_number), 24)
+            else:
+                self.assertEqual(len(node.dag.blocks_by_number), 23)
+
+        # perform step in timeslot by all nodes
+        self.perform_in_block_single_step(network, 3)
+        Time.advance_to_next_timeslot()  # move to next timeslot
+        network.nodes[expected_node_signer_id].behaviour.transport_cancel_block_broadcast = False
+        self.perform_in_block_single_step(network, 1)
+        # validate send gossips that all nodes receive block by positive gossip
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 25)
+
+        self.perform_block_steps(network, 5)
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 30)
 
     def test_send_negative_gossip_by_validator(self):
         Time.use_test_time()
@@ -614,7 +563,7 @@ class TestGossip(unittest.TestCase):
 
         validators = Validators()
         validators.validators = Validators.read_genesis_validators_from_file()
-        validators.signers_order = [0,1,2,3,4,5] * ROUND_DURATION * 6
+        validators.signers_order = [0, 1, 2, 3, 4, 5] * ROUND_DURATION * 6
         validators.randomizers_order = [0] * Epoch.get_duration()
 
         network = Network()
@@ -916,12 +865,12 @@ class TestGossip(unittest.TestCase):
 
         # generate blocks to new epoch
         self.perform_block_steps(network, 22)
-        DagVisualizer.visualize(network.nodes[0].dag)
+        # DagVisualizer.visualize(network.nodes[0].dag)
 
         # invalidate that node DO not send negative gossip only if have ZETA negatives from next ZETA validators
         round_2_signers_order = list(network.nodes[0].permissions.signers_indexes.values())[1]  # SECOND! EPOCH
         expected_node_signer_id = round_2_signers_order[2]  # already have 22 blocks
-        last_block_signer_index = network.nodes[expected_node_signer_id].last_signed_block_number # node 9
+        last_block_signer_index = network.nodes[expected_node_signer_id].last_signed_block_number
 
         # assert signers order
         self.assertEqual(last_block_signer_index, 22)

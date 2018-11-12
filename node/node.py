@@ -194,7 +194,7 @@ class Node:
         chosen_top = self.dag.get_longest_chain_top(tops)
         conflicting_tops = [top for top in tops if top != chosen_top]
         
-        current_top_blocks = [chosen_top] + conflicting_tops #first link in dag is not considered conflict, the rest is.
+        current_top_blocks = [chosen_top] + conflicting_tops  # first link in dag is not considered conflict, the rest is.
         
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = system_txs
@@ -203,7 +203,7 @@ class Node:
 
         if self.behaviour.malicious_block_broadcast_delay > 0:
             self.behaviour.block_to_delay_broadcasting = signed_block
-            return #don't do broadcasting, wait a few timeslots1
+            return  # don't do broadcasting, wait a few timeslots1
 
         self.dag.add_signed_block(current_block_number, signed_block)
         self.utxo.apply_payments(payment_txs)
