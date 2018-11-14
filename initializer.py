@@ -58,7 +58,7 @@ class Initializer:
         self.node_to_visualize_after_exit = 0
         self.params_validate()
         self.discrete_mode = True
-        self.malicious_validators_count = 0  # GENESIS_VALIDATORS_COUNT / 2 - 1
+        self.malicious_validators_count = GENESIS_VALIDATORS_COUNT / 2 - 1
         # set up logging to file - see previous section for more details
         self.logger = logging.basicConfig(level=logging.DEBUG,
                                           format='%(asctime)s %(levelname)-6s %(name)-6s %(message)s')
@@ -117,7 +117,7 @@ class Initializer:
         finally:
             if self.node_to_visualize_after_exit:
                 save_dag_to_graphviz(self.node_to_visualize_after_exit.dag)
-                # show_node_stats(self.node_to_visualize_after_exit)
+                show_node_stats(self.node_to_visualize_after_exit)
 
     def launch(self):
         logger = logging.getLogger("Announce")

@@ -27,6 +27,8 @@ class Behaviour:
         self.malicious_block_broadcast_delay = 0
         self.block_to_delay_broadcasting = None
 
+        self.off_malicious_links_to_wrong_blocks = False
+
         # Malicious transactions (validated by transaction_verifier)
         self.malicious_transaction_broadcasting_private_key = False
         self.malicious_transaction_broadcasting_penalty = False
