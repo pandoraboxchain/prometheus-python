@@ -188,12 +188,12 @@ class TestNode(unittest.TestCase):
         Time.advance_to_next_timeslot()
         for node in nodes: node.step()
 
-        #here first node skips block broadcast but remembers it for the future
+        # here first node skips block broadcast but remembers it for the future
         Time.advance_to_next_timeslot()
         for node in nodes: node.step()
         self.assertNotEqual(nodes[1].behaviour.block_to_delay_broadcasting, None)
 
-        #here second node will do two steps just to wait for negative gossips to arrive        
+        # here second node will do two steps just to wait for negative gossips to arrive
         Time.advance_to_next_timeslot()
         for node in nodes: node.step()
         Time.advance_time(1)
@@ -205,11 +205,11 @@ class TestNode(unittest.TestCase):
         for node in reversed(nodes): node.step()
         
         tops = nodes[0].dag.get_top_hashes()
-        self.assertEquals(len(tops), 1)
+        self.assertEqual(len(tops), 1)
         top_block = nodes[0].dag.blocks_by_hash[tops[0]]
-        self.assertEqual(len(top_block.block.prev_hashes), 2) #check that delayed block is referenced
+        self.assertEqual(len(top_block.block.prev_hashes), 2)  # check that delayed block is referenced
 
-        DagVisualizer.visualize(nodes[2].dag, True)
+        # DagVisualizer.visualize(nodes[2].dag, True)
             
 
 
