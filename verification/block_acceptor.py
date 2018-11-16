@@ -22,7 +22,7 @@ class BlockAcceptor(Acceptor):
         prev_hashes = block.prev_hashes
 
         self.validate_timeslot(block, current_block_number)
-        #self.validate_prev_hashes_are_tops(prev_hashes)  # turn off for out of timeslot case
+        # self.validate_prev_hashes_are_tops(prev_hashes)  # turn off for out of timeslot case
         self.validate_longest_chain_goes_first(prev_hashes)
         self.validate_private_transactions_in_block(block, current_round)
 
@@ -34,7 +34,7 @@ class BlockAcceptor(Acceptor):
 
     def validate_timeslot(self, block, current_block_number):
         for prev_hash in block.prev_hashes:
-            prev_hash_number = self.epoch.dag.try_get_block_number(prev_hash)
+            prev_hash_number = self.epoch.dag.get_block_number(prev_hash)
             if prev_hash_number is None:
                 return False
             if prev_hash_number >= current_block_number:

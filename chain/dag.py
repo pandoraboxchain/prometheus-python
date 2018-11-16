@@ -80,15 +80,6 @@ class Dag:
         assert block_hash in self.block_numbers_by_hash
         return self.block_numbers_by_hash[block_hash]
 
-    # return none if block_hash is not in block_numbers_by_hash list
-    def try_get_block_number(self, block_hash):
-        result = None
-        try:
-            result = self.block_numbers_by_hash[block_hash]
-        except Exception:
-            pass
-        return result
-    
     def calculate_chain_length(self, from_block, to_block):
         chain_iter = ChainIter(self, from_block)
         count = 0

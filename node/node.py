@@ -325,15 +325,13 @@ class Node:
         return tx
 
     def form_penalize_violators_transaction(self, conflicts):
+        # TODO can be deprecated on get block by ancestor complete logic
         for conflict in conflicts:
             block = self.dag.blocks_by_hash[conflict]
-            # TODO (was broadcast_block_out_of_timeslot()) is deprecated
             self.network.broadcast_block(self.node_id, block.pack())
-        
         self.logger.info("Forming transaction with conflicting blocks")
         self.logger.info(conflict.hex())
         node_private = self.block_signer.private_key
-
         tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
         return tx
 
@@ -399,7 +397,7 @@ class Node:
         signed_block.parse(raw_signed_block)
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
 
-        # CHECK_ANCESTOR AND BLOCK BUFFER
+        # CHECK_ANCESTOR
         blocks_by_hash = self.dag.blocks_by_hash
         is_orphan_block = False
         for prev_hash in signed_block.block.prev_hashes:  # by every previous hash
@@ -441,68 +439,6 @@ class Node:
                 self.logger.info("Orphan block buffer processed success")
         else:
             self.logger.error("Received block from %d, but its signature is wrong", node_id)
-
-#    #TODO now it seems all block messages are doing the same thing
-#    def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
-#        signed_block = SignedBlock()
-#        signed_block.parse(raw_signed_block)
-
-#        block_hash = signed_block.get_hash()
-#        if block_hash in self.dag.blocks_by_hash:
-#            self.logger.info("Received conflicting block, but it already exists in DAG")
-#            return
-
-#        block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
-
-#        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
-#        allowed_pubkey = None
-#        for allowed_signer in allowed_signers:
-#            if signed_block.verify_signature(allowed_signer):
-#                allowed_pubkey = allowed_signer
-#                break
-
-#        if allowed_pubkey:
-#            block = signed_block.block
-#            block_verifier = BlockAcceptor(self.epoch, self.logger)
-
-            # check block parent ancestor in local dag
-#            for prev_hash in block.prev_hashes:  # check received block ancestor
-#                if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
-#                    self.blocks_buffer.append(signed_block)
-#                    self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
-#                    return
-#                else:
-#                    self.blocks_buffer.append(signed_block)  # add last received ancestor block
-#                    self.logger.info("Missed blocks collected by direct requests")
-
-#            epoch_number = Epoch.get_epoch_number(block_number)
-
-#            if block_verifier.check_if_valid(block):
-#                if len(self.blocks_buffer) > 0:
-                    # add blocks from buffer out of timeslot
-#                    while len(self.blocks_buffer) > 0:
-#                        block_from_buffer = self.blocks_buffer.pop()
-#                        block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
-#                        self.dag.add_signed_block(block_number, block_from_buffer)
-#                        self.mempool.remove_transactions(block_from_buffer.block.system_txs)
-#                        self.mempool.remove_transactions(block_from_buffer.block.payment_txs)
-#                        self.utxo.apply_payments(block_from_buffer.block.payment_txs)
-#                        #TODO find out who was real allowed pubkey and add block to conflict watcher from buffer properly
-#                        # self.conflict_watcher.on_new_block_by_validator(block_from_buffer.get_hash(), epoch_number, allowed_pubkey)
-#                        self.logger.info("Added block out of timeslot from block buffer")
-#                    return  # while all blocks added from block buffer return
-#                else:
-#                    # simple insert block out of timeslot
-#                    self.dag.add_signed_block(block_number, signed_block)
-#                    self.mempool.remove_transactions(block.system_txs)
-#                    self.mempool.remove_transactions(block.payment_txs)
-#                    self.utxo.apply_payments(block.payment_txs)
-#                    self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
-#                    self.logger.error("Added block out of timeslot")
-#            else:
-#                self.logger.error("Block was not added. Considered invalid")
-#        else:
-#            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
