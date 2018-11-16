@@ -444,15 +444,9 @@ class Node:
                             # if parent not exist in local DAG ask for parent
                             self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
 
-                block_verifier = BlockAcceptor(self.epoch, self.logger)
-                while len(self.blocks_buffer) > 0:
-                    block_from_buffer = self.blocks_buffer.pop()
-                    block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
-                    if self.epoch.is_new_epoch_upcoming(block_number):  # CHECK IS NEW EPOCH
-                        self.epoch.accept_tops_as_epoch_hashes()
-                    if block_verifier.check_if_valid(block_from_buffer.block):  # VERIFY BLOCK AS NORMAL
-                        self.insert_verified_block(block_from_buffer, allowed_pubkey)
-                self.logger.info("Orphan block buffer processed success")
+                if len(self.blocks_buffer) > 0:
+                    self.process_block_buffer()
+                    self.logger.info("Orphan block buffer processed success")
         else:
             self.logger.error("Received block from %d, but its signature is wrong", node_id)
 
@@ -544,6 +538,24 @@ class Node:
         self.mempool.remove_transactions(block.payment_txs)
         self.utxo.apply_payments(block.payment_txs)
         self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
+
+    def process_block_buffer(self):
+        while len(self.blocks_buffer) > 0:
+            block_from_buffer = self.blocks_buffer.pop()
+            block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
+            if self.epoch.is_new_epoch_upcoming(block_number):  # CHECK IS NEW EPOCH
+                self.epoch.accept_tops_as_epoch_hashes()
+            # validate block from buffer signature
+            allowed_signers = self.get_allowed_signers_for_block_number(block_number)
+            allowed_pubkey = None
+            for allowed_signer in allowed_signers:
+                if block_from_buffer.verify_signature(allowed_signer):
+                    allowed_pubkey = allowed_signer
+                    break
+            if allowed_pubkey:
+                block_verifier = BlockAcceptor(self.epoch, self.logger)
+                if block_verifier.check_if_valid(block_from_buffer.block):  # VERIFY BLOCK AS NORMAL
+                    self.insert_verified_block(block_from_buffer, allowed_pubkey)
 
     def get_allowed_signers_for_block_number(self, block_number):
         # TODO take cached epoch hashes if block is of lastest epoch
