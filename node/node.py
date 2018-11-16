@@ -397,6 +397,9 @@ class Node:
         signed_block.parse(raw_signed_block)
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
 
+        if self.node_id == 20:
+            debug_pause = ''
+
         # CHECK_ANCESTOR
         blocks_by_hash = self.dag.blocks_by_hash
         is_orphan_block = False
@@ -404,23 +407,33 @@ class Node:
             if prev_hash not in blocks_by_hash:  # verify local ancestor for incoming block
                 is_orphan_block = True
 
+        # CHECK_ORPHAN_DISTANCE
+        block_out_of_epoch = False
+        epoch_end_block = self.epoch.get_epoch_end_block_number(self.epoch.current_epoch)
+        if block_number >= epoch_end_block:
+            # income block from future epoch, cant validate signer
+            block_out_of_epoch = True
+
         # CHECK ALLOWED SIGNER
-        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
-        allowed_pubkey = None
-        for allowed_signer in allowed_signers:
-            if signed_block.verify_signature(allowed_signer):
-                allowed_pubkey = allowed_signer
-                break
+        if not block_out_of_epoch:
+            allowed_signers = self.get_allowed_signers_for_block_number(block_number)
+            allowed_pubkey = None
+            for allowed_signer in allowed_signers:
+                if signed_block.verify_signature(allowed_signer):
+                    allowed_pubkey = allowed_signer
+                    break
+        else:
+            allowed_pubkey = 'not validate'  # process block as orphan
 
         if allowed_pubkey:  # IF SIGNER ALLOWED
-            if not is_orphan_block:  # PROCESS NORMAL BLOCK
+            if not is_orphan_block:  # PROCESS NORMAL BLOCK (same epoch)
                 if self.epoch.is_new_epoch_upcoming(block_number):  # CHECK IS NEW EPOCH
                     self.epoch.accept_tops_as_epoch_hashes()
                 block_verifier = BlockAcceptor(self.epoch, self.logger)  # VERIFY BLOCK AS NORMAL
                 if block_verifier.check_if_valid(signed_block.block):
                     self.insert_verified_block(signed_block, allowed_pubkey)
                     return
-            else:  # PROCESS ORPHAN BLOCK
+            else:  # PROCESS ORPHAN BLOCK (same epoch)
                 orphan_block_verifier = OrphanBlockAcceptor(self.epoch, self.blocks_buffer, self.logger)
                 if orphan_block_verifier.check_if_valid(signed_block.block):
                     self.blocks_buffer.append(signed_block)
@@ -434,6 +447,9 @@ class Node:
                 block_verifier = BlockAcceptor(self.epoch, self.logger)
                 while len(self.blocks_buffer) > 0:
                     block_from_buffer = self.blocks_buffer.pop()
+                    block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
+                    if self.epoch.is_new_epoch_upcoming(block_number):  # CHECK IS NEW EPOCH
+                        self.epoch.accept_tops_as_epoch_hashes()
                     if block_verifier.check_if_valid(block_from_buffer.block):  # VERIFY BLOCK AS NORMAL
                         self.insert_verified_block(block_from_buffer, allowed_pubkey)
                 self.logger.info("Orphan block buffer processed success")
