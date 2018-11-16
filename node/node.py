@@ -19,7 +19,7 @@ from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
-from verification.block_acceptor import BlockAcceptor, OrphanBlockAcceptor
+from verification.block_acceptor import BlockAcceptor, OrphanBlockAcceptor, OrphanBufferBlockAcceptor
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
@@ -415,7 +415,7 @@ class Node:
             block_out_of_epoch = True
 
         # CHECK ALLOWED SIGNER
-        if not block_out_of_epoch:
+        if not block_out_of_epoch:  # if incoming block not out of current epoch
             allowed_signers = self.get_allowed_signers_for_block_number(block_number)
             allowed_pubkey = None
             for allowed_signer in allowed_signers:
@@ -543,17 +543,20 @@ class Node:
         while len(self.blocks_buffer) > 0:
             block_from_buffer = self.blocks_buffer.pop()
             block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
+
             if self.epoch.is_new_epoch_upcoming(block_number):  # CHECK IS NEW EPOCH
                 self.epoch.accept_tops_as_epoch_hashes()
-            # validate block from buffer signature
+
+            # validate block from buffer by signature
             allowed_signers = self.get_allowed_signers_for_block_number(block_number)
             allowed_pubkey = None
             for allowed_signer in allowed_signers:
                 if block_from_buffer.verify_signature(allowed_signer):
                     allowed_pubkey = allowed_signer
                     break
+
             if allowed_pubkey:
-                block_verifier = BlockAcceptor(self.epoch, self.logger)
+                block_verifier = OrphanBufferBlockAcceptor(self.epoch, self.logger)
                 if block_verifier.check_if_valid(block_from_buffer.block):  # VERIFY BLOCK AS NORMAL
                     self.insert_verified_block(block_from_buffer, allowed_pubkey)
                 else:

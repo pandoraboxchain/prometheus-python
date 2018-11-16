@@ -83,7 +83,6 @@ class Network:
             if self.check_node_input_transport_behaviour(receiver_node_id):
                 return
             if node.node_id == receiver_node_id:
-                # node.handle_block_out_of_timeslot(sender_node_id, raw_signed_block)
                 node.handle_block_message(sender_node_id, raw_signed_block)
 
     # -----------------------------------------------------------------

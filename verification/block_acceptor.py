@@ -17,6 +17,9 @@ class BlockAcceptor(Acceptor):
 
     def validate(self, block):
 
+        current_block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
+        current_round = self.epoch.get_round_by_block_number(current_block_number)
+
         current_round = self.epoch.get_current_round()
         current_block_number = self.epoch.get_current_timeframe_block_number()
         prev_hashes = block.prev_hashes
@@ -100,3 +103,56 @@ class OrphanBlockAcceptor(Acceptor):
                 is_ancestor_for_buffered_block = True
         return is_ancestor_for_buffered_block
 
+
+class OrphanBufferBlockAcceptor(Acceptor):
+
+    def __init__(self, epoch, logger):
+        super().__init__(logger)
+        self.epoch = epoch
+
+    def validate(self, block):
+        current_block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
+        current_round = self.epoch.get_round_by_block_number(current_block_number)
+        prev_hashes = block.prev_hashes
+
+        self.validate_timeslot(block, current_block_number)
+        self.validate_longest_chain_goes_first(prev_hashes)
+        self.validate_private_transactions_in_block(block, current_round)
+
+    def validate_timeslot(self, block, current_block_number):
+        for prev_hash in block.prev_hashes:
+            prev_hash_number = self.epoch.dag.get_block_number(prev_hash)
+            if prev_hash_number is None:
+                return False
+            if prev_hash_number >= current_block_number:
+                raise AcceptionException("Block refers to blocks in current or future timeslots!")
+
+    def validate_longest_chain_goes_first(self, prev_hashes):
+        dag = self.epoch.dag
+        common_ancestor = dag.get_common_ancestor(prev_hashes)
+        lengths = [dag.calculate_chain_length(prev_hash, common_ancestor) for prev_hash in prev_hashes]
+        max_length = max(lengths)
+        first_chain_length = dag.calculate_chain_length(prev_hashes[0], common_ancestor)
+        if first_chain_length != max_length:
+            raise AcceptionException("Block first ancestor should link to longest chain")
+
+    @staticmethod
+    def validate_private_transactions_in_block(block, current_round):
+        private_key_transactions = []
+        for tx in block.system_txs:
+            if isinstance(tx, PrivateKeyTransaction):
+                private_key_transactions.append(tx)
+
+        private_key_transactions_count_in_block = len(private_key_transactions)
+
+        if current_round != Round.PRIVATE:
+            if private_key_transactions_count_in_block > 0:
+                raise AcceptionException("PrivateKeyTransaction was found in round " + current_round.name)
+
+            return
+
+        if private_key_transactions_count_in_block == 0:
+            raise AcceptionException("Block has no PrivateKeyTransaction in private round!")
+
+        elif private_key_transactions_count_in_block > 1:
+            raise AcceptionException("Block has more than one PrivateKeyTransaction!")

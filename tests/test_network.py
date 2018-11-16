@@ -11,12 +11,11 @@ from chain.epoch import Epoch
 from node.node import Node
 from visualization.dag_visualizer import DagVisualizer
 
-from chain.params import ROUND_DURATION, GENESIS_VALIDATORS_COUNT
+from chain.params import ROUND_DURATION
 
 
 class TestNodeAPI(unittest.TestCase):
 
-    @unittest.skip('')
     def test_network_methods(self):
         private_keys = BlockSigners()
         private_keys = private_keys.block_signers
@@ -77,7 +76,6 @@ class TestNodeAPI(unittest.TestCase):
         network.merge_all_groups()  # test marge groups
         self.assertEqual(len(network.nodes) == 5, True)
 
-    @unittest.skip('')
     def test_node_broadcast_unavailable(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -126,7 +124,6 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node0.dag.blocks_by_number), 2)
         self.assertEqual(len(node1.dag.blocks_by_number), 3)
 
-    @unittest.skip('')
     def test_node_handle_unavailable(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -185,7 +182,6 @@ class TestNodeAPI(unittest.TestCase):
         # uncomment for visual ensure that on NODE_0 have 2 blocks with genesis ancestor
         # DagVisualizer.visualize(node0.dag)
 
-    @unittest.skip('')
     def test_node_offline(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -262,7 +258,6 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 3)
         self.assertEqual(len(node2.dag.blocks_by_number), 2)
 
-    @unittest.skip('')
     def test_make_node_offline_from_block(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -425,7 +420,6 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(node1.dag.blocks_by_number), 8)
         self.assertEqual(len(node2.dag.blocks_by_number), 9)  # steel have redundant block 6
 
-    @unittest.skip('')
     def test_two_node_groups(self):
         Time.use_test_time()
         Time.set_current_time(1)
