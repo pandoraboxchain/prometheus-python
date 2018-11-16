@@ -556,6 +556,10 @@ class Node:
                 block_verifier = BlockAcceptor(self.epoch, self.logger)
                 if block_verifier.check_if_valid(block_from_buffer.block):  # VERIFY BLOCK AS NORMAL
                     self.insert_verified_block(block_from_buffer, allowed_pubkey)
+                else:
+                    self.logger.info("Block from buffer verification failed")
+            else:
+                self.logger.info("Block from buffer wrong signature")
 
     def get_allowed_signers_for_block_number(self, block_number):
         # TODO take cached epoch hashes if block is of lastest epoch
