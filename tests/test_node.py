@@ -209,9 +209,6 @@ class TestNode(unittest.TestCase):
         top_block = nodes[0].dag.blocks_by_hash[tops[0]]
         self.assertEqual(len(top_block.block.prev_hashes), 2) #check that delayed block is referenced
 
-        DagVisualizer.visualize(nodes[2].dag, True)
-            
-
 
 
 
