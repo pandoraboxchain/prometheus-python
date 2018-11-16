@@ -8,11 +8,12 @@ from chain.conflict_finder import ConflictFinder
 # after merged blocks end it continues iterating over selected chain
 
 class MergingIter:
-    def __init__(self, dag, conflict_finder, top_hash):
+    def __init__(self, dag, top_hash, conflict_finder=None, conf_req=None):
         self.chain_iter = ChainIter(dag, top_hash)
         self.merged_chain = []
-        self.merger = Merger(dag)
+        self.merger = Merger(dag, conf_req)
         self.finder = conflict_finder
+        self.confirmation_requirement = conf_req
 
     def __iter__(self):
         return self

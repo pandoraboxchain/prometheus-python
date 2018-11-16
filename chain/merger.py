@@ -5,8 +5,9 @@ from chain.merged_chain import MergedChain
 
 class Merger:
 
-    def __init__(self, dag):
+    def __init__(self, dag, conf_req=None):
         self.dag = dag
+        self.conf_req = conf_req
 
     # done in deterministic manner, should yield exact same result on every node
     # returns indexes 
@@ -19,7 +20,7 @@ class Merger:
         
     def merge(self, tops, conflicts=[]):
         common_ancestor = self.dag.get_common_ancestor(tops)
-        chains = [MergedChain.flatten_with_merge(self.dag, self, top, common_ancestor) for top in tops]
+        chains = [MergedChain.flatten_with_merge(self, top, common_ancestor) for top in tops]
         sizes = [chain.get_chain_size() for chain in chains]
         deterministic_order = Merger.sort_deterministically(sizes)
         sorted_chains = [chains[index] for index in deterministic_order]

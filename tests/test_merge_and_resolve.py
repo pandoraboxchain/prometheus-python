@@ -21,7 +21,7 @@ class TestMergeAndResolve(unittest.TestCase):
         payment = TransactionFactory.create_payment(block_reward, 0, [os.urandom(32)], [12])
         block2_hash, block2_reward = ChainGenerator.insert_dummy_with_payments(dag, [block_hash], [payment], 2)
 
-        iterator = MergingIter(dag, None, block2_hash)
+        iterator = MergingIter(dag, block2_hash)
         payments = [block.block.payment_txs for block in iterator]
         payments = list(reversed(payments))
 
@@ -45,7 +45,7 @@ class TestMergeAndResolve(unittest.TestCase):
 
         block4_hash, block4_reward = ChainGenerator.insert_dummy_with_payments(dag, [block2_hash, block3_hash], [], 4)
 
-        iterator = MergingIter(dag, None, block4_hash)
+        iterator = MergingIter(dag, block4_hash)
         payments = [block.block.payment_txs for block in iterator if block != None]
         payments = list(reversed(payments))
 
@@ -76,7 +76,7 @@ class TestMergeAndResolve(unittest.TestCase):
         #making block2_hash go first, so its transactions will have a priority
         block4_hash, block4_reward = ChainGenerator.insert_dummy_with_payments(dag, [block2_hash, block3_hash], [], 4)
 
-        iterator = MergingIter(dag, None, block4_hash)
+        iterator = MergingIter(dag, block4_hash)
         payments = [block.block.payment_txs for block in iterator if block != None]
         payments = list(reversed(payments))
 
@@ -117,7 +117,7 @@ class TestMergeAndResolve(unittest.TestCase):
 
         # DagVisualizer.visualize(dag, True)
 
-        iterator = MergingIter(dag, watcher, block3_hash)
+        iterator = MergingIter(dag, block3_hash, watcher)
 
         payments = [block.block.payment_txs for block in iterator if block != None]
         payments = list(reversed(payments))
@@ -134,7 +134,7 @@ class TestMergeAndResolve(unittest.TestCase):
         self.assertNotIn(Entry(payment1c.get_hash(), 0), unspent)
 
         total_block_rewards = 0
-        iterator = MergingIter(dag, watcher, block3_hash)
+        iterator = MergingIter(dag, block3_hash, watcher)
         for block in iterator:
             if block:
                 if not block.block.payment_txs:

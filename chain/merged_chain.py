@@ -15,9 +15,9 @@ class MergedChain(list):
     # this method flattens chain and merges it recursively if its needed
     # it should be possible to merge already merged chains
     @staticmethod
-    def flatten_with_merge(dag, merger, from_hash, to_hash):
+    def flatten_with_merge(merger, from_hash, to_hash):
         flat_chain = []
-        chain_iter = ChainIter(dag, from_hash)
+        chain_iter = ChainIter(merger.dag, from_hash)
         block = chain_iter.next()
         block_hash = block.get_hash()
         while block_hash != to_hash:
@@ -28,14 +28,14 @@ class MergedChain(list):
                 if len(block.block.prev_hashes) > 1:
                     merge_chain = merger.merge(block.block.prev_hashes)
                     flat_chain += list(reversed(merge_chain))
-                    chain_iter = ChainIter(dag, merge_chain[0].get_hash())
+                    chain_iter = ChainIter(merger.dag, merge_chain[0].get_hash())
                     chain_iter.next() # immediately transfer to next block because this one is already in chain
 
             block = chain_iter.next()
             if block: block_hash = block.get_hash()
             else: block_hash = None
 
-        flat_chain.append(dag.blocks_by_hash[to_hash])
+        flat_chain.append(merger.dag.blocks_by_hash[to_hash])
 
         return MergedChain(list(reversed(flat_chain)))
 
