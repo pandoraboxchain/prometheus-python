@@ -197,7 +197,7 @@ class Node:
         
         current_top_blocks = [chosen_top] + conflicting_tops  # first link in dag is not considered conflict, the rest is.
         
-        if self.behaviour.malicious_links_to_wrong_blocks:
+        if self.behaviour.off_malicious_links_to_wrong_blocks:
             current_top_blocks = []  
             all_hashes = list(self.dag.blocks_by_hash.keys())
             for _ in range(random.randint(1,3)):
