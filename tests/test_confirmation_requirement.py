@@ -3,6 +3,8 @@ import unittest
 from chain.block_factory import BlockFactory
 from chain.confirmation_requirement import ConfirmationRequirement
 from chain.dag import Dag
+from chain.skipped_block import SkippedBlock
+from chain.params import ZETA_MAX
 from crypto.private import Private
 from tools.chain_generator import ChainGenerator
 from visualization.dag_visualizer import DagVisualizer
@@ -107,5 +109,46 @@ class TestConfirmationRequirement(unittest.TestCase):
         #not affected by small skip
         confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
         self.assertEqual(confirmation_requirement, 5)
+
+    def test_skip_confirmation_requirement(self):
+        dag = Dag(0)
+        conf_req = ConfirmationRequirement(dag)
+
+        genesis_hash = dag.genesis_block().get_hash()
+
+        block_hash = ChainGenerator.insert_dummy(dag, [genesis_hash], 1)
+        # confirmation requirement decreases because we have large skip 
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 5)
+
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 3)
+        skip = SkippedBlock(block_hash, 1)
+        confirmation_requirement = conf_req.get_confirmation_requirement(skip)
+        self.assertEqual(confirmation_requirement, 5)
+
+        # do a larger gap
+        block_hash = ChainGenerator.insert_dummy(dag, [block_hash], 11)
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(block_hash)
+        self.assertEqual(confirmation_requirement, 3)
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(SkippedBlock(block_hash, 1))
+        self.assertEqual(confirmation_requirement, 3)
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(SkippedBlock(block_hash, 2))
+        self.assertEqual(confirmation_requirement, 4)
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(SkippedBlock(block_hash, 4))
+        self.assertEqual(confirmation_requirement, 4)
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(SkippedBlock(block_hash, 5))
+        self.assertEqual(confirmation_requirement, 5)
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(SkippedBlock(block_hash, 6))
+        self.assertEqual(confirmation_requirement, 5)
+
+        confirmation_requirement = conf_req.get_confirmation_requirement(SkippedBlock(block_hash, 10))
+        self.assertEqual(confirmation_requirement, ZETA_MAX)
+
 
     #TODO complex cases
