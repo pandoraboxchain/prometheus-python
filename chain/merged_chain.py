@@ -1,6 +1,8 @@
 from chain.dag import ChainIter
 from chain.immutability import Immutability
 from chain.params import ZETA
+from chain.skipped_block import SkippedBlock
+from transaction.gossip_transaction import PositiveGossipTransaction, NegativeGossipTransaction
 
 # from chain.merger import Merger #it should be cyclic dependency, so I just  
 
@@ -56,27 +58,35 @@ class MergedChain(list):
         dpoint = i
         return MergedChain(another[dpoint:])
 
-    def get_merging_point(self):
-        i = 0
-        stop = False
-        while i != len(self) and (not stop):
-            stop = self.is_slot_mutable(i)
-            if not stop:
-                i+=1
-        mpoint = i
-        return mpoint
-
-    def is_slot_mutable(self, timeslot_num):
+    def get_confirmations(self, timeslot_num):
         confirmations = 0
+        selected_block = self[timeslot_num]
         for i in range(timeslot_num, len(self)):
-            if self[i]:
-                confirmations += 1
-        return confirmations < ZETA
-    
-    def is_block_mutable(self, block_hash):
-        for i in range(len(self)):
             block = self[i]
-            if block:
-                if block.get_hash() == block_hash:
-                    return self.is_slot_mutable(i)
-        assert False, "Can't find block with hash %r to calculate its immutability" % block_hash.hex()
+            is_skipped = not block or isinstance(block, SkippedBlock)
+            if not is_skipped:
+                for tx in block.block.system_txs:
+                    if selected_block:
+                        if isinstance(tx, PositiveGossipTransaction):
+                            if tx.block_hash == selected_block.get_hash():
+                                confirmations += 1
+                    else:
+                        if isinstance(tx, NegativeGossipTransaction):
+                            if tx.number_of_block == timeslot_num:
+                                confirmations += 1
+        
+        return confirmations
+
+    def filter_out_skipped_blocks(self):
+        return MergedChain(filter(lambda block: not SkippedBlock.is_skipped(block), self))
+        # sds = 4
+        # for i in range(len(self)):
+        #     if SkippedBlock.is_skipped(self[i]):
+        #         del self[i]
+
+    def debug_print_block_numbers(self, dag):
+        print("Debug print block numbers in merged chain")
+        for block in self:
+            if not SkippedBlock.is_skipped(block):
+                block_hash = block.get_hash()
+                print(block_hash.hex()[0:6], "number", dag.get_block_number(block_hash))

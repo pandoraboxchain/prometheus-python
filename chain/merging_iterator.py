@@ -34,6 +34,7 @@ class MergingIter:
                 conflicts = explicit_conflicts + resolved_candidate_conflicts
                 
             self.merged_chain = self.merger.merge(prev_hashes, conflicts)
+            self.merged_chain = self.merged_chain.filter_out_skipped_blocks() # TODO is it okay to omit skipped blocks in already fully merged chain?
             
             # overwrite chain iterator with next block after merge
             # this way when merged blocks end we can continue iterating further
