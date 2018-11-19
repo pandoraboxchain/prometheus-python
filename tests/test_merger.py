@@ -18,6 +18,7 @@ class TestMerger(unittest.TestCase):
         
         merger = Merger(dag)
         res = merger.merge(dag.get_top_hashes())
+        res = res.filter_out_skipped_blocks()
 
         self.assertEqual(res[0], dag.blocks_by_number[0][0])
         self.assertEqual(res[1], dag.blocks_by_number[1][0])
@@ -35,6 +36,8 @@ class TestMerger(unittest.TestCase):
         
         merger = Merger(dag)
         res = merger.merge(dag.get_top_hashes())
+        res = res.filter_out_skipped_blocks()
+        # res.debug_print_block_numbers(dag)
 
         self.assertEqual(res[0], dag.blocks_by_number[1][0])
         self.assertEqual(res[1], dag.blocks_by_number[3][0])
@@ -60,6 +63,7 @@ class TestMerger(unittest.TestCase):
 
         merger = Merger(dag)
         res = merger.merge(dag.get_top_hashes(), conflicts)
+        res = res.filter_out_skipped_blocks()
 
         self.assertEqual(res[0].get_hash(), genesis_hash)
         self.assertEqual(res[1].get_hash(), block_hash2)
@@ -82,6 +86,7 @@ class TestMerger(unittest.TestCase):
  
         merger = Merger(dag)
         res = merger.merge(dag.get_top_hashes(), conflicts)
+        res = res.filter_out_skipped_blocks()
 
         # self.assertEqual(res[0].get_hash(), genesis_hash) #no genesis hash since common ancestor is first block
         self.assertEqual(res[0].get_hash(), block_hash1)

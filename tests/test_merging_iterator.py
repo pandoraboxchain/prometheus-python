@@ -26,7 +26,7 @@ class TestMergingIterator(unittest.TestCase):
         dag.add_signed_block(10, merging_signed_block)
         # DagVisualizer.visualize(dag, True)
         
-        iterator = MergingIter(dag, None, merging_block.get_hash())
+        iterator = MergingIter(dag, merging_block.get_hash())
 
         self.assertEqual(iterator.next().get_hash(), merging_block.get_hash())
         self.assertEqual(iterator.next().get_hash(), dag.blocks_by_number[5][0].get_hash())
@@ -60,7 +60,7 @@ class TestMergingIterator(unittest.TestCase):
 
         # DagVisualizer.visualize(dag, True)        
 
-        iterator = MergingIter(dag, None, merging_block.get_hash())
+        iterator = MergingIter(dag, merging_block.get_hash())
         
         #shortest chain goes last
         # 3 and 4 are swapped because 4 has a priority

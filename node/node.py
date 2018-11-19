@@ -1,5 +1,6 @@
 import asyncio
 import os
+import random
 
 from chain.dag import Dag
 from chain.epoch import Epoch
@@ -196,6 +197,15 @@ class Node:
         
         current_top_blocks = [chosen_top] + conflicting_tops  # first link in dag is not considered conflict, the rest is.
         
+        if self.behaviour.off_malicious_links_to_wrong_blocks:
+            current_top_blocks = []  
+            all_hashes = list(self.dag.blocks_by_hash.keys())
+            for _ in range(random.randint(1,3)):
+                block_hash = random.choice(all_hashes)
+                current_top_blocks.append(block_hash)
+            
+            self.logger.info("Maliciously connecting block at slot %s to random hashes", current_block_number)
+
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = system_txs
         block.payment_txs = payment_txs
