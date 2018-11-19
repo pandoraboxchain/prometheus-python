@@ -12,6 +12,7 @@ from crypto.private import Private
 from tools.chain_generator import ChainGenerator
 from visualization.dag_visualizer import DagVisualizer
 
+
 class TestMergeAndResolve(unittest.TestCase):
     def test_simple(self):
         dag = Dag(0)

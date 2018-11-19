@@ -43,9 +43,8 @@ class ConflictWatcher:
                 for block in self.dag.blocks_by_number[i]:
                     all_merge_blocks.append(block.get_hash())
 
-
-        explicit_conflicts = [] # conflicts for sure, to be ignored
-        candidate_conflicts = [] # one of these should be chosen by longest chain rule 
+        explicit_conflicts = []  # conflicts for sure, to be ignored
+        candidate_conflicts = []  # one of these should be chosen by longest chain rule
 
         for block in all_merge_blocks:
             conflicts = self.get_conflicts_by_block(block)
@@ -67,9 +66,9 @@ class ConflictWatcher:
             if resolved_earlier:
                 explicit_conflicts += inside_merge_conflicts
             else:
-                candidate_conflicts += [inside_merge_conflicts] #put candidates into conflict groups
+                candidate_conflicts += [inside_merge_conflicts]  # put candidates into conflict groups
 
-            #delete blocks in conflict so we don't have same conflicts twice
+            # delete blocks in conflict so we don't have same conflicts twice
             for block in inside_merge_conflicts:
                 if block in all_merge_blocks:
                     all_merge_blocks.remove(block)
@@ -81,10 +80,9 @@ class ConflictWatcher:
         for group in candidate_groups:
             sorted_group = sorted(group, key=lambda block: self.dag.get_block_number(block))
             for block in sorted_group:
-                if self.dag.is_ancestor(longest_chain_top, block): #TODO maybe use chain iter search here?
+                if self.dag.is_ancestor(longest_chain_top, block):  # TODO maybe use chain iter search here?
                     sorted_group.remove(block)
                     break
             explicit_conflicts += sorted_group
         
         return explicit_conflicts
-            

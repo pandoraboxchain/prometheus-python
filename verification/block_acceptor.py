@@ -30,6 +30,14 @@ class BlockAcceptor(Acceptor):
         for prev_hash in prev_hashes:
             if not prev_hash in tops:
                 raise AcceptionException("Block refers to blocks which were not top blocks at the moment!")
+    # no previous hash should be ancestor of another previous hash
+    def validate_non_ancestor_prev_hashes(self, prev_hashes):
+        for prev_hash1 in prev_hashes:
+            for prev_hash2 in prev_hashes:
+                if prev_hash1 != prev_hash2:
+                    if self.epoch.dag.is_ancestor(prev_hash1, prev_hash2) or \
+                       self.epoch.dag.is_ancestor(prev_hash2, prev_hash1):
+                        raise AcceptionException("Block previous hashes are self referential")
 
     def validate_timeslot(self, block, current_block_number):
         for prev_hash in block.prev_hashes:

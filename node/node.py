@@ -193,12 +193,15 @@ class Node:
         tops = self.dag.get_top_blocks_hashes()
         chosen_top = self.dag.get_longest_chain_top(tops)
         conflicting_tops = [top for top in tops if top != chosen_top]
-        
+
         current_top_blocks = [chosen_top] + conflicting_tops  # first link in dag is not considered conflict, the rest is.
         
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = system_txs
         block.payment_txs = payment_txs
+        # PROVIDE PENALTY TRANSACTION FOR CONFLICT TOPS
+        if len(conflicting_tops) > 0:
+            block.conflict_tx = self.form_penalize_violators_transaction(conflicting_tops)
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
 
         if self.behaviour.malicious_block_broadcast_delay > 0:
@@ -325,12 +328,7 @@ class Node:
         return tx
 
     def form_penalize_violators_transaction(self, conflicts):
-        # TODO can be deprecated on get block by ancestor complete logic
-        for conflict in conflicts:
-            block = self.dag.blocks_by_hash[conflict]
-            self.network.broadcast_block(self.node_id, block.pack())
         self.logger.info("Forming transaction with conflicting blocks")
-        self.logger.info(conflict.hex())
         node_private = self.block_signer.private_key
         tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
         return tx
@@ -529,6 +527,9 @@ class Node:
         block = signed_block.block
         block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
         epoch_number = Epoch.get_epoch_number(block_number)
+
+        # CHECK_PENALTY_TRANSACTIONS hashes for exist hashes in dag
+        # send requests by block for every missing in local dag
 
         self.dag.add_signed_block(block_number, signed_block)
         self.mempool.remove_transactions(block.system_txs)
