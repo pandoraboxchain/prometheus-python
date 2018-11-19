@@ -14,6 +14,7 @@ from node.permissions import Permissions
 from node.validators import Validators
 from transaction.gossip_transaction import NegativeGossipTransaction, \
                                            PositiveGossipTransaction
+from transaction.stake_transaction import PenaltyTransaction
 from transaction.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
@@ -195,13 +196,14 @@ class Node:
         conflicting_tops = [top for top in tops if top != chosen_top]
 
         current_top_blocks = [chosen_top] + conflicting_tops  # first link in dag is not considered conflict, the rest is.
-        
+
+        # PROVIDE PENALTY TRANSACTION FOR CONFLICT TOPS
+        if len(conflicting_tops) > 0:
+            system_txs += self.form_penalize_violators_transaction(conflicting_tops)
+
         block = BlockFactory.create_block_dummy(current_top_blocks)
         block.system_txs = system_txs
         block.payment_txs = payment_txs
-        # PROVIDE PENALTY TRANSACTION FOR CONFLICT TOPS
-        if len(conflicting_tops) > 0:
-            block.conflict_tx = self.form_penalize_violators_transaction(conflicting_tops)
         signed_block = BlockFactory.sign_block(block, self.block_signer.private_key)
 
         if self.behaviour.malicious_block_broadcast_delay > 0:
@@ -331,7 +333,7 @@ class Node:
         self.logger.info("Forming transaction with conflicting blocks")
         node_private = self.block_signer.private_key
         tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
-        return tx
+        return [tx]
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
         ordered_senders = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
@@ -528,7 +530,20 @@ class Node:
         block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
         epoch_number = Epoch.get_epoch_number(block_number)
 
-        # CHECK_PENALTY_TRANSACTIONS hashes for exist hashes in dag
+        # GET_CONFLICT_HASHES
+        system_txs = block.system_txs
+        conflict_block_hashes = []
+        for system_tx in system_txs:
+            if isinstance(system_tx, PenaltyTransaction):
+                # penalty transaction for block conflicts
+                conflict_block_hashes = system_tx.conflicts
+        # CHECK_CONFLICTS_IN_LOCAL_DAG
+        blocks_by_hash = self.dag.blocks_by_hash
+        for conflict in conflict_block_hashes:
+            if conflict not in blocks_by_hash:
+                # request missing block
+                test = ''
+
         # send requests by block for every missing in local dag
 
         self.dag.add_signed_block(block_number, signed_block)

@@ -15,6 +15,14 @@ from chain.params import Round, ROUND_DURATION
 from visualization.dag_visualizer import DagVisualizer
 
 
+# TODO test for transaction and block count base logic            : Done
+# TODO test 2,3,4 blocks
+# TODO tets 2,3,4 blocks and + some 'out of network' nodes group
+# TODO test for two malicious validator one by one
+# TODO tets for epoch by epoch block
+# TODO test for three malicious validators one by one %
+
+
 class TestConflictBlockProcessing(unittest.TestCase):
 
     def test_conflict_block_validator_processing(self):
@@ -42,16 +50,15 @@ class TestConflictBlockProcessing(unittest.TestCase):
         # nodes MUST HAVE 2 conflict blocks
         DagVisualizer.visualize(network.nodes[0].dag)
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 7)  # + 1 conflict
-        # -- next validator MUST get two block conflicts
+        network.nodes[next_malicious_signer_node_index].behaviour.malicious_excessive_block = False
+        # -- next validator MUST get two block conflicts send transaction
+        self.perform_block_steps(network, 1)
+        # check all nodes block conflict transaction mined
+        self.list_validator(network.nodes, ['dag.blocks_by_number.system_txs'], 1)
+        # all nodes have all blocks test done
+        self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 8)
 
-        # TODO test 2,3,4 blocks
-        # TODO tets 2,3,4 blocks and + some 'out of network' nodes group
-        # TODO test for two malicious validator one by one
-        # TODO tets for epoch by epoch block
-        # TODO test for three malicious validators one by one %
-
-        test = ''
-# -------------------------------------------------------------------
+    # -------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------
     @staticmethod
@@ -124,4 +131,7 @@ class TestConflictBlockProcessing(unittest.TestCase):
                 validators_list = node.permissions.epoch_validators
                 validators_list = next(iter(validators_list.values()))
                 self.assertEqual(len(validators_list), value)
+            if 'dag.blocks_by_number.system_txs' in functions:
+                conflict_tx_block = node.dag.blocks_by_number[7]
+                self.assertEqual(len(conflict_tx_block[0].block.system_txs), value)
 
