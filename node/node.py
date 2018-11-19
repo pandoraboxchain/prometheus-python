@@ -397,9 +397,6 @@ class Node:
         signed_block.parse(raw_signed_block)
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
 
-        if self.node_id == 20:
-            debug_pause = ''
-
         # CHECK_ANCESTOR
         blocks_by_hash = self.dag.blocks_by_hash
         is_orphan_block = False
