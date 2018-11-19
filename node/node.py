@@ -220,7 +220,7 @@ class Node:
         else:
             self.logger.info("Created but maliciously skipped broadcasted block")
 
-        if self.behaviour.is_malicious_excessive_block():
+        if self.behaviour.malicious_excessive_block_count > 0:
             additional_block_timestamp = block.timestamp + 1
             additional_block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
             additional_block.system_txs = block.system_txs
@@ -230,6 +230,7 @@ class Node:
             self.conflict_watcher.on_new_block_by_validator(signed_add_block.get_hash(), epoch_number, self.node_pubkey) #mark our own conflict for consistency
             self.logger.info("Sending additional block")
             self.network.broadcast_block(self.node_id, signed_add_block.pack())
+            self.behaviour.malicious_excessive_block_count -= 1
 
     def get_system_transactions_for_signing(self, round):
         system_txs = self.mempool.pop_round_system_transactions(round)
@@ -540,6 +541,8 @@ class Node:
         # CHECK_CONFLICTS_IN_LOCAL_DAG
         blocks_by_hash = self.dag.blocks_by_hash
         for conflict in conflict_block_hashes:
+            if self.node_id == 27:
+                debud = ''
             if conflict not in blocks_by_hash:
                 # request missing block
                 test = ''
