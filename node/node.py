@@ -19,7 +19,7 @@ from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
-from verification.block_acceptor import BlockAcceptor, OrphanBlockAcceptor, OrphanBufferBlockAcceptor
+from verification.block_acceptor import BlockAcceptor, OrphanBlockAcceptor
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
@@ -420,7 +420,7 @@ class Node:
                     allowed_pubkey = allowed_signer
                     break
         else:
-            allowed_pubkey = 'not validate'  # process block as orphan
+            allowed_pubkey = 'block_out_of_epoch'  # process block as orphan
 
         if allowed_pubkey:  # IF SIGNER ALLOWED
             if not is_orphan_block:  # PROCESS NORMAL BLOCK (same epoch)
@@ -553,7 +553,7 @@ class Node:
                     break
 
             if allowed_pubkey:
-                block_verifier = OrphanBufferBlockAcceptor(self.epoch, self.logger)
+                block_verifier = BlockAcceptor(self.epoch, self.logger)
                 if block_verifier.check_if_valid(block_from_buffer.block):  # VERIFY BLOCK AS NORMAL
                     self.insert_verified_block(block_from_buffer, allowed_pubkey)
                 else:
