@@ -7,7 +7,7 @@ from crypto.keys import Keys
 from crypto.private import Private
 
 
-#TODO check if block don't have itself in prev_hashes
+# TODO check if block don't have itself in prev_hashes
 
 class BlockAcceptor(Acceptor):
 
@@ -16,13 +16,12 @@ class BlockAcceptor(Acceptor):
         self.epoch = epoch
 
     def validate(self, block):
-
-        current_round = self.epoch.get_current_round()
-        current_block_number = self.epoch.get_current_timeframe_block_number()
+        current_block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
+        current_round = self.epoch.get_round_by_block_number(current_block_number)
         prev_hashes = block.prev_hashes
 
         self.validate_timeslot(block, current_block_number)
-        self.validate_non_ancestor_prev_hashes(prev_hashes) #turn off for out of timeslot case
+        self.validate_non_ancestor_prev_hashes(prev_hashes)
         self.validate_longest_chain_goes_first(prev_hashes)
         self.validate_private_transactions_in_block(block, current_round)
 
@@ -38,6 +37,8 @@ class BlockAcceptor(Acceptor):
     def validate_timeslot(self, block, current_block_number):
         for prev_hash in block.prev_hashes:
             prev_hash_number = self.epoch.dag.get_block_number(prev_hash)
+            if prev_hash_number is None:
+                return False
             if prev_hash_number >= current_block_number:
                 raise AcceptionException("Block refers to blocks in current or future timeslots")
 
@@ -70,8 +71,8 @@ class BlockAcceptor(Acceptor):
         elif private_key_transactions_count_in_block > 1:
             raise AcceptionException("Block has more than one PrivateKeyTransaction!")
 
+        return  # this check is too slow and I'm not sure if it's needed at all
 
-        return # this check is too slow and I'm not sure if it's needed at all
         private_key = private_key_transactions[0].key
         expected_public = Private.publickey(private_key)
         epoch_hashes = self.epoch.get_epoch_hashes()
@@ -81,3 +82,23 @@ class BlockAcceptor(Acceptor):
             if not Keys.to_bytes(expected_public) in public_keys.values():
                 raise AcceptionException(
                     "No corresponding public key was found for private key in PrivateKeyTransaction!")
+
+
+class OrphanBlockAcceptor(Acceptor):
+
+    def __init__(self, epoch, blocks_buffer, logger):
+        super().__init__(logger)
+        self.epoch = epoch
+        self.blocks_buffer = blocks_buffer
+
+    def validate(self, block):
+        if len(self.blocks_buffer) > 0:
+            self.validate_blocks_buffer_for_ancestor(block)
+
+    def validate_blocks_buffer_for_ancestor(self, signed_block):
+        is_ancestor_for_buffered_block = False
+        for buffered_block in self.blocks_buffer:
+            if signed_block.get_hash() in buffered_block.block.prev_hashes:
+                is_ancestor_for_buffered_block = True
+        return is_ancestor_for_buffered_block
+

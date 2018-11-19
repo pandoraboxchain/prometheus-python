@@ -13,18 +13,19 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigner
 from node.permissions import Permissions
 from node.validators import Validators
+from transaction.gossip_transaction import NegativeGossipTransaction, \
+                                           PositiveGossipTransaction
 from transaction.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
 from verification.in_block_transactions_acceptor import InBlockTransactionsAcceptor
 from verification.mempool_transactions_acceptor import MempoolTransactionsAcceptor
-from verification.block_acceptor import BlockAcceptor
+from verification.block_acceptor import BlockAcceptor, OrphanBlockAcceptor
 from crypto.keys import Keys
 from crypto.private import Private
 from crypto.secret import split_secret, encode_splits
 from hashlib import sha256
 
-from chain.params import ROUND_DURATION
 
 class DummyLogger(object):
     def __getattr__(self, name):
@@ -80,7 +81,6 @@ class Node:
             else:
                 self.network.broadcast_block(self.node_id, self.behaviour.block_to_delay_broadcasting.pack())
                 self.behaviour.block_to_delay_broadcasting = None
-
 
     def try_to_send_negative_gossip(self, previous_timeslot_number):
         if previous_timeslot_number not in self.dag.blocks_by_number:
@@ -335,14 +335,13 @@ class Node:
         return tx
 
     def form_penalize_violators_transaction(self, conflicts):
+        # TODO can be deprecated on get block by ancestor complete logic
         for conflict in conflicts:
             block = self.dag.blocks_by_hash[conflict]
-            self.network.broadcast_block_out_of_timeslot(self.node_id, block.pack())
-        
+            self.network.broadcast_block(self.node_id, block.pack())
         self.logger.info("Forming transaction with conflicting blocks")
         self.logger.info(conflict.hex())
         node_private = self.block_signer.private_key
-
         tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
         return tx
 
@@ -404,145 +403,84 @@ class Node:
     # Handlers
     # -------------------------------------------------------------------------------
     def handle_block_message(self, node_id, raw_signed_block):
-
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
-
-        for prev_hash in signed_block.block.prev_hashes:  # check received block ancestor
-            if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
-                self.blocks_buffer.append(signed_block)   # add not verified handled block
-                self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
-                return
-
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
 
-        if self.epoch.is_new_epoch_upcoming(block_number):
-            self.epoch.accept_tops_as_epoch_hashes()
+        # CHECK_ANCESTOR
+        blocks_by_hash = self.dag.blocks_by_hash
+        is_orphan_block = False
+        for prev_hash in signed_block.block.prev_hashes:  # by every previous hash
+            if prev_hash not in blocks_by_hash:  # verify local ancestor for incoming block
+                is_orphan_block = True
 
-        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
+        # CHECK_ORPHAN_DISTANCE
+        block_out_of_epoch = False
+        epoch_end_block = self.epoch.get_epoch_end_block_number(self.epoch.current_epoch)
+        if block_number >= epoch_end_block:
+            # income block from future epoch, cant validate signer
+            block_out_of_epoch = True
 
-        allowed_pubkey = None
-        for allowed_signer in allowed_signers:
-            if signed_block.verify_signature(allowed_signer):
-                allowed_pubkey = allowed_signer
-                break
-        
-        if allowed_pubkey:
-            block = signed_block.block
-            block_verifier = BlockAcceptor(self.epoch, self.logger)
-            if block_verifier.check_if_valid(block):
-                epoch_number = Epoch.get_epoch_number(block_number)
-                
-                self.dag.add_signed_block(block_number, signed_block)
-                self.mempool.remove_transactions(block.system_txs)
-                self.mempool.remove_transactions(block.payment_txs)
-                self.utxo.apply_payments(block.payment_txs)
-                self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
-            else:
-                self.logger.error("Block was not added. Considered invalid")
+        # CHECK ALLOWED SIGNER
+        if not block_out_of_epoch:  # if incoming block not out of current epoch
+            allowed_signers = self.get_allowed_signers_for_block_number(block_number)
+            allowed_pubkey = None
+            for allowed_signer in allowed_signers:
+                if signed_block.verify_signature(allowed_signer):
+                    allowed_pubkey = allowed_signer
+                    break
+        else:
+            allowed_pubkey = 'block_out_of_epoch'  # process block as orphan
+
+        if allowed_pubkey:  # IF SIGNER ALLOWED
+            if not is_orphan_block:  # PROCESS NORMAL BLOCK (same epoch)
+                if self.epoch.is_new_epoch_upcoming(block_number):  # CHECK IS NEW EPOCH
+                    self.epoch.accept_tops_as_epoch_hashes()
+                block_verifier = BlockAcceptor(self.epoch, self.logger)  # VERIFY BLOCK AS NORMAL
+                if block_verifier.check_if_valid(signed_block.block):
+                    self.insert_verified_block(signed_block, allowed_pubkey)
+                    return
+            else:  # PROCESS ORPHAN BLOCK (same epoch)
+                orphan_block_verifier = OrphanBlockAcceptor(self.epoch, self.blocks_buffer, self.logger)
+                if orphan_block_verifier.check_if_valid(signed_block.block):
+                    self.blocks_buffer.append(signed_block)
+                    self.logger.info("Orphan block add to buffer")
+                    # for every parent for received block
+                    for prev_hash in signed_block.block.prev_hashes:  # check received block ancestor
+                        if prev_hash not in self.dag.blocks_by_hash:  # check parent in local dag
+                            # if parent not exist in local DAG ask for parent
+                            self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
+
+                if len(self.blocks_buffer) > 0:
+                    self.process_block_buffer()
+                    self.logger.info("Orphan block buffer processed success")
         else:
             self.logger.error("Received block from %d, but its signature is wrong", node_id)
 
-    #TODO now it seems all block messages are doing the same thing
-    def handle_block_out_of_timeslot(self, node_id, raw_signed_block):
-        signed_block = SignedBlock()
-        signed_block.parse(raw_signed_block)
-
-        block_hash = signed_block.get_hash()
-        if block_hash in self.dag.blocks_by_hash:
-            self.logger.info("Received conflicting block, but it already exists in DAG")
-            return
-
-        block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
-
-        allowed_signers = self.get_allowed_signers_for_block_number(block_number)
-        allowed_pubkey = None
-        for allowed_signer in allowed_signers:
-            if signed_block.verify_signature(allowed_signer):
-                allowed_pubkey = allowed_signer
-                break
-
-        if allowed_pubkey:
-            block = signed_block.block
-            block_verifier = BlockAcceptor(self.epoch, self.logger)
-
-            # check block parent ancestor in local dag
-            for prev_hash in block.prev_hashes:  # check received block ancestor
-                if prev_hash not in self.dag.blocks_by_hash:  # verify received block for local ancestor
-                    self.blocks_buffer.append(signed_block)
-                    self.network.direct_request_block_by_hash(self.node_id, node_id, prev_hash)
-                    return
-                else:
-                    self.blocks_buffer.append(signed_block)  # add last received ancestor block
-                    self.logger.info("Missed blocks collected by direct requests")
-
-            epoch_number = Epoch.get_epoch_number(block_number)
-
-            if block_verifier.check_if_valid(block):
-                if len(self.blocks_buffer) > 0:
-                    # add blocks from buffer out of timeslot
-                    while len(self.blocks_buffer) > 0:
-                        block_from_buffer = self.blocks_buffer.pop()
-                        block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
-                        self.dag.add_signed_block(block_number, block_from_buffer)
-                        self.mempool.remove_transactions(block_from_buffer.block.system_txs)
-                        self.mempool.remove_transactions(block_from_buffer.block.payment_txs)
-                        self.utxo.apply_payments(block_from_buffer.block.payment_txs)
-                        #TODO find out who was real allowed pubkey and add block to conflict watcher from buffer properly
-                        # self.conflict_watcher.on_new_block_by_validator(block_from_buffer.get_hash(), epoch_number, allowed_pubkey)
-                        self.logger.info("Added block out of timeslot from block buffer")
-                    return  # while all blocks added from block buffer return
-                else:
-                    # simple insert block out of timeslot
-                    self.dag.add_signed_block(block_number, signed_block)
-                    self.mempool.remove_transactions(block.system_txs)
-                    self.mempool.remove_transactions(block.payment_txs)
-                    self.utxo.apply_payments(block.payment_txs)
-                    self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
-                    self.logger.error("Added block out of timeslot")
-            else:
-                self.logger.error("Block was not added. Considered invalid")
-        else:
-            self.logger.error("Received block from %d, but it's signature is wrong", node_id)
-
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
-
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
+            # PROCESS NEGATIVE GOSSIP
+            if isinstance(transaction, NegativeGossipTransaction):
+                current_gossips = self.mempool.get_negative_gossips_by_block(transaction.number_of_block)
+                for gossip in current_gossips:
+                    # negative gossip already send by node, skip positive gossip searching and broadcasting
+                    if gossip.pubkey == self.node_pubkey:
+                        return
+                if self.dag.has_block_number(transaction.number_of_block):
+                    signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
+                    self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
+            # PROCESS POSITIVE GOSSIP
+            if isinstance(transaction, PositiveGossipTransaction):
+                # ----> ! make request ONLY if block in timeslot
+                if transaction.block_hash not in self.dag.blocks_by_hash:
+                    self.network.get_block_by_hash(sender_node_id=self.node_id,
+                                                   receiver_node_id=node_id,  # request TO ----> receiver_node_id
+                                                   block_hash=transaction.block_hash)
         else:
             self.logger.error("Received tx is invalid")
-
-    def handle_gossip_negative(self, node_id, raw_gossip):
-        transaction = TransactionParser.parse(raw_gossip)
-        verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
-        if verifier.check_if_valid(transaction):
-            self.mempool.append_gossip_tx(transaction)  # append negative gossip exclude duplicates
-            current_gossips = self.mempool.get_negative_gossips_by_block(transaction.number_of_block)
-            # check if current node send negative gossip ?
-            for gossip in current_gossips:
-                # negative gossip already send by node, skip positive gossip searching and broadcasting
-                if gossip.pubkey == self.node_pubkey:
-                    return
-
-            if self.dag.has_block_number(transaction.number_of_block):
-                signed_block_by_number = self.dag.blocks_by_number[transaction.number_of_block]
-                self.broadcast_gossip_positive(signed_block_by_number[0].get_hash())
-        else:
-            self.logger.error("Received gossip negative tx is invalid")
-
-    def handle_gossip_positive(self, node_id, raw_gossip):
-        transaction = TransactionParser.parse(raw_gossip)
-        verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
-        if verifier.check_if_valid(transaction):
-            self.mempool.append_gossip_tx(transaction)
-            if transaction.block_hash not in self.dag.blocks_by_hash:  # ----> ! make request ONLY if block in timeslot
-                self.network.get_block_by_hash(sender_node_id=self.node_id,
-                                               receiver_node_id=node_id,  # request TO ----> receiver_node_id
-                                               block_hash=transaction.block_hash)
-        else:
-            self.logger.error("Received gossip positive tx is invalid")
 
     # -------------------------------------------------------------------------------
     # Broadcast
@@ -564,14 +502,14 @@ class Node:
         tx = TransactionFactory.create_negative_gossip_transaction(block_number, node_private)
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         self.logger.info("Broadcasted negative gossip transaction")
-        self.network.broadcast_gossip_negative(self.node_id, TransactionParser.pack(tx))
+        self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_gossip_positive(self, signed_block_hash):
         node_private = self.block_signer.private_key
         tx = TransactionFactory.create_positive_gossip_transaction(signed_block_hash, node_private)
         self.mempool.append_gossip_tx(tx)  # ADD ! TO LOCAL MEMPOOL BEFORE BROADCAST
         # self.logger.info("Broadcasted positive gossip transaction")
-        self.network.broadcast_gossip_positive(self.node_id, TransactionParser.pack(tx))
+        self.network.broadcast_transaction(self.node_id, TransactionParser.pack(tx))
 
     def broadcast_payments(self):
         for utxo in self.owned_utxos:
@@ -587,7 +525,7 @@ class Node:
     def request_block_by_hash(self, block_hash):
         # no need validate/ public info ?
         signed_block = self.dag.blocks_by_hash[block_hash]
-        self.network.broadcast_block_out_of_timeslot(self.node_id, signed_block.pack())
+        self.network.broadcast_block(self.node_id, signed_block.pack())
 
     # method returns block directly to sender without broadcast
     def direct_request_block_by_hash(self, sender_node, block_hash):
@@ -597,6 +535,41 @@ class Node:
     # -------------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------------
+    def insert_verified_block(self, signed_block, allowed_pubkey):
+        block = signed_block.block
+        block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
+        epoch_number = Epoch.get_epoch_number(block_number)
+
+        self.dag.add_signed_block(block_number, signed_block)
+        self.mempool.remove_transactions(block.system_txs)
+        self.mempool.remove_transactions(block.payment_txs)
+        self.utxo.apply_payments(block.payment_txs)
+        self.conflict_watcher.on_new_block_by_validator(block.get_hash(), epoch_number, allowed_pubkey)
+
+    def process_block_buffer(self):
+        while len(self.blocks_buffer) > 0:
+            block_from_buffer = self.blocks_buffer.pop()
+            block_number = self.epoch.get_block_number_from_timestamp(block_from_buffer.block.timestamp)
+
+            if self.epoch.is_new_epoch_upcoming(block_number):  # CHECK IS NEW EPOCH
+                self.epoch.accept_tops_as_epoch_hashes()
+
+            # validate block from buffer by signature
+            allowed_signers = self.get_allowed_signers_for_block_number(block_number)
+            allowed_pubkey = None
+            for allowed_signer in allowed_signers:
+                if block_from_buffer.verify_signature(allowed_signer):
+                    allowed_pubkey = allowed_signer
+                    break
+
+            if allowed_pubkey:
+                block_verifier = BlockAcceptor(self.epoch, self.logger)
+                if block_verifier.check_if_valid(block_from_buffer.block):  # VERIFY BLOCK AS NORMAL
+                    self.insert_verified_block(block_from_buffer, allowed_pubkey)
+                else:
+                    self.logger.info("Block from buffer verification failed")
+            else:
+                self.logger.info("Block from buffer wrong signature")
 
     def get_allowed_signers_for_block_number(self, block_number):
         # TODO take cached epoch hashes if block is of lastest epoch
@@ -650,16 +623,4 @@ class Node:
         # dag_positive_gossips = dag.get_positive_gossips()
         # dag_penalty_gossips = dag.get_penalty_gossips()
         return result
-
-    @staticmethod
-    def sublist(lst1, lst2):
-        def get_all_in(one, another):
-            for element in one:
-                if element in another:
-                    yield element
-
-        for x1, x2 in zip(get_all_in(lst1, lst2), get_all_in(lst2, lst1)):
-            if x1 != x2:
-                return False
-        return True
 

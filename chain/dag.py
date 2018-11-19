@@ -79,7 +79,7 @@ class Dag:
     def get_block_number(self, block_hash):
         assert block_hash in self.block_numbers_by_hash
         return self.block_numbers_by_hash[block_hash]
-    
+
     def calculate_chain_length(self, from_block, to_block):
         chain_iter = ChainIter(self, from_block)
         count = 0

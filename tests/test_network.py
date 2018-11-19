@@ -11,7 +11,7 @@ from chain.epoch import Epoch
 from node.node import Node
 from visualization.dag_visualizer import DagVisualizer
 
-from chain.params import ROUND_DURATION, GENESIS_VALIDATORS_COUNT
+from chain.params import ROUND_DURATION
 
 
 class TestNodeAPI(unittest.TestCase):
@@ -465,6 +465,46 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(network.nodes[27].dag.blocks_by_hash), 29)
         # nodes tops assert
         self.assertEqual(network.nodes[27].epoch.tops_and_epochs, network.nodes[0].epoch.tops_and_epochs)
+
+    def test_two_node_groups_across_new_epoch(self):
+        Time.use_test_time()
+        Time.set_current_time(1)
+
+        private_keys = BlockSigners()
+        private_keys = private_keys.block_signers
+
+        validators = Validators()
+        validators.validators = Validators.read_genesis_validators_from_file()
+
+        network = Network()
+        self.generate_nodes(network, private_keys, 19)  # create validators
+        self.add_stakeholders(network, 9)  # add stakeholders to network
+
+        # generate blocks to new epoch
+        self.perform_steps(network, 22)
+        DagVisualizer.visualize(network.nodes[0].dag)
+
+        # divide network into two groups
+        network.move_nodes_to_group_by_id(1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19])
+        network.move_nodes_to_group_by_id(2, [20, 21, 22, 23, 24, 25, 26, 27])
+
+        test_group_1 = network.groups.get(1)
+        test_group_2 = network.groups.get(2)
+        # check nodes count in groups
+        self.assertEqual(len(test_group_1), 20)
+        self.assertEqual(len(test_group_2), 8)
+
+        self.perform_steps(network, 20)
+        self.assertEqual(len(network.groups.get(1)[0].dag.blocks_by_hash), 43)  # group_1 = 28 blocks
+        self.assertEqual(len(network.groups.get(2)[0].dag.blocks_by_hash), 23)  # group_2 = 23 blocks
+
+        network.merge_all_groups()
+
+        self.perform_steps(network, 1)  # perform sync timeslot steps
+        # check first node blocks
+        self.assertEqual(len(network.nodes[0].dag.blocks_by_hash), 44)
+        # check last node blocks
+        self.assertEqual(len(network.nodes[27].dag.blocks_by_hash), 44)
 
     @staticmethod
     def generate_nodes(network, block_signers, count):
