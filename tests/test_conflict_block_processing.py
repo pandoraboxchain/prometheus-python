@@ -17,7 +17,7 @@ from visualization.dag_visualizer import DagVisualizer
 
 # TODO test for transaction and block count base logic            : Done
 # TODO test 2,3,4 blocks                                          : Done
-# TODO tets 2,3,4 blocks and + some 'out of network' nodes group  : ?
+# TODO tets 2,3,4 blocks and + some 'out of network' nodes group  : resolves by orphan system
 # TODO test for two malicious validator one by one
 # TODO tets for epoch by epoch block
 # TODO test for three malicious validators one by one %
@@ -25,7 +25,6 @@ from visualization.dag_visualizer import DagVisualizer
 
 class TestConflictBlockProcessing(unittest.TestCase):
 
-    @unittest.skip('debug groups')
     def test_conflict_block_validator_processing(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -58,7 +57,6 @@ class TestConflictBlockProcessing(unittest.TestCase):
         # all nodes have all blocks test done
         self.list_validator(network.nodes, ['dag.blocks_by_number.length'], 8)
 
-    @unittest.skip('debug groups')
     def test_more_conflict_blocks(self):
         Time.use_test_time()
         Time.set_current_time(1)
@@ -144,10 +142,8 @@ class TestConflictBlockProcessing(unittest.TestCase):
         # TODO all blocks are received and marged by orphan system
         self.assertEqual(len(network.nodes[0].dag.blocks_by_hash), 26)
         self.assertEqual(len(network.nodes[27].dag.blocks_by_hash), 26)
-
-        DagVisualizer.visualize(network.nodes[0].dag)
-        DagVisualizer.visualize(network.nodes[27].dag)
-        test = ''
+        # DagVisualizer.visualize(network.nodes[0].dag)
+        # DagVisualizer.visualize(network.nodes[27].dag)
     # -------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------

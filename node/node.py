@@ -541,13 +541,9 @@ class Node:
         # CHECK_CONFLICTS_IN_LOCAL_DAG
         blocks_by_hash = self.dag.blocks_by_hash
         for conflict in conflict_block_hashes:
-            if self.node_id == 27:
-                debud = ''
             if conflict not in blocks_by_hash:
                 # request missing block
-                test = ''
-
-        # send requests by block for every missing in local dag
+                self.network.direct_request_block_by_hash(self.node_id, conflict)
 
         self.dag.add_signed_block(block_number, signed_block)
         self.mempool.remove_transactions(block.system_txs)
