@@ -21,23 +21,18 @@ class BlockAcceptor(Acceptor):
         prev_hashes = block.prev_hashes
 
         self.validate_timeslot(block, current_block_number)
-        # self.validate_prev_hashes_are_tops(prev_hashes)  # turn off for out of timeslot case
+        self.validate_non_ancestor_prev_hashes(prev_hashes)
         self.validate_longest_chain_goes_first(prev_hashes)
         self.validate_private_transactions_in_block(block, current_round)
 
-    def validate_prev_hashes_are_tops(self, prev_hashes):
-        tops = self.epoch.dag.get_top_hashes()
-        for prev_hash in prev_hashes:
-            if not prev_hash in tops:
-                raise AcceptionException("Block refers to blocks which were not top blocks at the moment!")
     # no previous hash should be ancestor of another previous hash
     def validate_non_ancestor_prev_hashes(self, prev_hashes):
         for prev_hash1 in prev_hashes:
             for prev_hash2 in prev_hashes:
                 if prev_hash1 != prev_hash2:
-                    if self.epoch.dag.is_ancestor(prev_hash1, prev_hash2) or \
-                       self.epoch.dag.is_ancestor(prev_hash2, prev_hash1):
-                        raise AcceptionException("Block previous hashes are self referential")
+                    if  self.epoch.dag.is_ancestor(prev_hash1, prev_hash2) or \
+                        self.epoch.dag.is_ancestor(prev_hash2, prev_hash1):
+                            raise AcceptionException("Block previous hashes are self referential")
 
     def validate_timeslot(self, block, current_block_number):
         for prev_hash in block.prev_hashes:
@@ -45,7 +40,7 @@ class BlockAcceptor(Acceptor):
             if prev_hash_number is None:
                 return False
             if prev_hash_number >= current_block_number:
-                raise AcceptionException("Block refers to blocks in current or future timeslots!")
+                raise AcceptionException("Block refers to blocks in current or future timeslots")
 
     def validate_longest_chain_goes_first(self, prev_hashes):
         dag = self.epoch.dag

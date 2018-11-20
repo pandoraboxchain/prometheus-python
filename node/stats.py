@@ -13,7 +13,7 @@ class Stats:
         
         payments = []
         for top, _ in epoch.get_epoch_hashes().items():
-            iterator = MergingIter(dag, node.conflict_watcher, top)
+            iterator = MergingIter(dag, top, node.conflict_watcher)
             for block in iterator:
                 if block:
                     mainchain_block_rewards += Stats.get_block_reward(block.block)

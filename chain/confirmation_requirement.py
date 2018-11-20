@@ -1,5 +1,6 @@
 from chain.dag import Dag, ChainIter
 from chain.params import ZETA, ZETA_MIN, ZETA_MAX
+from chain.skipped_block import SkippedBlock
 
 ZETA_CHANGE_CONST = 3
 
@@ -28,19 +29,39 @@ class ConfirmationRequirement:
     def on_timeslot_changed(self, prev_timeslot, current_timeslot):
         pass
 
-    def get_confirmation_requirement(self, block_hash):
-        assert block_hash in self.blocks
-        return self.blocks[block_hash]
+    def get_confirmation_requirement(self, block):
+        if isinstance(block, SkippedBlock):
+            return self.get_skip_confirmation_requirement(block)
+        assert block in self.blocks
+        return self.blocks[block]
+
+    def get_skip_confirmation_requirement(self, skipped_block):
+        req = 0
+        anchor_block_hash = skipped_block.anchor_block_hash
+        assert anchor_block_hash in self.blocks
+        anchor_block_requirement = self.blocks[anchor_block_hash]
+        _, shortest_gap_before_anchor = self.choose_shortest_skip(anchor_block_hash)
+        # full_rounds_count = shortest_gap_before_anchor // ZETA_CHANGE_CONST * ZETA_CHANGE_CONST
+        leftover = shortest_gap_before_anchor % ZETA_CHANGE_CONST
+        if skipped_block.backstep_count <= leftover:
+            req = anchor_block_requirement
+        else:
+            backstep_count = skipped_block.backstep_count - leftover
+            zeta_increase = (backstep_count - 1) // ZETA_CHANGE_CONST
+            req = anchor_block_requirement + zeta_increase + 1 # plus 1 because we have already one round back
+        
+        req = max(ZETA_MIN, min(req, ZETA_MAX))
+        return req
 
     def choose_shortest_skip(self, block_hash):
         prev_hashes = self.dag.get_links(block_hash)
         closest_prev_hash = prev_hashes[0]
         block_number = self.dag.get_block_number(block_hash)
         prev_block_number = self.dag.get_block_number(closest_prev_hash)
-        shortest_skip = block_number - prev_block_number
+        shortest_skip = block_number - prev_block_number - 1
         for prev_hash in prev_hashes[1:]:
             prev_block_number = self.dag.get_block_number(prev_hash)
-            skip_count = block_number - prev_block_number
+            skip_count = block_number - prev_block_number - 1
             if skip_count < shortest_skip:
                 shortest_skip = skip_count
                 closest_prev_hash = prev_hash
