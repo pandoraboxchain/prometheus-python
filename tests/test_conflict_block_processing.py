@@ -17,7 +17,7 @@ from visualization.dag_visualizer import DagVisualizer
 
 # TODO test for transaction and block count base logic            : Done
 # TODO test 2,3,4 blocks                                          : Done
-# TODO tets 2,3,4 blocks and + some 'out of network' nodes group  :
+# TODO tets 2,3,4 blocks and + some 'out of network' nodes group  : ?
 # TODO test for two malicious validator one by one
 # TODO tets for epoch by epoch block
 # TODO test for three malicious validators one by one %
@@ -131,8 +131,8 @@ class TestConflictBlockProcessing(unittest.TestCase):
 
         self.assertEqual(len(network.groups.get(1)[0].dag.blocks_by_hash), 25)  # group_1 = 25 blocks
         self.assertEqual(len(network.groups.get(2)[0].dag.blocks_by_hash), 23)  # group_2 = 23 blocks
-        #DagVisualizer.visualize(network.groups.get(1)[0].dag)
-        #DagVisualizer.visualize(network.groups.get(2)[0].dag)
+        # DagVisualizer.visualize(network.groups.get(1)[0].dag)
+        # DagVisualizer.visualize(network.groups.get(2)[0].dag)
 
         network.merge_all_groups()
 
@@ -141,7 +141,7 @@ class TestConflictBlockProcessing(unittest.TestCase):
 
         self.perform_block_steps(network, 1)
 
-        # TODO понятия не имею как он это делает но до механизма отправки не доходит ! (получает блок раньше О_о)
+        # TODO all blocks are received and marged by orphan system
         self.assertEqual(len(network.nodes[0].dag.blocks_by_hash), 26)
         self.assertEqual(len(network.nodes[27].dag.blocks_by_hash), 26)
 
