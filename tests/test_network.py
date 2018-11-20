@@ -6,6 +6,7 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigners, BlockSigner
 from node.network import Network
 from node.validators import Validators
+from tests.helper_test import HelperTest
 from tools.time import Time
 from chain.epoch import Epoch
 from node.node import Node
@@ -431,11 +432,13 @@ class TestNodeAPI(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        self.generate_nodes(network, private_keys, 19)  # create validators
-        self.add_stakeholders(network, 9)  # add stakeholders to network
+        helper = HelperTest(network)
+
+        helper.generate_nodes(private_keys, 19)  # create validators
+        helper.add_stakeholders(9)  # add stakeholders to network
 
         # generate blocks to new epoch
-        self.perform_steps(network, 22)
+        helper.perform_block_steps(22)
         DagVisualizer.visualize(network.nodes[0].dag)
 
         # divide network into two groups
@@ -448,13 +451,13 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(test_group_1), 20)
         self.assertEqual(len(test_group_2), 8)
 
-        self.perform_steps(network, 5)
+        helper.perform_block_steps(5)
         self.assertEqual(len(network.groups.get(1)[0].dag.blocks_by_hash), 28)  # group_1 = 28 blocks
         self.assertEqual(len(network.groups.get(2)[0].dag.blocks_by_hash), 23)  # group_2 = 23 blocks
 
         network.merge_all_groups()  # marge all groups
         self.assertEqual(len(network.nodes), 28)
-        self.perform_steps(network, 1)  # perform sync timeslot steps
+        helper.perform_block_steps(1)  # perform sync timeslot steps
 
         # !!! on performed step all nodes from second group obtain all missed blocks to last received
         # [21, 22, 23, 24, 25, 26, 27, 28]
@@ -477,11 +480,13 @@ class TestNodeAPI(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        self.generate_nodes(network, private_keys, 19)  # create validators
-        self.add_stakeholders(network, 9)  # add stakeholders to network
+        helper = HelperTest(network)
+
+        helper.generate_nodes(private_keys, 19)  # create validators
+        helper.add_stakeholders(9)  # add stakeholders to network
 
         # generate blocks to new epoch
-        self.perform_steps(network, 22)
+        helper.perform_block_steps(22)
         DagVisualizer.visualize(network.nodes[0].dag)
 
         # divide network into two groups
@@ -494,52 +499,15 @@ class TestNodeAPI(unittest.TestCase):
         self.assertEqual(len(test_group_1), 20)
         self.assertEqual(len(test_group_2), 8)
 
-        self.perform_steps(network, 20)
+        helper.perform_block_steps(20)
         self.assertEqual(len(network.groups.get(1)[0].dag.blocks_by_hash), 43)  # group_1 = 28 blocks
         self.assertEqual(len(network.groups.get(2)[0].dag.blocks_by_hash), 23)  # group_2 = 23 blocks
 
         network.merge_all_groups()
 
-        self.perform_steps(network, 1)  # perform sync timeslot steps
+        helper.perform_block_steps(1)  # perform sync timeslot steps
         # check first node blocks
         self.assertEqual(len(network.nodes[0].dag.blocks_by_hash), 44)
         # check last node blocks
         self.assertEqual(len(network.nodes[27].dag.blocks_by_hash), 44)
-
-    @staticmethod
-    def generate_nodes(network, block_signers, count):
-        behaviour = Behaviour()
-        for i in range(0, count):
-            logger = logging.getLogger("Node " + str(i))
-            node = Node(genesis_creation_time=1,
-                        node_id=i,
-                        network=network,
-                        behaviour=behaviour,
-                        block_signer=block_signers[i],
-                        logger=logger)
-            network.register_node(node)
-
-    @staticmethod
-    def add_stakeholders(network, count):
-        behaviour = Behaviour()
-        behaviour.wants_to_hold_stake = True
-        for i in range(0, count):
-            index = len(network.nodes)
-            logger = logging.getLogger("Node " + str(index))
-            node = Node(genesis_creation_time=1,
-                        block_signer=BlockSigner(Private.generate()),
-                        node_id=index,
-                        network=network,
-                        behaviour=behaviour,
-                        logger=logger)
-            network.register_node(node)
-
-    @staticmethod
-    def perform_steps(network, timeslote_count):
-        for t in range(0, timeslote_count):  # by timeslots
-            Time.advance_to_next_timeslot()
-            for s in range(0, ROUND_DURATION):  # by steps
-                for node in network.nodes:  # by nodes
-                    node.step()
-
 
