@@ -6,7 +6,7 @@ from node.behaviour import Behaviour
 from node.block_signers import BlockSigners, BlockSigner
 from node.network import Network
 from node.validators import Validators
-from tests.helper_test import HelperTest
+from tests.test_helper import TestHelper
 from tools.time import Time
 from chain.epoch import Epoch
 from node.node import Node
@@ -432,7 +432,7 @@ class TestNodeAPI(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        helper = HelperTest(network)
+        helper = TestHelper(network)
 
         helper.generate_nodes(private_keys, 19)  # create validators
         helper.add_stakeholders(9)  # add stakeholders to network
@@ -480,7 +480,7 @@ class TestNodeAPI(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        helper = HelperTest(network)
+        helper = TestHelper(network)
 
         helper.generate_nodes(private_keys, 19)  # create validators
         helper.add_stakeholders(9)  # add stakeholders to network

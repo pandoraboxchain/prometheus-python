@@ -200,7 +200,7 @@ class Node:
 
         # PROVIDE PENALTY TRANSACTION FOR CONFLICT TOPS
         if len(conflicting_tops) > 0:
-            system_txs += self.form_penalize_violators_transaction(conflicting_tops)
+            system_txs.append(self.form_penalize_violators_transaction(conflicting_tops))
 
         if self.behaviour.off_malicious_links_to_wrong_blocks:
             current_top_blocks = []
@@ -344,7 +344,7 @@ class Node:
         self.logger.info("Forming transaction with conflicting blocks")
         node_private = self.block_signer.private_key
         tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
-        return [tx]
+        return tx
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
         ordered_senders = self.permissions.get_ordered_randomizers_pubkeys_for_round(epoch_hash, Round.PUBLIC)
@@ -547,7 +547,7 @@ class Node:
         for system_tx in system_txs:
             if isinstance(system_tx, PenaltyTransaction):
                 # penalty transaction for block conflicts
-                conflict_block_hashes = system_tx.conflicts
+                conflict_block_hashes += system_tx.conflicts
         # CHECK_CONFLICTS_IN_LOCAL_DAG
         blocks_by_hash = self.dag.blocks_by_hash
         for conflict in conflict_block_hashes:

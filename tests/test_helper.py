@@ -9,7 +9,7 @@ from node.node import Node
 from tools.time import Time
 
 
-class HelperTest(unittest.TestCase):
+class TestHelper(unittest.TestCase):
 
     def __init__(self, network):
         super().__init__()

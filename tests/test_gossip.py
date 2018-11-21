@@ -10,7 +10,7 @@ from node.node import Node
 from node.network import Network
 from node.validators import Validators
 from crypto.private import Private
-from tests.helper_test import HelperTest
+from tests.test_helper import TestHelper
 from tools.time import Time
 from transaction.gossip_transaction import PositiveGossipTransaction, \
                                            NegativeGossipTransaction, \
@@ -172,7 +172,7 @@ class TestGossip(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        helper = HelperTest(network)
+        helper = TestHelper(network)
         helper.generate_nodes(private_keys, 19)  # create validators
 
         # generate blocks to new epoch
@@ -364,7 +364,7 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
-        helper = HelperTest(network)
+        helper = TestHelper(network)
 
         Time.advance_to_next_timeslot()  # current block number 1
         node0.step()    # create and sign block
@@ -502,7 +502,7 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
-        helper = HelperTest(network)
+        helper = TestHelper(network)
 
         Time.advance_to_next_timeslot()  # current block number 1
         node0.step()  # create and sign block
@@ -625,7 +625,7 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
-        helper = HelperTest(network)
+        helper = TestHelper(network)
 
         Time.advance_to_next_timeslot()  # current block number 1
         node0.step()  # create and sign block
@@ -751,7 +751,7 @@ class TestGossip(unittest.TestCase):
                      behaviour=Behaviour())
         network.register_node(node5)
 
-        helper = HelperTest(network)
+        helper = TestHelper(network)
 
         Time.advance_to_next_timeslot()  # current block number 1
         node0.step()  # create and sign block
@@ -871,7 +871,7 @@ class TestGossip(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        helper = HelperTest(network)
+        helper = TestHelper(network)
         helper.generate_nodes(private_keys, 19)  # create validators
 
         # generate blocks to new epoch

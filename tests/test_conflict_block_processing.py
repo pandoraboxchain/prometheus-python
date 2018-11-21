@@ -9,7 +9,7 @@ from node.node import Node
 from node.network import Network
 from node.validators import Validators
 from crypto.private import Private
-from tests.helper_test import HelperTest
+from tests.test_helper import TestHelper
 from tools.time import Time
 
 from chain.params import Round, ROUND_DURATION
@@ -37,7 +37,7 @@ class TestConflictBlockProcessing(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        helper = HelperTest(network)
+        helper = TestHelper(network)
         helper.generate_nodes(private_keys, 19)  # create validators
 
         # generate blocks to new epoch
@@ -70,7 +70,7 @@ class TestConflictBlockProcessing(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        helper = HelperTest(network)
+        helper = TestHelper(network)
         helper.generate_nodes(private_keys, 19)  # create validators
 
         # generate blocks to new epoch
@@ -112,7 +112,7 @@ class TestConflictBlockProcessing(unittest.TestCase):
         validators.validators = Validators.read_genesis_validators_from_file()
 
         network = Network()
-        helper = HelperTest(network)
+        helper = TestHelper(network)
         helper.generate_nodes(private_keys, 19)  # create validators
         # add validators for group
         helper.add_stakeholders(9)  # add stakeholders to network
