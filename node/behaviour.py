@@ -1,6 +1,6 @@
 class Behaviour:
     def __init__(self):
-        self.malicious_excessive_block = False
+        self.malicious_excessive_block_count = -1
         self.malicious_skip_block = False
         self.malicious_wrong_signature = False
         self.malicious_wrong_signature_epoch = False

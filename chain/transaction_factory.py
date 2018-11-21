@@ -17,6 +17,7 @@ from transaction.stake_transaction import StakeHoldTransaction, \
 from transaction.utxo import Utxo, COINBASE_IDENTIFIER
 from chain.params import BLOCK_REWARD
 
+
 class TransactionFactory:
 
     @staticmethod
@@ -126,7 +127,7 @@ class TransactionFactory:
 
     @staticmethod
     def create_block_reward(address, block_number):
-        #block number is random data provider against hash collisions
+        # block number is random data provider against hash collisions
         return TransactionFactory.create_payment(COINBASE_IDENTIFIER, block_number, [address], [BLOCK_REWARD])
 
     @staticmethod

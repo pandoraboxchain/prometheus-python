@@ -18,5 +18,6 @@ from tests.test_conflict_finder import *
 from tests.test_utxo import *
 from tests.test_resolver import *
 from tests.test_network import *
+from tests.test_conflict_block_processing import *
 
 unittest.main()

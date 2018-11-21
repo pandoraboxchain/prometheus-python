@@ -15,6 +15,7 @@ from node.permissions import Permissions
 from node.validators import Validators
 from transaction.gossip_transaction import NegativeGossipTransaction, \
                                            PositiveGossipTransaction
+from transaction.stake_transaction import PenaltyTransaction
 from transaction.utxo import Utxo
 from transaction.mempool import Mempool
 from transaction.transaction_parser import TransactionParser
@@ -194,16 +195,20 @@ class Node:
         tops = self.dag.get_top_blocks_hashes()
         chosen_top = self.dag.get_longest_chain_top(tops)
         conflicting_tops = [top for top in tops if top != chosen_top]
-        
+
         current_top_blocks = [chosen_top] + conflicting_tops  # first link in dag is not considered conflict, the rest is.
-        
+
+        # PROVIDE PENALTY TRANSACTION FOR CONFLICT TOPS
+        if len(conflicting_tops) > 0:
+            system_txs.append(self.form_penalize_violators_transaction(conflicting_tops))
+
         if self.behaviour.off_malicious_links_to_wrong_blocks:
-            current_top_blocks = []  
+            current_top_blocks = []
             all_hashes = list(self.dag.blocks_by_hash.keys())
-            for _ in range(random.randint(1,3)):
+            for _ in range(random.randint(1, 3)):
                 block_hash = random.choice(all_hashes)
                 current_top_blocks.append(block_hash)
-            
+
             self.logger.info("Maliciously connecting block at slot %s to random hashes", current_block_number)
 
         block = BlockFactory.create_block_dummy(current_top_blocks)
@@ -225,7 +230,7 @@ class Node:
         else:
             self.logger.info("Created but maliciously skipped broadcasted block")
 
-        if self.behaviour.is_malicious_excessive_block():
+        if self.behaviour.malicious_excessive_block_count > 0:
             additional_block_timestamp = block.timestamp + 1
             additional_block = BlockFactory.create_block_with_timestamp(current_top_blocks, additional_block_timestamp)
             additional_block.system_txs = block.system_txs
@@ -235,6 +240,7 @@ class Node:
             self.conflict_watcher.on_new_block_by_validator(signed_add_block.get_hash(), epoch_number, self.node_pubkey) #mark our own conflict for consistency
             self.logger.info("Sending additional block")
             self.network.broadcast_block(self.node_id, signed_add_block.pack())
+            self.behaviour.malicious_excessive_block_count -= 1
 
     def get_system_transactions_for_signing(self, round):
         system_txs = self.mempool.pop_round_system_transactions(round)
@@ -335,12 +341,7 @@ class Node:
         return tx
 
     def form_penalize_violators_transaction(self, conflicts):
-        # TODO can be deprecated on get block by ancestor complete logic
-        for conflict in conflicts:
-            block = self.dag.blocks_by_hash[conflict]
-            self.network.broadcast_block(self.node_id, block.pack())
         self.logger.info("Forming transaction with conflicting blocks")
-        self.logger.info(conflict.hex())
         node_private = self.block_signer.private_key
         tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
         return tx
@@ -539,6 +540,20 @@ class Node:
         block = signed_block.block
         block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
         epoch_number = Epoch.get_epoch_number(block_number)
+
+        # GET_CONFLICT_HASHES
+        system_txs = block.system_txs
+        conflict_block_hashes = []
+        for system_tx in system_txs:
+            if isinstance(system_tx, PenaltyTransaction):
+                # penalty transaction for block conflicts
+                conflict_block_hashes += system_tx.conflicts
+        # CHECK_CONFLICTS_IN_LOCAL_DAG
+        blocks_by_hash = self.dag.blocks_by_hash
+        for conflict in conflict_block_hashes:
+            if conflict not in blocks_by_hash:
+                # request missing block
+                self.network.direct_request_block_by_hash(self.node_id, conflict)
 
         self.dag.add_signed_block(block_number, signed_block)
         self.mempool.remove_transactions(block.system_txs)

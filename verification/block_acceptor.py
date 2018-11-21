@@ -25,7 +25,7 @@ class BlockAcceptor(Acceptor):
         self.validate_longest_chain_goes_first(prev_hashes)
         self.validate_private_transactions_in_block(block, current_round)
 
-    # no previous hash should be ancestor of another previous hash 
+    # no previous hash should be ancestor of another previous hash
     def validate_non_ancestor_prev_hashes(self, prev_hashes):
         for prev_hash1 in prev_hashes:
             for prev_hash2 in prev_hashes:
