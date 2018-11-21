@@ -9,7 +9,7 @@ from node.node import Node
 from tools.time import Time
 
 
-class TestHelper(unittest.TestCase):
+class TestHelper:
 
     def __init__(self, network):
         super().__init__()
@@ -53,10 +53,12 @@ class TestHelper(unittest.TestCase):
             for node in self.network.nodes:  # by nodes
                 node.step()
 
-    def list_validator(self, node_list, functions, value):
+    @staticmethod
+    def list_validator(test_class, node_list, functions, value):
         """
             Method provide check of registered for network nodes (or custom nodes list to check)
             and perform assertTrue for all nodes in nodes_list for specific parameter by value
+            :param test_class: tests class self (for providing assertEqual())
             :param node_list: list of nodes for validation
             :param functions: see list of params in method or add necessary
             :param value: value of condition
@@ -64,20 +66,23 @@ class TestHelper(unittest.TestCase):
         """
         for node in node_list:
             if 'mempool.gossips.length' in functions:
-                self.assertEqual(len(node.mempool.gossips), value)
+                test_class.assertEqual(len(node.mempool.gossips), value)
             if 'dag.blocks_by_number.length' in functions:
-                self.assertEqual(len(node.dag.blocks_by_number), value)
+                test_class.assertEqual(len(node.dag.blocks_by_number), value)
+            if 'dag.blocks_by_number.system_txs' in functions:
+                last_block_system_txs = node.dag.blocks_by_number[len(node.dag.blocks_by_number)-1][0].block.system_txs
+                test_class.assertEqual(len(last_block_system_txs), value)
             if 'dag.transactions_by_hash.length' in functions:
-                self.assertEqual(len(node.dag.transactions_by_hash), value)
+                test_class.assertEqual(len(node.dag.transactions_by_hash), value)
             if 'permissions.epoch_validators.length' in functions:
                 validators_list = node.permissions.epoch_validators
                 validators_list = next(iter(validators_list.values()))
-                self.assertEqual(len(validators_list), value)
+                test_class.assertEqual(len(validators_list), value)
             if 'permissions.epoch_validators.epoch0.length' in functions:
                 validators_list = node.permissions.epoch_validators
                 validators_list = next(iter(validators_list.values()))
-                self.assertEqual(len(validators_list), value)
+                test_class.assertEqual(len(validators_list), value)
             if 'permissions.epoch_validators.epoch1.length' in functions:
                 validators_list = node.permissions.epoch_validators
                 validators_list = next(iter(validators_list.values()))
-                self.assertEqual(len(validators_list), value)
+                test_class.assertEqual(len(validators_list), value)

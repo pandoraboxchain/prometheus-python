@@ -198,10 +198,6 @@ class Node:
 
         current_top_blocks = [chosen_top] + conflicting_tops  # first link in dag is not considered conflict, the rest is.
 
-        # PROVIDE PENALTY TRANSACTION FOR CONFLICT TOPS
-        if len(conflicting_tops) > 0:
-            system_txs.append(self.form_penalize_violators_transaction(conflicting_tops))
-
         if self.behaviour.off_malicious_links_to_wrong_blocks:
             current_top_blocks = []
             all_hashes = list(self.dag.blocks_by_hash.keys())
@@ -338,12 +334,6 @@ class Node:
 
     def form_private_key_reveal_transaction(self):
         tx = TransactionFactory.create_private_key_transaction(self.epoch_private_keys.pop(0))
-        return tx
-
-    def form_penalize_violators_transaction(self, conflicts):
-        self.logger.info("Forming transaction with conflicting blocks")
-        node_private = self.block_signer.private_key
-        tx = TransactionFactory.create_penalty_transaction(conflicts, node_private)
         return tx
 
     def form_split_random_transaction(self, top_hash, epoch_hash):
@@ -540,20 +530,6 @@ class Node:
         block = signed_block.block
         block_number = self.epoch.get_block_number_from_timestamp(block.timestamp)
         epoch_number = Epoch.get_epoch_number(block_number)
-
-        # GET_CONFLICT_HASHES
-        system_txs = block.system_txs
-        conflict_block_hashes = []
-        for system_tx in system_txs:
-            if isinstance(system_tx, PenaltyTransaction):
-                # penalty transaction for block conflicts
-                conflict_block_hashes += system_tx.conflicts
-        # CHECK_CONFLICTS_IN_LOCAL_DAG
-        blocks_by_hash = self.dag.blocks_by_hash
-        for conflict in conflict_block_hashes:
-            if conflict not in blocks_by_hash:
-                # request missing block
-                self.network.direct_request_block_by_hash(self.node_id, conflict)
 
         self.dag.add_signed_block(block_number, signed_block)
         self.mempool.remove_transactions(block.system_txs)

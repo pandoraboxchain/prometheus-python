@@ -16,12 +16,12 @@ from chain.params import Round, ROUND_DURATION
 from visualization.dag_visualizer import DagVisualizer
 
 
-# TODO test for transaction and block count base logic            : Done
-# TODO test 2,3,4 blocks                                          : Done
-# TODO tets 2,3,4 blocks and + some 'out of network' nodes group  : resolves by orphan system
-# TODO test for two malicious validator one by one
-# TODO tets for epoch by epoch block
-# TODO test for three malicious validators one by one %
+# test for transaction and block count base logic            : Done
+# test 2,3,4 blocks                                          : Done
+# tets 2,3,4 blocks and + some 'out of network' nodes group  : resolves by orphan system
+# test for two malicious validator one by one
+# tets for epoch by epoch block
+# test for three malicious validators one by one %
 
 
 class TestConflictBlockProcessing(unittest.TestCase):
@@ -50,14 +50,13 @@ class TestConflictBlockProcessing(unittest.TestCase):
         # perform next one block step
         helper.perform_block_steps(1)
         # nodes MUST HAVE 2 conflict blocks
-        helper.list_validator(network.nodes, ['dag.blocks_by_number.length'], 7)  # + 1 conflict
+        helper.list_validator(self, network.nodes, ['dag.blocks_by_number.length'], 7)  # + 1 conflict
         network.nodes[next_malicious_signer_node_index].behaviour.malicious_excessive_block = False
-        # -- next validator MUST get two block conflicts send transaction
+        # -- next validator MUST get two block conflicts
         helper.perform_block_steps(1)
-        # check all nodes block conflict transaction mined
-        helper.list_validator(network.nodes, ['dag.blocks_by_number.system_txs'], 1)
+        helper.list_validator(self, network.nodes, ['dag.blocks_by_number.system_txs'], 0)
         # all nodes have all blocks test done
-        helper.list_validator(network.nodes, ['dag.blocks_by_number.length'], 8)
+        helper.list_validator(self, network.nodes, ['dag.blocks_by_number.length'], 8)
 
     def test_more_conflict_blocks(self):
         Time.use_test_time()
@@ -92,14 +91,13 @@ class TestConflictBlockProcessing(unittest.TestCase):
         helper.perform_block_steps(1)
         helper.perform_block_steps(1)
         DagVisualizer.visualize(network.nodes[0].dag)
-        helper.list_validator(network.nodes, ['dag.blocks_by_number.length'], 10)  # + 2 conflict
+        helper.list_validator(self, network.nodes, ['dag.blocks_by_number.length'], 10)  # + 2 conflict
 
         # -- next validator MUST get two block conflicts send transaction
         helper.perform_block_steps(1)
-        # check all nodes block conflict transaction mined
-        helper.list_validator(network.nodes, ['dag.blocks_by_number.system_txs'], 1)
+        helper.list_validator(self, network.nodes, ['dag.blocks_by_number.system_txs'], 1)
         # all nodes have all blocks test done
-        helper.list_validator(network.nodes, ['dag.blocks_by_number.length'], 11)
+        helper.list_validator(self, network.nodes, ['dag.blocks_by_number.length'], 11)
 
     def test_block_getter_by_node_groups(self):
         Time.use_test_time()
@@ -143,7 +141,7 @@ class TestConflictBlockProcessing(unittest.TestCase):
 
         helper.perform_block_steps(1)
 
-        # TODO all blocks are received and marged by orphan system
+        # all blocks are received and marged by orphan system
         self.assertEqual(len(network.nodes[0].dag.blocks_by_hash), 26)
         self.assertEqual(len(network.nodes[27].dag.blocks_by_hash), 26)
         # DagVisualizer.visualize(network.nodes[0].dag)
