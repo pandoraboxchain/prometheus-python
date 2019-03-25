@@ -397,6 +397,8 @@ class Node:
         signed_block = SignedBlock()
         signed_block.parse(raw_signed_block)
         block_number = self.epoch.get_block_number_from_timestamp(signed_block.block.timestamp)
+        self.logger.info("Received block with number %s at timeslot %s with hash %s", block_number, self.epoch.get_current_timeframe_block_number(), signed_block.block.get_hash().hex())
+
 
         # CHECK_ANCESTOR
         blocks_by_hash = self.dag.blocks_by_hash
@@ -435,7 +437,7 @@ class Node:
                 orphan_block_verifier = OrphanBlockAcceptor(self.epoch, self.blocks_buffer, self.logger)
                 if orphan_block_verifier.check_if_valid(signed_block.block):
                     self.blocks_buffer.append(signed_block)
-                    self.logger.info("Orphan block add to buffer")
+                    self.logger.info("Orphan block added to buffer")
                     # for every parent for received block
                     for prev_hash in signed_block.block.prev_hashes:  # check received block ancestor
                         if prev_hash not in self.dag.blocks_by_hash:  # check parent in local dag
@@ -444,17 +446,20 @@ class Node:
 
                 if len(self.blocks_buffer) > 0:
                     self.process_block_buffer()
-                    self.logger.info("Orphan block buffer processed success")
+                    self.logger.info("Orphan block buffer process success")
         else:
             self.logger.error("Received block from %d, but its signature is wrong", node_id)
 
     def handle_transaction_message(self, node_id, raw_transaction):
         transaction = TransactionParser.parse(raw_transaction)
+
         verifier = MempoolTransactionsAcceptor(self.epoch, self.permissions, self.logger)
         if verifier.check_if_valid(transaction):
             self.mempool.add_transaction(transaction)
             # PROCESS NEGATIVE GOSSIP
             if isinstance(transaction, NegativeGossipTransaction):
+                self.logger.info("Received negative gossip about block %s at timeslot %s", transaction.number_of_block,self.epoch.get_current_timeframe_block_number())
+
                 current_gossips = self.mempool.get_negative_gossips_by_block(transaction.number_of_block)
                 for gossip in current_gossips:
                     # negative gossip already send by node, skip positive gossip searching and broadcasting
@@ -466,6 +471,7 @@ class Node:
             # PROCESS POSITIVE GOSSIP
             if isinstance(transaction, PositiveGossipTransaction):
                 # ----> ! make request ONLY if block in timeslot
+                self.logger.info("Received positive gossip about block %s at timeslot %s", transaction.block_hash.hex(),self.epoch.get_current_timeframe_block_number())
                 if transaction.block_hash not in self.dag.blocks_by_hash:
                     self.network.get_block_by_hash(sender_node_id=self.node_id,
                                                    receiver_node_id=node_id,  # request TO ----> receiver_node_id
